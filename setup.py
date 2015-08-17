@@ -6,8 +6,8 @@ setup(name='GladTeX',
       author='Sebastian Humenda',
       author_email='shumenda@gmx.de',
       url='https://gladtex.sf.net',
-      packages=['gladtex'],
-      scripts=['cli/gladtex.py'],
+      packages=['gleetex'],
+      scripts=['gladtex.py'],
       license = "LGPL3.0"
      )
 
