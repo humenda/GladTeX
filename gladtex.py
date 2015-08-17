@@ -16,9 +16,6 @@ class HelpfulCmdParser(argparse.ArgumentParser):
 
 
 class Main:
-    def __init__(self):
-        self.__encoding = 'utf-8'
-
     def _parse_args(self, args):
         """Parse command line arguments and return option instance."""
         parser = HelpfulCmdParser()
@@ -27,6 +24,8 @@ class Main:
                 "single separate file and link images to it")
         parser.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in")
+        parser.add_argument('-E', dest='encoding', default="UTF-8",
+                help="Overwrite encoding to use (default UTF-8)")
         parser.add_argument('input_file', help="input .htex file with LaTeX " +
                 "formulas")
         return parser.parse_args(args)
@@ -37,25 +36,25 @@ class Main:
 
     def run(self, args):
         options = self._parse_args(args[1:])
-        input_fn = options.input_file
-        docparser = gleetex.htmlhandling.EqnParser()
         doc = None
-        with open(input_fn, 'r', encoding=self.__encoding) as file:
+        with open(options.input, 'r', encoding=options.encoding) as file:
+            docparser = gleetex.htmlhandling.EqnParser()
             try:
                 docparser.feed(file.read())
             except gleetex.htmlhandling.ParseException as e:
-                print('Error while parsing {}: {}', input_fn, (str(e[0])
+                print('Error while parsing {}: {}', options.input, (str(e[0])
                     if len(e) > 0 else str(e)))
                 self.exit(5)
             doc = docparser.get_data()
         formula_number = 0
-        i_formatter = gleetex.htmlhandling.HtmlImageFormatter()
+        i_formatter = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
+                options.encoding)
         i_formatter.set_exclude_long_formulas(True)
         for i in range(0, len(doc)):
             # two types of chunks: a) str (uninteresting), b) list: formula
             chunk = doc[i]
             if isinstance(chunk, list):
-                equation = doc[i][2]
+                equation = chunk[2]
                 latex = gleetex.document.LaTeXDocument(equation)
                 formula_fn = 'eqn%03d.png' % formula_number
                 conv = gleetex.image.Tex2img(latex, formula_fn)
@@ -69,8 +68,8 @@ class Main:
                 doc[i] = i_formatter.format(conv.get_positioning_info(),
                         equation, formula_fn)
                 formula_number += 1
-        html_fn = os.path.splitext(input_fn)[0] + '.html'
-        with open(html_fn, 'w', encoding=self.__encoding) as f:
+        html_fn = os.path.splitext(options.input)[0] + '.html'
+        with open(html_fn, 'w', encoding=options.encoding) as f:
             f.write(''.join(doc))
 
 if __name__ == '__main__':

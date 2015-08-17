@@ -211,7 +211,8 @@ class HtmlImageFormatter: # ToDo: localisation
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
         '\n<title>Outsourced Formulas</title>\n</head>\n<!-- ' +
         'Do not modify this file, it is automatically generated -->\n<body>\n')
-    def __init__(self, exclusion_filepath='outsourced_formulas.html'):
+    def __init__(self, exclusion_filepath='outsourced_formulas.html',
+            encoding="UTF-8"):
         self.__exclude_descriptions = False
         if os.path.exists(exclusion_filepath):
             if not os.access(exclusion_filepath, os.W_OK):
@@ -222,7 +223,7 @@ class HtmlImageFormatter: # ToDo: localisation
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
         self.initialized = False
-        self.encoding = 'utf-8' # ToDo: configuration setting
+        self.encoding = encoding
         self.initialize() # read already written file, if any
 
     def set_max_formula_length(self, length):

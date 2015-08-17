@@ -5,7 +5,6 @@ import os
 import re
 import subprocess
 import sys
-from gleetex.document import LaTeXDocument
 
 def remove_all(*files):
     """Guarded remove of files (rm -f); no exception is thrown if a file
@@ -38,11 +37,12 @@ class Tex2img:
     the issue.
     """
     DVIPNG_REGEX = re.compile(r"^ depth=(\d+) height=(\d+) width=(\d+)")
-    def __init__(self, tex_document, output_fn):
+    def __init__(self, tex_document, output_fn, encoding="UTF-8"):
         """tex_document should be either a full TeX document as a string or a
         class which implements the __str__ method."""
-        self.tex_document = tex_document 
+        self.tex_document = tex_document
         self.output_name = output_fn
+        self.__encoding = encoding
         self.__parsed_data = None
         self.__dpi = 100
         self.__keep_log = False
@@ -63,13 +63,12 @@ class Tex2img:
         tex_fn = os.path.join(path, os.path.splitext(basename)[0] + '.tex')
         aux_fn = os.path.join(path, os.path.splitext(basename)[0] + '.aux')
         log_fn = os.path.join(path, os.path.splitext(basename)[0] + '.log')
-        with open(tex_fn, mode='w', encoding='utf-8') as tex:
+        with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
             tex.write(str(self.tex_document))
         cmd = ['latex', '-halt-on-error', tex_fn]
         cwd = os.getcwd()
         if cwd != path and path != '':
             os.chdir(path)
-        logdata = None
         try:
             call(cmd)
         except subprocess.SubprocessError as e:
@@ -95,7 +94,7 @@ class Tex2img:
         data = None
         try:
             data = call(cmd)
-        except subprocess.SubprocessError as e:
+        except subprocess.SubprocessError:
             remove_all(self.output_name)
             raise # error message already contained
         finally:
@@ -111,7 +110,6 @@ class Tex2img:
         This calls create_dvi and create_png but will not return anything. Thre
         result should be retrieved using get_positioning_info()."""
         dvi = os.path.join(os.path.splitext(self.output_name)[0] + '.dvi')
-        data = ''
         try:
             self.create_dvi(dvi)
             self.__parsed_data = self.create_png(dvi)
