@@ -35,6 +35,7 @@ class Tex2img:
     This class interacts with the LaTeX and dvipng sub processes. Upon error
     the methods throw a SubprocessError with all necessary information to fix
     the issue.
+    The background of the PNG files will be transparent by default.
     """
     DVIPNG_REGEX = re.compile(r"^ depth=(\d+) height=(\d+) width=(\d+)")
     def __init__(self, tex_document, output_fn, encoding="UTF-8"):
@@ -46,12 +47,40 @@ class Tex2img:
         self.__parsed_data = None
         self.__dpi = 100
         self.__keep_log = False
+        self.__background = 'transparent'
+        self.__foreground = 'rgb 0 0 0'
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images."""
         if not isinstance(dpi, int):
             raise TypeError("Dpi must be an integer")
         self.__dpi = dpi
+
+    def set_transparency(self, flag):
+        """Set whether or not the background of an image is transparent."""
+        if not isinstance(flag, bool):
+            raise ValueError("Argument must be of type bool!")
+        self.__background = ('transparent' if flag else 'rgb 1 1 1')
+
+    def __check_rgb(self, rgb_list):
+        """Check whether a list of RGB colors is correct. It must contain three
+        broken decimals with 0 <= x <= 1."""
+        if not isinstance(rgb_list, [list, tuple]) or len(rgb_list) != 3:
+            raise ValueError("A list with three broken decimals between 0 and 1 expected.")
+        if not all((lambda x: x >= 0 and x <= 1), rgb_list):
+            raise ValueError("RGB values must between 0 and 1")
+
+    def set_background_color(self, rgb_list):
+        """set_background_color(rgb_values)
+        The list rgb_values must contain three broken decimals between 0 and 1."""
+        self.__check_rgb(rgb_list)
+        self.__background = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
+
+    def set_foreground_color(self, rgb_list):
+        """set_background_color(rgb_values)
+        The list rgb_values must contain three broken decimals between 0 and 1."""
+        self.__check_rgb(rgb_list)
+        self.__foreground = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
 
     def create_dvi(self, dvi_fn):
         """
@@ -88,9 +117,11 @@ class Tex2img:
 
     def create_png(self, dvi_fn):
         """Return parsed HTML dimensions.""" # ToDo: more descriptive
-        cmd = ['dvipng', '-q*', '-q', '-D', str(self.__dpi),
+        cmd = ['dvipng', '-q*', '-D', str(self.__dpi),
+                # colors
+                '-bg', self.__background, '-fg', self.__foreground,
                 '--height*', '--depth*', '--width*', # print information for embedding
-            '-o', self.output_name, dvi_fn]
+                '-o', self.output_name, dvi_fn]
         data = None
         try:
             data = call(cmd)
