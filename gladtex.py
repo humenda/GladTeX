@@ -26,7 +26,10 @@ class Main:
                 " store generated images in")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
                 help="Overwrite encoding to use (default UTF-8)")
-        parser.add_argument('input_file', help="input .htex file with LaTeX " +
+        parser.add_argument('-r', metavar='DPI', dest='dpi', default=100,
+                type=int, help="set resolution (size of images) to 'dpi' " + \
+                "(100 by default)")
+        parser.add_argument('input', help="input .htex file with LaTeX " +
                 "formulas")
         return parser.parse_args(args)
 
@@ -58,6 +61,7 @@ class Main:
                 latex = gleetex.document.LaTeXDocument(equation)
                 formula_fn = 'eqn%03d.png' % formula_number
                 conv = gleetex.image.Tex2img(latex, formula_fn)
+                conv.set_dpi(options.dpi)
                 try:
                     conv.convert()
                 except SubprocessError as e:
