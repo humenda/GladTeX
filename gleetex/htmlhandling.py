@@ -222,6 +222,7 @@ class HtmlImageFormatter: # ToDo: localisation
         self.__inline_maxlength=100
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
+        self.__url = ''
         self.initialized = False
         self.encoding = encoding
         self.initialize() # read already written file, if any
@@ -235,6 +236,11 @@ class HtmlImageFormatter: # ToDo: localisation
         """When set, the LaTeX code of a formula longer than the configured
         maxlength will be excluded and written + linked into a separate file."""
         self.__exclude_descriptions = flag
+
+    def set_url(self, prefix):
+        """Set URL prefix which is used as a prefix to the image file in the
+        HTML link."""
+        self.__url = prefix
 
     def initialize(self):
         """Initialize the image writer. If a file with already written image
@@ -276,9 +282,13 @@ class HtmlImageFormatter: # ToDo: localisation
         :param formula LaTeX alternative text
         :param img_path: path to image
         :returns a string with the formatted HTML string"""
+        full_url = img_path
+        if self.__url:
+            if self.__url.endswith('/'): self.__url = self.__url[:-1]
+            full_url = self.__url + '/' + img_path
         return ('<img src="{0}" style="vertical-align: -{2[depth]}" '
                 'height="{2[height]}" width="{2[width]}" alt="{1}" />').\
-                format(img_path, formula, pos)
+                format(full_url, formula, pos)
 
     def format_excluded(self, pos, formula, img_path):
         """This method formats a formula and an formula image in HTML and

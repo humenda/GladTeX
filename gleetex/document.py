@@ -1,4 +1,4 @@
-""""Create a LaTeX document around a formula."""
+"""Create a LaTeX document around a formula."""
 
 from functools import reduce
 import textwrap

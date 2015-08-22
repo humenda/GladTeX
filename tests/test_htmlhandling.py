@@ -97,7 +97,7 @@ class HtmlImageTest(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_that_no_file_is_written_if_no_content(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter('foo.html'):
             pass
         self.assertFalse(os.path.exists('foo.html')        )
 
@@ -169,6 +169,20 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue(os.path.exists('foo.html'))
         data = read('foo.html')
         self.assertTrue('\\tau\\tau' in data)
+
+    def test_url_is_included(self):
+        prefix = "http://crustulus.de/blog"
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            img.set_url(prefix)
+            data = img.format(self.pos, '\epsilon<0', 'foo.png')
+            self.assertTrue( prefix in data)
+
+    def test_url_doesnt_contain_double_slashes(self):
+        prefix = "http://crustulus.de/blog/"
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            img.set_url(prefix)
+            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
+            self.assertFalse('//' in data.replace('http://','ignore'))
 
 def htmleqn(formula, hr=True):
     """Format a formula to appear as if it would have been outsourced into an

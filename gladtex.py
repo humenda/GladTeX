@@ -29,6 +29,8 @@ class Main:
         parser.add_argument('-r', metavar='DPI', dest='dpi', default=100,
                 type=int, help="set resolution (size of images) to 'dpi' " + \
                 "(100 by default)")
+        parser.add_argument("-u", metavar="URL", dest='url',
+                help="url to image files (relative links are default)")
         parser.add_argument('input', help="input .htex file with LaTeX " +
                 "formulas")
         return parser.parse_args(args)
@@ -50,9 +52,11 @@ class Main:
                 self.exit(5)
             doc = docparser.get_data()
         formula_number = 0
-        i_formatter = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
+        img_fmt = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
                 options.encoding)
-        i_formatter.set_exclude_long_formulas(True)
+        img_fmt.set_exclude_long_formulas(True)
+        if options.url:
+            img_fmt.set_url(options.url)
         for i in range(0, len(doc)):
             # two types of chunks: a) str (uninteresting), b) list: formula
             chunk = doc[i]
@@ -69,7 +73,7 @@ class Main:
                     print("Error: %s" % e.args[0])
                     self.exit(91)
                 # replace old chunk with formatted html string
-                doc[i] = i_formatter.format(conv.get_positioning_info(),
+                doc[i] = img_fmt.format(conv.get_positioning_info(),
                         equation, formula_fn)
                 formula_number += 1
         html_fn = os.path.splitext(options.input)[0] + '.html'

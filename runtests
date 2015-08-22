@@ -1,11 +1,11 @@
 #!/bin/sh
 # change above to python, if your system doesn't have the 3 suffix for python 3
 set -e
-PYTHON=python3
+PYTHON=python
 #  check whether a program called "python3" exists, else use "python"
-if command -v foo >/dev/null 2>&1
+if command -v python3 >/dev/null 2>&1
 then
-    PYTHON=python
+    PYTHON=python3
 fi
 
 $PYTHON -m unittest discover tests
