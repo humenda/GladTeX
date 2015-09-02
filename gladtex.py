@@ -63,7 +63,8 @@ class Main:
             if isinstance(chunk, list):
                 equation = chunk[2]
                 latex = gleetex.document.LaTeXDocument(equation)
-                formula_fn = 'eqn%03d.png' % formula_number
+                formula_fn = os.path.join(os.path.abspath(os.path.split( \
+                    options.input)[0]), 'eqn%03d.png' % formula_number)
                 conv = gleetex.image.Tex2img(latex, formula_fn)
                 conv.set_dpi(options.dpi)
                 try:
