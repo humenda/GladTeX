@@ -23,7 +23,7 @@ class EqnParser(HTMLParser):
 
             eqns = [e for e in parser.get_data()   if isinstance(e, list)]
 
-    NOTE: The document is slightly altered. Tags will be lower cae and some
+    NOTE: The document is slightly altered. Tags will be lower case and some
     spacing can be lost. The parser tries to preserve as much as possible, but
     e.g. stand-alone tags like `<br />` would loose the space."""
     def __init__(self):
