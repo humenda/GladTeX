@@ -1,6 +1,7 @@
 """
 This module takes care of the actual image creation process.
 """
+import distutils.dir_util
 import os
 import re
 import subprocess
@@ -19,14 +20,25 @@ def remove_all(*files):
 def call(cmd):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
     stdin and stdout, decoded if not None. If the return value is not equal 0, a
-    subprocess error is raised."""
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    data = [d.decode(sys.getdefaultencoding()) for d in proc.communicate()
-            if d]
-    if proc.wait():
-        # include stderr, if it exists
-        raise subprocess.SubprocessError("Error while executing %s%s" %
+    subprocess error is raised. Timeouts will happen after 20 seconds."""
+    data = tuple()
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        data = [d.decode(sys.getdefaultencoding()) for d in proc.communicate() \
+                if d]
+        if proc.wait():
+            # include stderr, if it exists
+            raise subprocess.SubprocessError("Error while executing %s%s" %
                 (' '.join(cmd), '\n'.join(data)))
+    except subprocess.TimeoutExpired as e:
+        sys.stderr.write(str(cmd).encode(sys.getdefaultencoding()))
+        if data:
+            raise subprocess.SubprocessError(str(data))
+        else:
+            raise e
+    except KeyboardInterrupt:
+        sys.stderr.write(("Interrupted while waiting for: " +
+            str(cmd)))
     return data
 
 class Tex2img:
@@ -49,6 +61,11 @@ class Tex2img:
         self.__keep_log = False
         self.__background = 'transparent'
         self.__foreground = 'rgb 0 0 0'
+        # create directory for image if that doesn't exist
+        base_name = os.path.split(output_fn)[0]
+        if base_name and not os.path.exists(base_name):
+            distutils.dir_util.mkpath(base_name)
+
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images."""

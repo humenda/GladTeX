@@ -58,7 +58,11 @@ class Main:
                     if len(e) > 0 else str(e)))
                 self.exit(5)
             doc = docparser.get_data()
-        processed = self.convert_images(doc, os.path.split(options.input)[0], options.dpi)
+        # base name is the inut file name + an optional directory specified with
+        # -d
+        base_name = ('' if not options.directory else options.directory)
+        base_name = os.path.join(os.path.split(options.input)[0], base_name)
+        processed = self.convert_images(doc, base_name, options.dpi)
         img_fmt = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
                 self.__encoding)
         img_fmt.set_exclude_long_formulas(True)
@@ -90,8 +94,8 @@ class Main:
                 try:
                     conv.convert()
                 except SubprocessError as e:
-                    print("Error while converting the formula: %s at line %d" \
-                            % (equation, ', '.join(chunk[0])))
+                    print(("Error while converting the formula: %s at line %d"
+                            " pos %d") % (equation, chunk[0][0], chunk[0][1]))
                     print("Error: %s" % e.args[0])
                     self.exit(91)
                 # replace old chunk with formatted html string
