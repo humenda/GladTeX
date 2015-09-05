@@ -47,7 +47,7 @@ class LaTeXDocument:
         \\usepackage{amsmath, amssymb}
         %s
         \\usepackage[active,textmath,displaymath,tightpage]{preview} %% must be last one, see doc\n
-        \\begin{document}\n%s%s%s\\end{document}""" % (
+        \\begin{document}\n%s%s%s\n\\end{document}""" % (
             encoding, self.preamble,
             opening, self.__equation, closing))
 

@@ -21,25 +21,29 @@ def call(cmd):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
     stdin and stdout, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
-    data = tuple()
-    try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        data = [d.decode(sys.getdefaultencoding()) for d in proc.communicate() \
-                if d]
-        if proc.wait():
-            # include stderr, if it exists
-            raise subprocess.SubprocessError("Error while executing %s%s" %
-                (' '.join(cmd), '\n'.join(data)))
-    except subprocess.TimeoutExpired as e:
-        sys.stderr.write(str(cmd).encode(sys.getdefaultencoding()))
-        if data:
-            raise subprocess.SubprocessError(str(data))
-        else:
-            raise e
-    except KeyboardInterrupt:
-        sys.stderr.write(("Interrupted while waiting for: " +
-            str(cmd)))
-    return data
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
+            universal_newlines=True) as proc:
+        data = []
+        try:
+            if proc.wait(timeout=20):
+                # include stdout/stderr, if it exists
+                data = [d for d in proc.communicate(timeout=20) if d]
+                raise subprocess.SubprocessError("Problem occurred while executing %s%s\n" %
+                    (' '.join(cmd), '\n'.join(data)))
+            data = [d for d in proc.communicate(timeout=20) if d]
+        except subprocess.TimeoutExpired as e:
+            print(proc.poll())
+            proc.kill()
+            sys.stderr.write('Subprocess expired with time out: ' + str(cmd) + '\n')
+            if data:
+                raise subprocess.SubprocessError(str(data))
+            else:
+                raise e
+        except KeyboardInterrupt as e:
+            sys.stderr.write("\nInterrupted; ")
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+        return data
 
 class Tex2img:
     """
@@ -58,7 +62,6 @@ class Tex2img:
         self.__encoding = encoding
         self.__parsed_data = None
         self.__dpi = 100
-        self.__keep_log = False
         self.__background = 'transparent'
         self.__foreground = 'rgb 0 0 0'
         # create directory for image if that doesn't exist
@@ -106,21 +109,19 @@ class Tex2img:
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
         path, basename = os.path.split(dvi_fn)
-        tex_fn = os.path.join(path, os.path.splitext(basename)[0] + '.tex')
-        aux_fn = os.path.join(path, os.path.splitext(basename)[0] + '.aux')
-        log_fn = os.path.join(path, os.path.splitext(basename)[0] + '.log')
-        with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
-            tex.write(str(self.tex_document))
+        tex_fn = os.path.splitext(basename)[0] + '.tex'
+        aux_fn = os.path.splitext(basename)[0] + '.aux'
+        log_fn = os.path.splitext(basename)[0] + '.log'
         cmd = ['latex', '-halt-on-error', tex_fn]
         cwd = os.getcwd()
         if cwd != path and path != '':
             os.chdir(path)
+        with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
+            tex.write(str(self.tex_document))
         try:
             call(cmd)
         except subprocess.SubprocessError as e:
             remove_all(dvi_fn)
-            if not self.__keep_log:
-                remove_all(log_fn)
             msg = ''
             if e.args:
                 data = self.parse_log(e.args[0])
@@ -128,9 +129,8 @@ class Tex2img:
                     msg += data
             raise subprocess.SubprocessError(msg) # propagate subprocess error
         finally:
-            remove_all(tex_fn, aux_fn)
+            remove_all(tex_fn, aux_fn, log_fn)
             os.chdir(cwd)
-        remove_all(log_fn)
 
     def create_png(self, dvi_fn):
         """Return parsed HTML dimensions.""" # ToDo: more descriptive
@@ -144,7 +144,7 @@ class Tex2img:
             data = call(cmd)
         except subprocess.SubprocessError:
             remove_all(self.output_name)
-            raise # error message already contained
+            raise
         finally:
             remove_all(dvi_fn)
         for line in data[0].split('\n'):

@@ -87,3 +87,9 @@ class test_imagecreation(unittest.TestCase):
         self.assertTrue('width' in posdata)
 
  
+    def test_that_output_file_names_with_paths_are_ok_and_log_is_removed(self):
+       t = image.Tex2img(doc(r"\hat{es}\pi\pi\ldots"), "bilder/farce.png")
+       t.convert()
+       self.assertFalse(os.path.exists("farce.log"))
+       self.assertTrue(os.path.exists("bilder/farce.png"))
+ 
