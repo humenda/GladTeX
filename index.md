@@ -26,7 +26,7 @@ Source Code
 
 The source code can be obtained using git:
 
-    $ git clone 
+    $ git clone https://github.com/humenda/gladtex.git
     
 Contact
 -------
