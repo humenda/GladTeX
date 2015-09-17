@@ -5,7 +5,7 @@ About
 -----
 
 GladTeX is a preprocessor that enables the use of LaTeX maths within HTML
-files. The maths, embedded in <EQ>...</EQ> tags, as if within $$..$$ in LaTeX,
+files. The maths, embedded in `<EQ>...</EQ>` tags, as if within `\(..\)` in LaTeX (or `$...$` in TeX),
 is fed through latex and replaced by images.
 
 Additionally all images get an alt-tag for alternative texts that contains the
