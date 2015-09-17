@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+for input in $(ls *.md)
+do
+    echo "Converting $input"
+    output=`echo $input|sed 's/\(.*\)md$/\1html/g'`
+    pandoc -s -f markdown -t html -o $output $input
+done
