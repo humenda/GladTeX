@@ -15,7 +15,7 @@ people.
 GladTeX also supports caching of formulas in order to enable incremental
 document editing or simply to share formulas across web pages.
 
-GladTeX can be used with [[Pandoc]](http://pandoc.org) in order to convert
+GladTeX can be used with [Pandoc](http://pandoc.org) in order to convert
 MarkDown to HTML with LaTeX formulas.
 
 It also contains a library GleeTeX to custom tailor the generation and
