@@ -10,6 +10,7 @@ def write(path, content):
         f.write(content)
 class test_caching(unittest.TestCase):
     def setUp(self):
+        self.pos = {'height' : 8, 'depth' : 2, 'width' : 666}
         self.original_directory = os.getcwd()
         self.tmpdir = tempfile.mkdtemp()
         os.chdir(self.tmpdir)
@@ -19,7 +20,7 @@ class test_caching(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_differently_spaced_formulas_are_the_smae(self):
-        form1 = '\tau  \pi'
+        form1 = r'\tau  \pi'
         form2 = '\tau\\pi'
         self.assertTrue(caching.unify_formula(form1),
                 caching.unify_formula(form2))
@@ -46,31 +47,43 @@ class test_caching(unittest.TestCase):
             f.write(b'\x00')
         c = caching.ImageCache('file.png')
         formula = r"f(x) = \ln(x)"
-        c.add_formula(formula, 'foo.png')
+        c.add_formula(formula, self.pos, 'foo.png')
         self.assertTrue(formula in c)
 
     def test_that_invalid_cach_entries_are_detected(self):
         # entry is invalid if file doesn't exist
         c = caching.ImageCache()
         formula = r"f(x) = \ln(x)"
-        self.assertRaises(OSError, c.add_formula, formula, 'file.png')
+        self.assertRaises(OSError, c.add_formula, formula, self.pos, 'file.png')
+
+    def test_that_correct_pos_and_path_are_returned_after_writing_the_cache_back(self):
+        c = caching.ImageCache()
+        formula = r"f(x) = \ln(x)"
+        with open('file.png', 'w') as f:
+            f.write('dummy')
+        c.add_formula(formula, self.pos, 'file.png')
+        c.write()
+        c = caching.ImageCache()
+        self.assertTrue(formula in c)
+        self.assertEqual(c.get_formula_data(formula), (self.pos, 'file.png'))
+
 
     def test_formulas_are_not_added_twice(self):
-        form1 = '\ln(x) \neq e^x'
+        form1 = r'\ln(x) \neq e^x'
         write('spass.png', 'binaryBinary_binary')
         c = caching.ImageCache()
         for i in range(1,10):
-            c.add_formula(form1, 'spass.png')
+            c.add_formula(form1, self.pos, 'spass.png')
         self.assertEqual(len(c), 1)
 
     def test_that_remove_actually_removes(self):
         form1 = '\\int e^x dy'
         write('happyness.png', 'binaryBinary_binary')
         c = caching.ImageCache()
-        c.add_formula(form1, 'happyness.png')
+        c.add_formula(form1, self.pos, 'happyness.png')
         c.remove_formula(form1)
         self.assertEqual(len(c), 0)
- 
+
     def test_removal_of_non_existing_formula_raises_exception(self):
         c = caching.ImageCache()
         self.assertRaises(KeyError, c.remove_formula, 'Haha!')

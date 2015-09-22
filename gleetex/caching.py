@@ -59,18 +59,20 @@ class ImageCache:
             raise ValueError("Cache in %s has version %s, expected %s." % \
                     (self.__path, cur_version, CACHE_VERSION))
 
-    def add_formula(self, formula, file_path):
+    def add_formula(self, formula, pos, file_path):
         """Add formula to cache. The cache consists of a mapping from formula to
-        file path. Formulas are "unified" with `unify_formula`. Existing
+        (pos, file path). Formulas are "unified" with `unify_formula`. Existing
         formulas are overwritten.
         :param formula formula to add
+        :pos positioning information (dictionary with keys height, width and
+                depth)
         :param file_path path to image file which contains the formula.
         :raises OSError if specified image doesn't exists"""
         if not os.path.exists(file_path):
             raise OSError("cannot add %s to the path: doesn't exist" %
                     file_path)
         formula = unify_formula(formula)
-        self.__cache[formula] = file_path
+        self.__cache[formula] = {'pos' : pos, 'path' : file_path}
 
     def remove_formula(self, formula):
         """Formula is unified using `unify_formula` and removed. If no such
@@ -80,4 +82,13 @@ class ImageCache:
             raise KeyError("key %s not in cache" % formula)
         else:
             del self.__cache[formula]
+
+    def get_formula_data(self, formula):
+        """Return positioning info (dict) and path to image for given formula or
+        raise ValueError if not found."""
+        formula = unify_formula(formula)
+        if not formula in self.__cache:
+            raise KeyError(formula)
+        else:
+            return (self.__cache[formula]['pos'], self.__cache[formula]['path'])
 
