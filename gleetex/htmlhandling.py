@@ -286,9 +286,11 @@ class HtmlImageFormatter: # ToDo: localisation
         if self.__url:
             if self.__url.endswith('/'): self.__url = self.__url[:-1]
             full_url = self.__url + '/' + img_path
-        return ('<img src="{0}" style="vertical-align: -{2[depth]}" '
+        # depth is a negative offset
+        depth = str(int(pos['depth']) * -1)
+        return ('<img src="{0}" style="vertical-align: {3}" '
                 'height="{2[height]}" width="{2[width]}" alt="{1}" />').\
-                format(full_url, formula, pos)
+                format(full_url, formula, pos, depth)
 
     def format_excluded(self, pos, formula, img_path):
         """This method formats a formula and an formula image in HTML and
