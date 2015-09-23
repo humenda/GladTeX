@@ -85,9 +85,9 @@ class Tex2img:
     def __check_rgb(self, rgb_list):
         """Check whether a list of RGB colors is correct. It must contain three
         broken decimals with 0 <= x <= 1."""
-        if not isinstance(rgb_list, [list, tuple]) or len(rgb_list) != 3:
+        if not isinstance(rgb_list, (list, tuple)) or len(rgb_list) != 3:
             raise ValueError("A list with three broken decimals between 0 and 1 expected.")
-        if not all((lambda x: x >= 0 and x <= 1), rgb_list):
+        if not all(map((lambda x: x >= 0 and x <= 1), rgb_list)):
             raise ValueError("RGB values must between 0 and 1")
 
     def set_background_color(self, rgb_list):

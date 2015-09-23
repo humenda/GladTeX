@@ -1,6 +1,7 @@
 import argparse
 import gleetex
 import os
+import re
 import sys
 from subprocess import SubprocessError
 
@@ -28,13 +29,17 @@ class Main:
         parser.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
                 "for images which are too long for the alt attribute into a " +
                 "single separate file and link images to it")
+        parser.add_argument('-b', dest='background_color',
+                help="Set background color for resulting images (default transparent)")
+        parser.add_argument('-c', dest='foreground_color',
+                help="Set foreground color for resulting images (default 0,0,0)")
         parser.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
                 help="Overwrite encoding to use (default UTF-8)")
-        parser.add_argument('-r', metavar='DPI', dest='dpi', default=100,
-                type=int, help="set resolution (size of images) to 'dpi' " + \
-                "(100 by default)")
+        parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
+                help="set resolution (size of images) to 'dpi' (100 by " + \
+                    "default)")
         parser.add_argument("-u", metavar="URL", dest='url',
                 help="url to image files (relative links are default)")
         parser.add_argument('input', help="input .htex file with LaTeX " +
@@ -45,8 +50,23 @@ class Main:
         """Exit function. Could be used to register any clean up action."""
         sys.exit(status)
 
+    def validate_options(self, opts):
+        """Validate certain arguments suppliedon the command line."""
+        color_regex = re.compile(r"^\d(?:\.\d+)?,\d(?:\.\d+)?,\d(?:\.\d+)?")
+        if opts.background_color and not color_regex.match(opts.background_color):
+            print("Option -b requires a string in the format " +
+                        "num,num,num where num is a broken decimal between 0 " +
+                        "and 1.")
+            sys.exit(12)
+        if opts.foreground_color and not color_regex.match(opts.foreground_color):
+            print("Option -c requires a string in the format " +
+                        "num,num,num where num is a broken decimal between 0 " +
+                        "and 1.")
+            sys.exit(13)
+
     def run(self, args):
         options = self._parse_args(args[1:])
+        self.validate_options(options)
         self.__encoding = options.encoding
         doc = None
         with open(options.input, 'r', encoding=options.encoding) as file:
@@ -83,8 +103,16 @@ class Main:
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
         conv = gleetex.convenience.CachedConverter(base_path)
-        if options.dpi:
-            conv.set_option('dpi', options.dpi)
+        options_to_query = ['dpi']
+        for option_str in options_to_query:
+            option = getattr(options, option_str)
+            if option:
+                conv.set_option(option_str, option)
+        # colors need special handling
+        for option_str in ['foreground_color', 'background_color']:
+            option = getattr(options, option_str)
+            if option:
+                conv.set_option(option_str, tuple(map(float, option.split(','))))
         for chunk in parsed_htex_document:
             # two types of chunks: a) str (uninteresting), b) list: formula
             if isinstance(chunk, list):
