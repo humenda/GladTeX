@@ -74,6 +74,8 @@ class Main:
             for chunk in processed:
                 if isinstance(chunk, (list, tuple)):
                     f.write(img_fmt.format(*chunk))
+                else:
+                    f.write(chunk)
 
     def convert_images(self, parsed_htex_document, base_path, options):
         """Convert all formulas to images and store file path and equation in a
