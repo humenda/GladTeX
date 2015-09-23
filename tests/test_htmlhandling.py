@@ -184,6 +184,16 @@ class HtmlImageTest(unittest.TestCase):
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
             self.assertFalse('//' in data.replace('http://','ignore'))
 
+    # depth is used as negative offset, so negative depth should result in
+    # positive offset
+    def test_that_negative_depth_results_in_positive_offset(self):
+        self.pos['depth'] = '-999'
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
+            self.assertTrue('align: ' + str(self.pos['depth'])[1:] in data)
+
+        
+
 def htmleqn(formula, hr=True):
     """Format a formula to appear as if it would have been outsourced into an
     external file."""

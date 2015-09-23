@@ -62,7 +62,7 @@ class Main:
         # -d
         base_name = ('' if not options.directory else options.directory)
         base_name = os.path.join(os.path.split(options.input)[0], base_name)
-        processed = self.convert_images(doc, base_name, options.dpi)
+        processed = self.convert_images(doc, base_name, options)
         img_fmt = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
                 self.__encoding)
         img_fmt.set_exclude_long_formulas(True)
@@ -75,32 +75,27 @@ class Main:
                 if isinstance(chunk, (list, tuple)):
                     f.write(img_fmt.format(*chunk))
 
-    def convert_images(self, parsed_htex_document, base_path, dpi):
+    def convert_images(self, parsed_htex_document, base_path, options):
         """Convert all formulas to images and store file path and equation in a
         list to be processed later on."""
-        formula_number = 0
-        base_path = (None if not base_path or base_path == '.' else base_path)
+        base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
+        conv = gleetex.convenience.CachedConverter(base_path)
+        if options.dpi:
+            conv.set_option('dpi', options.dpi)
         for chunk in parsed_htex_document:
             # two types of chunks: a) str (uninteresting), b) list: formula
             if isinstance(chunk, list):
                 equation = chunk[2]
-                latex = gleetex.document.LaTeXDocument(equation)
-                formula_fn = 'eqn%03d.png' % formula_number
-                if base_path:
-                    formula_fn = os.path.join(base_path, formula_fn)
-                conv = gleetex.image.Tex2img(latex, formula_fn)
-                conv.set_dpi(dpi)
                 try:
-                    conv.convert()
+                    pos, path = conv.convert(equation)
+                    # add data for formatting to `result`
+                    result.append((pos, equation, path))
                 except SubprocessError as e:
                     print(("Error while converting the formula: %s at line %d"
                             " pos %d") % (equation, chunk[0][0], chunk[0][1]))
                     print("Error: %s" % e.args[0])
                     self.exit(91)
-                # replace old chunk with formatted html string
-                formula_number += 1
-                result.append((conv.get_positioning_info(), equation, formula_fn))
             else:
                 result.append(chunk)
         return result

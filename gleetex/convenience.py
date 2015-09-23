@@ -50,8 +50,9 @@ class CachedConverter:
             conv = image.Tex2img(latex, eqnpath(num))
             for option, value in self.__options.items():
                 if value:
-                    setattr(conv, 'set_' + option)(value)
-            pos = conv.convert()
+                    setattr(conv, 'set_' + option, value)
+            conv.convert()
+            pos = conv.get_positioning_info()
             self.__cache.add_formula(formula,  pos, eqnpath(num))
             self.__cache.write()
             return (pos, eqnpath)

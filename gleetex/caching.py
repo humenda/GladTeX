@@ -3,7 +3,8 @@ formula twice."""
 
 import json
 import os
-from . import CACHE_VERSION
+
+CACHE_VERSION = '2.0'
 
 def unify_formula(formula):
     """This function unifies a formula. This e.g. means that multiple white
