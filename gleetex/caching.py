@@ -69,6 +69,8 @@ class ImageCache:
                 depth)
         :param file_path path to image file which contains the formula.
         :raises OSError if specified image doesn't exists"""
+        if not pos or not formula or not file_path:
+            raise ValueError("the supplied arguments may not be empty/none")
         if not os.path.exists(file_path):
             raise OSError("cannot add %s to the path: doesn't exist" %
                     file_path)
