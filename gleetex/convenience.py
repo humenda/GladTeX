@@ -55,5 +55,5 @@ class CachedConverter:
             pos = conv.get_positioning_info()
             self.__cache.add_formula(formula,  pos, eqnpath(num))
             self.__cache.write()
-            return (pos, eqnpath)
+            return (pos, eqnpath(num))
 

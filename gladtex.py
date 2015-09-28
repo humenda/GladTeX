@@ -34,9 +34,13 @@ class Main:
         parser.add_argument('-c', dest='foreground_color',
                 help="Set foreground color for resulting images (default 0,0,0)")
         parser.add_argument('-d', dest='directory', help="Directory in which to" +
-                " store generated images in")
+                " store generated images in (relative path)")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
                 help="Overwrite encoding to use (default UTF-8)")
+        parser.add_argument('-o', metavar='FILENAME', dest='output',
+                help=("set output file name; '-' will print text to stdout (by"
+                    "default input file name is used and .htex ending changed "
+                    "to .html)"))
         parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
                 help="set resolution (size of images) to 'dpi' (100 by " + \
                     "default)")
@@ -64,38 +68,69 @@ class Main:
                         "and 1.")
             sys.exit(13)
 
+    def get_input_output(self, options):
+        """Return input document as string and determine, base directory and
+        output file name. If -o is supplied, the output file name is not
+        altered. If document is read from stdin and no -o option is specified,
+        standard output will be used (denoted by -). If an ordinary input file
+        is given and no output file name, the same file with .html endingin
+        (instead of .htex) is used."""
+        data = None
+        base_path = ''
+        output = '-'
+        if options.input == '-':
+            data = sys.stdin.read()
+        else:
+            with open(options.input, 'r', encoding=options.encoding) as file:
+                data = file.read()
+            base_path = os.path.split(options.input)[0]
+        # check which output file name to use
+        if options.output:
+            base_path = os.path.split(options.output)[0]
+            output = options.output
+        else:
+            if options.input != '-':
+                base_path = os.path.split(options.input)[0]
+                output = os.path.splitext(options.input)[0] + '.html'
+        if options.directory:
+            base_path = os.path.join(base_path, options.directory)
+        return (data, base_path, output)
+
+
     def run(self, args):
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        doc = None
-        with open(options.input, 'r', encoding=options.encoding) as file:
-            docparser = gleetex.htmlhandling.EqnParser()
-            try:
-                docparser.feed(file.read())
-            except gleetex.htmlhandling.ParseException as e:
-                print('Error while parsing {}: {}', options.input, (str(e[0])
-                    if len(e) > 0 else str(e)))
-                self.exit(5)
-            doc = docparser.get_data()
-        # base name is the inut file name + an optional directory specified with
-        # -d
-        base_name = ('' if not options.directory else options.directory)
-        base_name = os.path.join(os.path.split(options.input)[0], base_name)
-        processed = self.convert_images(doc, base_name, options)
+        docparser = gleetex.htmlhandling.EqnParser()
+        doc, base_path, output = self.get_input_output(options)
+        try:
+            docparser.feed(doc)
+        except gleetex.htmlhandling.ParseException as e:
+            print('Error while parsing {}: {}', options.input, (str(e[0])
+                if len(e) > 0 else str(e)))
+            self.exit(5)
+        doc = docparser.get_data()
+        processed = self.convert_images(doc, base_path, options)
         img_fmt = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
                 self.__encoding)
         img_fmt.set_exclude_long_formulas(True)
         if options.url:
             img_fmt.set_url(options.url)
 
-        html_fn = os.path.splitext(options.input)[0] + '.html'
-        with open(html_fn, 'w', encoding=options.encoding) as f:
-            for chunk in processed:
-                if isinstance(chunk, (list, tuple)):
-                    f.write(img_fmt.format(*chunk))
-                else:
-                    f.write(chunk)
+        if output == '-':
+            self.write_data(sys.stdout, processed, img_fmt)
+        else:
+            with open(output, 'w', encoding=self.__encoding) as file:
+                self.write_data(file, processed, img_fmt)
+
+    def write_data(self, file, processed, formatter):
+        """Write back altered HTML file with given formatter."""
+        # write data back
+        for chunk in processed:
+            if isinstance(chunk, (list, tuple)):
+                file.write(formatter.format(*chunk))
+            else:
+                file.write(chunk)
 
     def convert_images(self, parsed_htex_document, base_path, options):
         """Convert all formulas to images and store file path and equation in a
