@@ -8,14 +8,18 @@ class LaTeXDocument:
     equation as main content and properties to customize it. Its main purpose is
     to provide a str method which will serialize it to a full LaTeX document."""
     def __init__(self, eqn):
-        self.preamble = ""
         self.__encoding = None
         self.__equation = eqn
         self.__displaymath = False
+        self.__preamble = ''
 
     def get_encoding(self):
         """Return encoding for the document (or None)."""
         return self.__encoding
+
+    def set_preamble_string(self, p):
+        """Set the string to add to the preamble of the LaTeX document."""
+        self.__preamble = p
 
     def set_encoding(self, enc):
         """Set the encoding as used by the inputenc package."""
@@ -48,7 +52,7 @@ class LaTeXDocument:
         %s
         \\usepackage[active,textmath,displaymath,tightpage]{preview} %% must be last one, see doc\n
         \\begin{document}\n%s%s%s\n\\end{document}""" % (
-            encoding, self.preamble,
+            encoding, self.__preamble,
             opening, self.__equation, closing))
 
 

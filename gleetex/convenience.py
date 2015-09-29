@@ -22,12 +22,13 @@ class CachedConverter:
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)
         self.__cache = caching.ImageCache(cache_path)
         self.__options = {'dpi' : None, 'transparency' : None,
-                'background_color' : None, 'foreground_color' : None}
+                'background_color' : None, 'foreground_color' : None,
+                'preamble' : None}
 
 
     def set_option(self, option, value):
         """Set one of the options accepted for gleetex.image.Tex2img. `option`
-        must be one of the setters without `set_`."""
+        must be one of self.__options without `set_`."""
         if not option in self.__options.keys():
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
@@ -47,9 +48,11 @@ class CachedConverter:
             while os.path.exists(eqnpath(num)):
                 num += 1
             latex = document.LaTeXDocument(formula)
+            if self.__options['preamble']: # add preamble to LaTeX document
+                latex.set_preamble_string(self.__options['preamble'])
             conv = image.Tex2img(latex, eqnpath(num))
             for option, value in self.__options.items():
-                if value:
+                if value and hasattr(conv, 'set_' + option):
                     getattr(conv, 'set_' + option)(value)
             conv.convert()
             pos = conv.get_positioning_info()
