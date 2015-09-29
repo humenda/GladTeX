@@ -1,0 +1,89 @@
+1.6 - complete rewrite
+
+	- rewrite GladTeX fully in Python
+		- allows easy compilation into a binary for a specific platform
+		- comes with a new library to use GladTeX functionality within other
+		  applications
+		- fully unit-tested
+	- enable piping support; GladTeX can read from stdin and write to stdout
+	- drop -t switch; image is either transparent by default or has a background
+	  color which can be set with -b
+	- introduce -o (output) option
+
+1.5 - Introduce options to make embedding of GladTeX easier
+    - Try to parse LaTeX's error output and display it to help users to find the
+      issue quicker and to make GladTeX better embeddable.
+    - Add option to remove error log file, produced by LaTeX, automatically.
+    - Rewrite some help messages.
+    - Add signal handling to get meaningful error messages if GladTeX hangs.
+
+1.4.2 - bug fix release
+    - Add some eval's to cope with some failures.
+    - Since there were some incompatibilities between Perl 5.10 and 5.18 in how
+      the cache of the generated images is stored, GladTeX now removes this file
+      along with all images starting with "eqn" and generates them again.
+
+1.4.1 - bug fix release
+    - Remove desc.html if created and empty
+
+1.4 - put LaTeX equations into alt tag for text-mode browsers and blind people
+      (and disabled images)
+    - If requested (-a), exclude equations longer than 80 characters in an extra
+      file and make the equation image a link to the longer, excluded image
+      alternative
+    - eqn2img: patch to allow building on windows
+    - Change build system from make to cmake
+    - Refactored gladtex code a lot to allow the usage of "use strict/use
+      warnings"
+    - Fix bug where multiple equations couldn't be on a single (html) line
+    - Rework manpage
+
+1.3 - Un-escape common entities before processing equations
+    - Update man page with CSS class options
+    - Add support for setting the CSS class of images when the
+      environment is "math" or "displaymath"
+    - eqn2img: changed redirection syntax (from dvips to /dev/null)
+      for portability
+    - GladTeX: exit with status 1 when a closing EQ tag is missing
+    - GladTeX: print error messages to stderr instead of stdout
+    - Fix environment-passing to eqn2img
+    - Add support for a "dpi" attribute on EQ tags to customize the
+      DPI used for each equation
+
+1.2 - Fixed a serious memory allocation error, pointed out by Eric J.
+      Francois. Also fixed several leaks.
+    - Added full alpha channel to PNG files (also suggested by Eric)
+    - The -e option was ignored, fixed (pointed out by Andr\'e Schleife)
+    - Added man page, contributed by Volker Schatz
+
+1.1 - Portability fixes: Do not assume a specific location for perl
+      (use "env" in the shebang line) and do not rely on the bash style
+      "&>" redirection.
+
+1.0 - Image alignment workaround (most browsers interpret
+      "ALIGN=MIDDLE" somewhat strangely, so it has been changed
+      to "STYLE=vertical-align: -xx")
+    - Added cache file, so that gladtex doesn't have to regenerate
+      images for equations that haven't changed.
+    - Added ENV option (as in <EQ ENV=align*>) to support environments
+      other than "displaymath".
+    - Bug fixes.
+ 
+0.3 - Added BoundingBox workaround (dvips sometimes outputs wrong
+      BoundingBox, for instance when using \mathbb{})
+    - Moved the whole "LaTeX eqn to image" conversion into the C code,
+      turning  the C program (renamed from pngmodify to eqn2img) into
+      a standalone utility (e.g. echo '\sqrt{2}' | eqn2img -o
+      eqn.png).
+    - Added colour options (-c -b and -t).
+    - Fixed bug causing segfault when adding space _above_ an image.
+    - Fixed image reusing bug (in 0.2 image reuse didn't work across
+      separate files when processing files outside startup cwd).
+    - And some other minor bugs and cosmetic changes.
+    - Makefile added to distribution
+
+0.2 - First official release, completely rewritten code.
+
+0.1 - Used only internally at the Dept. of Mathematics at the Univ. of Oslo
+      July-August 1999 (for the project "Matteknekker'n") under the name
+      htmleqn.
