@@ -41,6 +41,9 @@ class Main:
                 help=("set output file name; '-' will print text to stdout (by"
                     "default input file name is used and .htex ending changed "
                     "to .html)"))
+        parser.add_argument('-p', metavar='<LaTeX statement>', dest="preamble",
+                help="add given LaTeX code to preamble of document; that'll " +\
+                    "affect the conversion of every image")
         parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
                 help="set resolution (size of images) to 'dpi' (100 by " + \
                     "default)")
@@ -55,7 +58,9 @@ class Main:
         sys.exit(status)
 
     def validate_options(self, opts):
-        """Validate certain arguments suppliedon the command line."""
+        """Validate certain arguments suppliedon the command line. The user will
+        get a (hopefully) helpful error message if he/she gave an invalid
+        parameter."""
         color_regex = re.compile(r"^\d(?:\.\d+)?,\d(?:\.\d+)?,\d(?:\.\d+)?")
         if opts.background_color and not color_regex.match(opts.background_color):
             print("Option -b requires a string in the format " +
@@ -69,12 +74,10 @@ class Main:
             sys.exit(13)
 
     def get_input_output(self, options):
-        """Return input document as string and determine, base directory and
-        output file name. If -o is supplied, the output file name is not
-        altered. If document is read from stdin and no -o option is specified,
-        standard output will be used (denoted by -). If an ordinary input file
-        is given and no output file name, the same file with .html endingin
-        (instead of .htex) is used."""
+        """Determine whether GladTeX is reading from stdin/file, writing to
+        stdout/file and determine base_directory if files are in another
+        directory. If no output file name is given and there is a input file to
+        read from, output is written to a file ending on .html instead of .htex."""
         data = None
         base_path = ''
         output = '-'
@@ -101,8 +104,8 @@ class Main:
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        docparser = gleetex.htmlhandling.EqnParser()
         doc, base_path, output = self.get_input_output(options)
+        docparser = gleetex.htmlhandling.EqnParser()
         try:
             docparser.feed(doc)
         except gleetex.htmlhandling.ParseException as e:
@@ -138,7 +141,7 @@ class Main:
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
         conv = gleetex.convenience.CachedConverter(base_path)
-        options_to_query = ['dpi']
+        options_to_query = ['dpi', 'preamble']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:
