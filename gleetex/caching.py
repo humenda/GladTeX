@@ -60,7 +60,7 @@ class ImageCache:
             raise ValueError("Cache in %s has version %s, expected %s." % \
                     (self.__path, cur_version, CACHE_VERSION))
 
-    def add_formula(self, formula, pos, file_path):
+    def add_formula(self, formula, pos, file_path, displaymath=False):
         """Add formula to cache. The cache consists of a mapping from formula to
         (pos, file path). Formulas are "unified" with `unify_formula`. Existing
         formulas are overwritten.
@@ -68,14 +68,18 @@ class ImageCache:
         :pos positioning information (dictionary with keys height, width and
                 depth)
         :param file_path path to image file which contains the formula.
+        :param displaymath True if displaymath, else False (inline maths); default False
         :raises OSError if specified image doesn't exists"""
         if not pos or not formula or not file_path:
             raise ValueError("the supplied arguments may not be empty/none")
+        if not isinstance(displaymath, bool):
+            raise ValueError("displaymath must be a boolean")
         if not os.path.exists(file_path):
-            raise OSError("cannot add %s to the path: doesn't exist" %
+            raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
         formula = unify_formula(formula)
-        self.__cache[formula] = {'pos' : pos, 'path' : file_path}
+        self.__cache[formula] = {'pos' : pos, 'path' : file_path,
+                'displaymath' : displaymath}
 
     def remove_formula(self, formula):
         """Formula is unified using `unify_formula` and removed. If no such
@@ -86,12 +90,15 @@ class ImageCache:
         else:
             del self.__cache[formula]
 
-    def get_formula_data(self, formula):
-        """Return positioning info (dict) and path to image for given formula or
-        raise ValueError if not found."""
+    def get_data_for(self, formula):
+        """get_data_for(formula)
+        Return dictionary with position (pos), formula path (path) and boolean
+        for displaymath True/False (displaymath) as a dictionary with the keys
+        shown in parenthesis.
+        This method raises a ValueError if formula wasn't found."""
         formula = unify_formula(formula)
         if not formula in self.__cache:
             raise KeyError(formula)
         else:
-            return (self.__cache[formula]['pos'], self.__cache[formula]['path'])
+            return self.__cache[formula]
 

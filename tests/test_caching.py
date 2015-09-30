@@ -65,7 +65,9 @@ class test_caching(unittest.TestCase):
         c.write()
         c = caching.ImageCache()
         self.assertTrue(formula in c)
-        self.assertEqual(c.get_formula_data(formula), (self.pos, 'file.png'))
+        self.assertEqual(c.get_data_for(formula)['pos'], self.pos)
+        self.assertEqual(c.get_data_for(formula)['path'], 'file.png')
+        self.assertEqual(c.get_data_for(formula)['displaymath'], False)
 
 
     def test_formulas_are_not_added_twice(self):
@@ -93,4 +95,13 @@ class test_caching(unittest.TestCase):
         c._ImageCache__set_version('invalid.stuff')
         c.write()
         self.assertRaises(ValueError, caching.ImageCache, 'gladtex.cache')
+
+    def test_that_invalid_style_is_detected(self):
+        with open('foo.png', 'w') as f:
+            f.write("dummy")
+        c = caching.ImageCache('gladtex.cache')
+        c.add_formula('\\tau', self.pos, 'foo.png', False)
+        c.add_formula('\\theta', self.pos, 'foo.png', True)
+        self.assertRaises(ValueError, c.add_formula, '\\gamma', self.pos, 'foo.png',
+                'some stuff')
 

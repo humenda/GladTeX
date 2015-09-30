@@ -34,20 +34,25 @@ class CachedConverter:
                     ', '.join(self.__options.keys()))
         self.__options[option] = value
 
-    def convert(self, formula):
-        """Convert formula / retrieve formula from cache; the action is done
-        transparently.
+    def convert(self, formula, displaymath=False):
+        """convert(formula, displaymath=False)
+        Convert given formula with displaymath/inlinemath or retrieve data from
+        cache.
         :param formula formula to convert
-        :return tuple with positioning information and file name
+        :param displaymath whether or not to use displaymath during the conversion
+        :return dictionary with position (pos), image path (path) and formula
+            style (displaymath, boolean) as a dictionary with the keys in
+            parenthesis
         """
         if formula in self.__cache:
-            return self.__cache.get_formula_data(formula)
+            return self.__cache.get_data_for(formula)
         else:
             eqnpath = lambda x: os.path.join(self.__basepath, 'eqn%03d.png' % x)
             num = 0
             while os.path.exists(eqnpath(num)):
                 num += 1
             latex = document.LaTeXDocument(formula)
+            latex.set_displaymath(displaymath)
             if self.__options['preamble']: # add preamble to LaTeX document
                 latex.set_preamble_string(self.__options['preamble'])
             conv = image.Tex2img(latex, eqnpath(num))
@@ -56,7 +61,8 @@ class CachedConverter:
                     getattr(conv, 'set_' + option)(value)
             conv.convert()
             pos = conv.get_positioning_info()
-            self.__cache.add_formula(formula,  pos, eqnpath(num))
+            self.__cache.add_formula(formula,  pos, eqnpath(num), displaymath)
             self.__cache.write()
-            return (pos, eqnpath(num))
+            return {'pos' : pos, 'path' : eqnpath(num), 'displaymath' :
+                displaymath}
 

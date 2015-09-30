@@ -130,8 +130,11 @@ class Main:
         """Write back altered HTML file with given formatter."""
         # write data back
         for chunk in processed:
-            if isinstance(chunk, (list, tuple)):
-                file.write(formatter.format(*chunk))
+            if isinstance(chunk, dict):
+                mathclass = ('displaymath' if chunk['displaymath'] else
+                        'inlinemath')
+                file.write(formatter.format(chunk['pos'], chunk['formula'],
+                    chunk['path'], mathclass))
             else:
                 file.write(chunk)
 
@@ -155,10 +158,12 @@ class Main:
             # two types of chunks: a) str (uninteresting), b) list: formula
             if isinstance(chunk, list):
                 equation = chunk[2]
+                displaymath = chunk[1]
                 try:
-                    pos, path = conv.convert(equation)
+                    data = conv.convert(equation, displaymath)
                     # add data for formatting to `result`
-                    result.append((pos, equation, path))
+                    data['formula'] = equation
+                    result.append(data)
                 except SubprocessError as e:
                     print(("Error while converting the formula: %s at line %d"
                             " pos %d") % (equation, chunk[0][0], chunk[0][1]))
