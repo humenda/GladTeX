@@ -277,7 +277,7 @@ class HtmlImageFormatter: # ToDo: localisation
                     for formula in self.__cached_formula_pars.values()]))
             f.write('\n</body>\n</html>\n')
 
-    def get_html_img(self, pos, formula, img_path):
+    def get_html_img(self, pos, formula, img_path, style='inlinemath'):
         """:param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
@@ -288,11 +288,11 @@ class HtmlImageFormatter: # ToDo: localisation
             full_url = self.__url + '/' + img_path
         # depth is a negative offset
         depth = str(int(pos['depth']) * -1)
-        return ('<img src="{0}" style="vertical-align: {3}" '
-                'height="{2[height]}" width="{2[width]}" alt="{1}" />').\
-                format(full_url, formula, pos, depth)
+        return ('<img src="{0}" style="vertical-align: {3}; margin: 0;" '
+                'height="{2[height]}" width="{2[width]}" alt="{1}" '
+                'class="{4}" />').format(full_url, formula, pos, depth, style)
 
-    def format_excluded(self, pos, formula, img_path):
+    def format_excluded(self, pos, formula, img_path, style='inlinemath'):
         """This method formats a formula and an formula image in HTML and
         additionally writes the formula to an external (configured) file to
         which the image links to. That's useful for blind screen reader users
@@ -303,7 +303,7 @@ class HtmlImageFormatter: # ToDo: localisation
         :returns string with formatted HTML image which also links to excluded
         formula"""
         shortened = (formula[:100] + '...'  if len(formula) > 100 else formula)
-        img = self.get_html_img(pos, shortened, img_path)
+        img = self.get_html_img(pos, shortened, img_path, style)
         ext_formula = format_formula_paragraph(formula)
         # write formula out to external file
         identifier = gen_id(formula)
@@ -312,7 +312,7 @@ class HtmlImageFormatter: # ToDo: localisation
         return '<a href="{}#{}">{}</a>'.format(self.__exclusion_filepath,
                 gen_id(formula), img)
 
-    def format(self, pos, formula, img_path):
+    def format(self, pos, formula, img_path, style='inlinemath'):
         """This method formats a formula. If self.__exclude_descriptions is set
         and the formula igreater than the configured length, the formula will be
         outsourced, otherwise it'll be included in the IMG's alt tag. In either
@@ -324,8 +324,8 @@ class HtmlImageFormatter: # ToDo: localisation
         formula"""
         if self.__exclude_descriptions and \
                 len(formula) > self.__inline_maxlength:
-            return self.format_excluded(pos, formula, img_path)
+            return self.format_excluded(pos, formula, img_path, style)
         else:
-            return self.get_html_img(pos, formula, img_path)
+            return self.get_html_img(pos, formula, img_path, style)
 
 

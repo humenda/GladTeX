@@ -192,7 +192,15 @@ class HtmlImageTest(unittest.TestCase):
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
             self.assertTrue('align: ' + str(self.pos['depth'])[1:] in data)
 
-        
+    def test_that_style_is_included(self):
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
+                    style='displaymath')
+            self.assertTrue('="displaymath' in data)
+            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
+                    style='inlinemath')
+            self.assertTrue('="inlinemath' in data)
+ 
 
 def htmleqn(formula, hr=True):
     """Format a formula to appear as if it would have been outsourced into an
