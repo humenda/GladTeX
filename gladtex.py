@@ -56,6 +56,8 @@ class Main:
     def exit(self, text, status):
         """Exit function. Could be used to register any clean up action."""
         sys.stderr.write(text)
+        if not text.endswith('\n'):
+            sys.stderr.write('\n')
         sys.exit(status)
 
     def validate_options(self, opts):
@@ -85,8 +87,13 @@ class Main:
         if options.input == '-':
             data = sys.stdin.read()
         else:
-            with open(options.input, 'r', encoding=options.encoding) as file:
-                data = file.read()
+            try:
+                with open(options.input, 'r', encoding=options.encoding) as file:
+                    data = file.read()
+            except UnicodeDecodeError as e:
+                self.exit(('Error while reading from %s: %s\nProbably this file'
+                    ' has a different encoding, try specifying -E.') % \
+                            (options.input, str(e)), 88)
             base_path = os.path.split(options.input)[0]
         # check which output file name to use
         if options.output:
