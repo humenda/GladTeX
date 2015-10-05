@@ -53,8 +53,9 @@ class Main:
                 "formulas")
         return parser.parse_args(args)
 
-    def exit(self, status):
+    def exit(self, text, status):
         """Exit function. Could be used to register any clean up action."""
+        sys.stderr.write(text)
         sys.exit(status)
 
     def validate_options(self, opts):
@@ -109,9 +110,9 @@ class Main:
         try:
             docparser.feed(doc)
         except gleetex.htmlhandling.ParseException as e:
-            print('Error while parsing {}: {}', options.input, (str(e[0])
-                if len(e) > 0 else str(e)))
-            self.exit(5)
+            input_fn = ('stdin' if options.input == '-' else options.input)
+            self.exit('Error while parsing {}: {}'.format(input_fn,
+                (str(e[0]) if len(e) > 0 else str(e))), 5)
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, options)
         img_fmt = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
@@ -165,10 +166,10 @@ class Main:
                     data['formula'] = equation
                     result.append(data)
                 except SubprocessError as e:
-                    print(("Error while converting the formula: %s at line %d"
-                            " pos %d") % (equation, chunk[0][0], chunk[0][1]))
-                    print("Error: %s" % e.args[0])
-                    self.exit(91)
+                    pos = chunk['pos']
+                    self.exit(("Error while converting the formula: %s at "
+                        "line %d pos %d\n") % (equation, pos[0], pos[1]) + \
+                        str(e.args[0]), 91)
             else:
                 result.append(chunk)
         return result

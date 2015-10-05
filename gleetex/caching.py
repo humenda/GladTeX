@@ -17,6 +17,10 @@ def unify_formula(formula):
     return formula.replace('{}', ' ').replace('\t', ' ').replace('  ', ' '). \
         rstrip().lstrip()
 
+class JsonParserException(Exception):
+    """For errors which could occur while parsing the dumped json cache."""
+    pass
+
 class ImageCache:
     VERSION_STR = 'GladTeX__cache__version'
     def __init__(self, path='gladtex.cache'):
@@ -47,12 +51,24 @@ class ImageCache:
             file.write(json.dumps(self.__cache))
 
     def _read(self):
-        """Read JSon from disk into cache, if file exists."""
+        """Read Json from disk into cache, if file exists.
+        :raises JsonParserException if json could not be parsed"""
         if os.path.exists(self.__path):
-            with open(self.__path, 'r', encoding='utf-8') as file:
-                self.__cache = json.load(file)
+            try:
+                with open(self.__path, 'r', encoding='utf-8') as file:
+                    self.__cache = json.load(file)
+            except Exception as e:
+                msg = "error while reading cache from %s: " % self.__path
+                if isinstance(e, (ValueError, OSError)):
+                    msg += str(e.args[0])
+                elif isinstance(e, UnicodeDecodeError):
+                    msg += 'expected UTF-8 encoding, erroneous byte ' + \
+                            '{0} at {1}:{2} ({3})'.format(*(e.args[1:]))
+                else:
+                    msg += str(e.args[0])
+                raise JsonParserException(msg)
         if not isinstance(self.__cache, dict):
-            raise ValueError("Decoded JSon is not a dictionary.")
+            raise JsonParserException("Decoded Json is not a dictionary.")
         if not self.__cache.get(ImageCache.VERSION_STR):
             self.__set_version(CACHE_VERSION)
         cur_version = self.__cache.get(ImageCache.VERSION_STR)
