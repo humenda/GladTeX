@@ -151,7 +151,10 @@ class Main:
         list to be processed later on."""
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
-        conv = gleetex.convenience.CachedConverter(base_path)
+        try:
+            conv = gleetex.convenience.CachedConverter(base_path)
+        except gleetex.caching.JsonParserException as e:
+            self.exit(e.args[0], 78)
         options_to_query = ['dpi', 'preamble']
         for option_str in options_to_query:
             option = getattr(options, option_str)

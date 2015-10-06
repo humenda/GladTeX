@@ -81,16 +81,28 @@ Note: If your system ships `python` as the command for Python3 you have to use
 
 ### Compilation On Windows
 
-Compiling GladTeX into a binary executable is as easy as:
+To compile GladTeX on Windows, yu need a Python3 installation. Assumed is
+python3.4, newer versions should work fine as well. Only the paths need to be
+adjusted
 
-    setup.py bdist
+Install py2exe:
 
-That'll create a `dist/` folder with all files required to run GladTeX.
+    c:\python34\scripts\pip.exe install py2exe
 
-NOTE: the above command only works if you've installed Python as a native
-Windows program and when the file type `.py` is associated with the Python
-interpreter.
+Given that GladTeX is located in c:\users\user\gladtex:
 
+    cd c:\users\user\gladtex
+    c:\python34\python.exe setup.py install
+
+That will install GladTeX as a library to `c:\python34\lib` and the script to
+`c:\python34\scripts`. It also allows py2exe to find the gleetex module. Now the
+executable can be build:
+
+    c:\python34\scripts\build_exe.exe -b 0 -c gladtex.py
+
+That'll create a `dist/` folder containing the executable. If you have other
+python applications in your project it is useful to read about the `-b` switch
+to share some python components included in the just-built executable.
 
 Documentation
 -------------
