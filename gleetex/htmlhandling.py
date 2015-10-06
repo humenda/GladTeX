@@ -226,11 +226,21 @@ class HtmlImageFormatter: # ToDo: localisation
         self.initialized = False
         self.encoding = encoding
         self.initialize() # read already written file, if any
+        self.__css_inlinemath = 'inlinemath'
+        self.__css_displaymath = 'displaymath'
 
     def set_max_formula_length(self, length):
         """Set maximum length of a formula before it gets outsourced into a
         separate file."""
         self.__inline_maxlength = length
+
+    def set_inline_math_css_class(self, css):
+        """set css class for inline math."""
+        self.__css_inlinemath = css
+
+    def set_display_math_css_class(self, css):
+        """set css class for display math."""
+        self.__css_displaymath = css
 
     def set_exclude_long_formulas(self, flag):
         """When set, the LaTeX code of a formula longer than the configured
@@ -277,10 +287,11 @@ class HtmlImageFormatter: # ToDo: localisation
                     for formula in self.__cached_formula_pars.values()]))
             f.write('\n</body>\n</html>\n')
 
-    def get_html_img(self, pos, formula, img_path, style='inlinemath'):
+    def get_html_img(self, pos, formula, img_path, displaymath=False):
         """:param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
+        :param displaymath display or inline math (default False, inline maths)
         :returns a string with the formatted HTML string"""
         full_url = img_path
         if self.__url:
@@ -288,11 +299,12 @@ class HtmlImageFormatter: # ToDo: localisation
             full_url = self.__url + '/' + img_path
         # depth is a negative offset
         depth = str(int(pos['depth']) * -1)
+        css = (self.__css_displaymath if displaymath else self.__css_inlinemath)
         return ('<img src="{0}" style="vertical-align: {3}; margin: 0;" '
                 'height="{2[height]}" width="{2[width]}" alt="{1}" '
-                'class="{4}" />').format(full_url, formula, pos, depth, style)
+                'class="{4}" />').format(full_url, formula, pos, depth, css)
 
-    def format_excluded(self, pos, formula, img_path, style='inlinemath'):
+    def format_excluded(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula and an formula image in HTML and
         additionally writes the formula to an external (configured) file to
         which the image links to. That's useful for blind screen reader users
@@ -300,10 +312,11 @@ class HtmlImageFormatter: # ToDo: localisation
         :param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
+        :param displaymath if set to true, image is treated as display math formula (default False)
         :returns string with formatted HTML image which also links to excluded
         formula"""
         shortened = (formula[:100] + '...'  if len(formula) > 100 else formula)
-        img = self.get_html_img(pos, shortened, img_path, style)
+        img = self.get_html_img(pos, shortened, img_path, displaymath)
         ext_formula = format_formula_paragraph(formula)
         # write formula out to external file
         identifier = gen_id(formula)
@@ -312,7 +325,7 @@ class HtmlImageFormatter: # ToDo: localisation
         return '<a href="{}#{}">{}</a>'.format(self.__exclusion_filepath,
                 gen_id(formula), img)
 
-    def format(self, pos, formula, img_path, style='inlinemath'):
+    def format(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula. If self.__exclude_descriptions is set
         and the formula igreater than the configured length, the formula will be
         outsourced, otherwise it'll be included in the IMG's alt tag. In either
@@ -320,12 +333,13 @@ class HtmlImageFormatter: # ToDo: localisation
         :param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
+        :param displaymath whether or not formula is in display math (default: no)
         :returns string with formatted HTML image which also links to excluded
         formula"""
         if self.__exclude_descriptions and \
                 len(formula) > self.__inline_maxlength:
-            return self.format_excluded(pos, formula, img_path, style)
+            return self.format_excluded(pos, formula, img_path, displaymath)
         else:
-            return self.get_html_img(pos, formula, img_path, style)
+            return self.get_html_img(pos, formula, img_path, displaymath)
 
 
