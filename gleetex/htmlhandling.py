@@ -205,7 +205,21 @@ def format_formula_paragraph(formula):
 
 
 class HtmlImageFormatter: # ToDo: localisation
-    """Create the HTML markup for given formula and image file."""
+    """HtmlImageFormatter(exclusion_filepath='outsourced_formulas.html',
+            encoding="UTF-8")
+    Format converted formula to be included into the HTML. A typical image
+    attribute will contain the path to the image, style information, a CSS class
+    to be used in custom CSS style sheets and an alternative text (the LaTeX
+    source) for people who disabled images or for blind screen reader users.
+    If set, LaTeX formulas exceeding a configurable maximum length will be
+    excluded. The image will be a link which leads to the excluded image text.
+    The alt attribute is a text-only attribute and e.g. line breaks will be lost
+    for screen reader users, so it makes sense for longer formulas to be
+    external to be easily readable. Furthermore the alt attribute is limited to
+    255 characters, so formula blocks exceeding that limit need to be treated
+    differently anyway. If that behavior is not wanted, it can be disabled and
+    nothing will be excluded."""
+    
     HTML_TEMPLATE_HEAD = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"' +
         '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n' +
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
