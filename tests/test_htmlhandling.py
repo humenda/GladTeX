@@ -163,7 +163,7 @@ class HtmlImageTest(unittest.TestCase):
 
     def test_that_too_long_formulas_get_outsourced_if_configured(self):
         with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.set_max_formula_length
+            img.set_max_formula_length(90)
             img.set_exclude_long_formulas(True)
             img.format(self.pos, '\\tau' * 999, 'foo.png')
         self.assertTrue(os.path.exists('foo.html'))
@@ -192,14 +192,26 @@ class HtmlImageTest(unittest.TestCase):
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
             self.assertTrue('align: ' + str(self.pos['depth'])[1:] in data)
 
-    def test_that_style_is_included(self):
+    def test_that_displaymath_is_set_or_unset(self):
         with htmlhandling.HtmlImageFormatter('foo.html') as img:
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
-                    style='displaymath')
+                    True)
             self.assertTrue('="displaymath' in data)
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
-                    style='inlinemath')
+                    False)
             self.assertTrue('="inlinemath' in data)
+
+    def test_that_alternative_css_class_is_set_correctly(self):
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            img.set_display_math_css_class('no1')
+            img.set_inline_math_css_class('no2')
+            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
+                    True)
+            self.assertTrue('="no1"' in data)
+            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
+                    False)
+            self.assertTrue('="no2' in data)
+        
  
 
 def htmleqn(formula, hr=True):

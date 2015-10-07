@@ -37,6 +37,10 @@ class Main:
                 " store generated images in (relative path)")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
                 help="Overwrite encoding to use (default UTF-8)")
+        parser.add_argument('-i', metavar='CLASS', dest='inlinemath',
+                help="CSS class to assign to inline math (default: 'inlinemath')")
+        parser.add_argument('-l', metavar='CLASS', dest='displaymath',
+                help="CSS class to assign to block-level math (default: 'displaymath')")
         parser.add_argument('-o', metavar='FILENAME', dest='output',
                 help=("set output file name; '-' will print text to stdout (by"
                     "default input file name is used and .htex ending changed "
@@ -127,22 +131,25 @@ class Main:
         img_fmt.set_exclude_long_formulas(True)
         if options.url:
             img_fmt.set_url(options.url)
+        if options.inlinemath:
+            img_fmt.set_inline_math_css_class(options.inlinemath)
+        if options.displaymath:
+            img_fmt.set_display_math_css_class(options.displaymath)
 
         if output == '-':
-            self.write_data(sys.stdout, processed, img_fmt)
+            self.write_html(sys.stdout, processed, img_fmt)
         else:
             with open(output, 'w', encoding=self.__encoding) as file:
-                self.write_data(file, processed, img_fmt)
+                self.write_html(file, processed, img_fmt)
 
-    def write_data(self, file, processed, formatter):
+    def write_html(self, file, processed, formatter):
         """Write back altered HTML file with given formatter."""
         # write data back
         for chunk in processed:
             if isinstance(chunk, dict):
-                mathclass = ('displaymath' if chunk['displaymath'] else
-                        'inlinemath')
+                is_displaymath = chunk['displaymath']
                 file.write(formatter.format(chunk['pos'], chunk['formula'],
-                    chunk['path'], mathclass))
+                    chunk['path'], is_displaymath))
             else:
                 file.write(chunk)
 
