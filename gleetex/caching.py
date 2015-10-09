@@ -91,11 +91,11 @@ class ImageCache:
             raise ValueError("the supplied arguments may not be empty/none")
         if not isinstance(displaymath, bool):
             raise ValueError("displaymath must be a boolean")
+        if '\\' in file_path:
+            raise ValueError("path may not contain backslashes")
         if not os.path.exists(file_path):
             raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
-        if '\\' in file_path:
-            raise ValueError("path may not contain backslashes")
         formula = unify_formula(formula)
         self.__cache[formula] = {'pos' : pos, 'path' : file_path,
                 'displaymath' : displaymath}
