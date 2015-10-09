@@ -178,7 +178,7 @@ class Main:
                 equation = chunk[2]
                 displaymath = chunk[1]
                 try:
-                    data = conv.convert(equation, displaymath)
+                    data = conv.convert(equation, displaymath=displaymath)
                     # add data for formatting to `result`
                     data['formula'] = equation
                     result.append(data)

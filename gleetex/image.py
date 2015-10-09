@@ -53,7 +53,7 @@ class Tex2img:
     the issue.
     The background of the PNG files will be transparent by default.
     """
-    DVIPNG_REGEX = re.compile(r"^ depth=(\d+) height=(\d+) width=(\d+)")
+    DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
     def __init__(self, tex_document, output_fn, encoding="UTF-8"):
         """tex_document should be either a full TeX document as a string or a
         class which implements the __str__ method."""
@@ -151,7 +151,7 @@ class Tex2img:
             found = Tex2img.DVIPNG_REGEX.search(line)
             if found:
                 return dict(zip(['depth', 'height', 'width'], found.groups()))
-        raise ValueError("Could not parse dvi output")
+        raise ValueError("Could not parse dvi output: " + repr(data[0]))
 
     def convert(self):
         """Convert the TeX document into an image.
