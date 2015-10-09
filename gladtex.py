@@ -54,7 +54,7 @@ class Main:
         parser.add_argument("-u", metavar="URL", dest='url',
                 help="url to image files (relative links are default)")
         parser.add_argument('input', help="input .htex file with LaTeX " +
-                "formulas")
+                "formulas (if omitted or -, stdin will be read)")
         return parser.parse_args(args)
 
     def exit(self, text, status):
@@ -126,21 +126,21 @@ class Main:
                 (str(e[0]) if len(e) > 0 else str(e))), 5)
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, options)
-        img_fmt = gleetex.htmlhandling.HtmlImageFormatter(encoding = \
-                self.__encoding)
-        img_fmt.set_exclude_long_formulas(True)
-        if options.url:
-            img_fmt.set_url(options.url)
-        if options.inlinemath:
-            img_fmt.set_inline_math_css_class(options.inlinemath)
-        if options.displaymath:
-            img_fmt.set_display_math_css_class(options.displaymath)
+        with gleetex.htmlhandling.HtmlImageFormatter(encoding=self.__encoding) \
+                as img_fmt:
+            img_fmt.set_exclude_long_formulas(True)
+            if options.url:
+                img_fmt.set_url(options.url)
+            if options.inlinemath:
+                img_fmt.set_inline_math_css_class(options.inlinemath)
+            if options.displaymath:
+                img_fmt.set_display_math_css_class(options.displaymath)
 
-        if output == '-':
-            self.write_html(sys.stdout, processed, img_fmt)
-        else:
-            with open(output, 'w', encoding=self.__encoding) as file:
-                self.write_html(file, processed, img_fmt)
+            if output == '-':
+                self.write_html(sys.stdout, processed, img_fmt)
+            else:
+                with open(output, 'w', encoding=self.__encoding) as file:
+                    self.write_html(file, processed, img_fmt)
 
     def write_html(self, file, processed, formatter):
         """Write back altered HTML file with given formatter."""
