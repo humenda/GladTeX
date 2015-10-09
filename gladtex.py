@@ -181,6 +181,7 @@ class Main:
                     data = conv.convert(equation, displaymath=displaymath)
                     # add data for formatting to `result`
                     data['formula'] = equation
+                    data['displaymath'] = displaymath
                     result.append(data)
                 except SubprocessError as e:
                     pos = chunk['pos']
