@@ -3,6 +3,7 @@ converter sacrifices customizability for convenience and provides a class
 converting a formula directly to a png file."""
 
 import os
+import posixpath
 from . import caching, document, image
 
 class CachedConverter:
@@ -17,9 +18,10 @@ class CachedConverter:
     directory like the images."""
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
     def __init__(self, base_path=''):
-        self.__basepath = base_path
         cache_path = os.path.join(base_path,
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)
+        # on Windows, links in HTML pages should still use /
+        self.__basepath = posixpath.join(*(base_path.split('\\')))
         self.__cache = caching.ImageCache(cache_path)
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
@@ -47,7 +49,7 @@ class CachedConverter:
         if formula in self.__cache:
             return self.__cache.get_data_for(formula)
         else:
-            eqnpath = lambda x: os.path.join(self.__basepath, 'eqn%03d.png' % x)
+            eqnpath = lambda x: posixpath.join(self.__basepath, 'eqn%03d.png' % x)
             num = 0
             while os.path.exists(eqnpath(num)):
                 num += 1

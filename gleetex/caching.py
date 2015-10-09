@@ -85,7 +85,8 @@ class ImageCache:
                 depth)
         :param file_path path to image file which contains the formula.
         :param displaymath True if displaymath, else False (inline maths); default False
-        :raises OSError if specified image doesn't exists"""
+        :raises OSError if specified image doesn't exist
+        :raises ValueError if specified path contains backslashes"""
         if not pos or not formula or not file_path:
             raise ValueError("the supplied arguments may not be empty/none")
         if not isinstance(displaymath, bool):
@@ -93,6 +94,8 @@ class ImageCache:
         if not os.path.exists(file_path):
             raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
+        if '\\' in file_path:
+            raise ValueError("path may not contain backslashes")
         formula = unify_formula(formula)
         self.__cache[formula] = {'pos' : pos, 'path' : file_path,
                 'displaymath' : displaymath}

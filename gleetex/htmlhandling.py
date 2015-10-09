@@ -3,6 +3,7 @@
 import collections
 from html.parser import HTMLParser
 import os
+import posixpath
 
 
 
@@ -335,11 +336,13 @@ class HtmlImageFormatter: # ToDo: localisation
         shortened = (formula[:100] + '...'  if len(formula) > 100 else formula)
         img = self.get_html_img(pos, shortened, img_path, displaymath)
         ext_formula = format_formula_paragraph(formula)
-        # write formula out to external file
         identifier = gen_id(formula)
+        # write formula out to external file
         if not identifier in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = ext_formula
-        return '<a href="{}#{}">{}</a>'.format(self.__exclusion_filepath,
+        exclusion_filelink = posixpath.join( \
+                *self.__exclusion_filepath.split('\\'))
+        return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
                 gen_id(formula), img)
 
     def format(self, pos, formula, img_path, displaymath=False):
