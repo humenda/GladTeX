@@ -290,6 +290,9 @@ class HtmlImageFormatter: # ToDo: localisation
         return self
 
     def __exit__(self, useless, unused, not_applicable):
+        self.close()
+
+    def close(self):
         """Write back file with excluded image descriptions, if any."""
         def formula2paragraph(frml):
             return '<p id="%s"><pre>%s</pre></p>' % (gen_id(frml), frml)
