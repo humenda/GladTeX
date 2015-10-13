@@ -53,6 +53,9 @@ class ImageCache:
     def _read(self):
         """Read Json from disk into cache, if file exists.
         :raises JsonParserException if json could not be parsed"""
+        def raise_error(msg):
+            raise JsonParserException(msg + "\nPlease delete the cache (and" + \
+                        " the images) and rerun the program.")
         if os.path.exists(self.__path):
             try:
                 with open(self.__path, 'r', encoding='utf-8') as file:
@@ -66,14 +69,14 @@ class ImageCache:
                             '{0} at {1}:{2} ({3})'.format(*(e.args[1:]))
                 else:
                     msg += str(e.args[0])
-                raise JsonParserException(msg)
+                raise_error(msg)
         if not isinstance(self.__cache, dict):
-            raise JsonParserException("Decoded Json is not a dictionary.")
+            raise_error("Decoded Json is not a dictionary.")
         if not self.__cache.get(ImageCache.VERSION_STR):
             self.__set_version(CACHE_VERSION)
         cur_version = self.__cache.get(ImageCache.VERSION_STR)
         if cur_version != CACHE_VERSION:
-            raise ValueError("Cache in %s has version %s, expected %s." % \
+            raise_error("Cache in %s has version %s, expected %s." % \
                     (self.__path, cur_version, CACHE_VERSION))
 
     def add_formula(self, formula, pos, file_path, displaymath=False):
