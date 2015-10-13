@@ -25,7 +25,12 @@ class Main:
 
     def _parse_args(self, args):
         """Parse command line arguments and return option instance."""
-        parser = HelpfulCmdParser()
+        epilog = "GladTeX %s, http://humenda.github.io/GladTeX" % gleetex.VERSION
+        description = ("GladTeX is a preprocessor that enables the use of LaTeX"
+            " maths within HTML files. The maths, embedded in <EQ>...</EQ> "
+            "tags, as if within \(..\) in LaTeX (or $...$ in TeX), is fed "
+            "through latex and replaced by images.")
+        parser = HelpfulCmdParser(epilog=epilog, description=description)
         parser.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
                 "for images which are too long for the alt attribute into a " +
                 "single separate file and link images to it")
