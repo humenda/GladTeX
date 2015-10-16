@@ -94,7 +94,7 @@ class test_caching(unittest.TestCase):
         c = caching.ImageCache('gladtex.cache')
         c._ImageCache__set_version('invalid.stuff')
         c.write()
-        self.assertRaises(ValueError, caching.ImageCache, 'gladtex.cache')
+        self.assertRaises(caching.JsonParserException, caching.ImageCache, 'gladtex.cache')
 
     def test_that_invalid_style_is_detected(self):
         with open('foo.png', 'w') as f:

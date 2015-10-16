@@ -61,7 +61,7 @@ class ImageCache:
                 with open(self.__path, 'r', encoding='utf-8') as file:
                     self.__cache = json.load(file)
             except Exception as e:
-                msg = "error while reading cache from %s: " % self.__path
+                msg = "error while reading cache from %s: " % os.path.abspath(self.__path)
                 if isinstance(e, (ValueError, OSError)):
                     msg += str(e.args[0])
                 elif isinstance(e, UnicodeDecodeError):

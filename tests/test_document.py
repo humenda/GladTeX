@@ -34,3 +34,8 @@ class test_document(unittest.TestCase):
         # the following passes (assertRaisesNot)
         doc.set_encoding('utf-8')
 
+    def test_that_latex_maths_env_is_used(self):
+        doc = LaTeXDocument('f00')
+        doc.set_latex_environment('flalign*')
+        self.assertTrue(r'\begin{flalign*}' in str(doc))
+        self.assertTrue(r'\end{flalign*}' in str(doc))

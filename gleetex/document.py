@@ -12,6 +12,14 @@ class LaTeXDocument:
         self.__equation = eqn
         self.__displaymath = False
         self.__preamble = ''
+        self.__maths_env = None
+
+    def set_latex_environment(self, env):
+        """Set maths environment name like `displaymath` or `flalign*`."""
+        self.__maths_env = env
+
+    def get_latex_environment(self):
+        return self.__maths_env
 
     def get_encoding(self):
         """Return encoding for the document (or None)."""
@@ -42,9 +50,14 @@ class LaTeXDocument:
         encoding = ''
         if self.__encoding:
             encoding = r'\usepackage[%s]{fontenc}'
-        # determine characters with which to soround the formula
-        opening = '\\[' if self.__displaymath else '\\('
-        closing = '\\]' if self.__displaymath else '\\)'
+        opening, closing = None,None
+        if self.__maths_env:
+            opening = '\\begin{%s}' % self.__maths_env
+            closing = '\\end{%s}' % self.__maths_env
+        else:
+            # determine characters with which to soround the formula
+            opening = '\\[' if self.__displaymath else '\\('
+            closing = '\\]' if self.__displaymath else '\\)'
         return textwrap.dedent("""
         \\documentclass[fontsize=12pt]{scrartcl}\n
         %s
