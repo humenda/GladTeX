@@ -28,7 +28,7 @@ class Main:
         epilog = "GladTeX %s, http://humenda.github.io/GladTeX" % gleetex.VERSION
         description = ("GladTeX is a preprocessor that enables the use of LaTeX"
             " maths within HTML files. The maths, embedded in <EQ>...</EQ> "
-            "tags, as if within \(..\) in LaTeX (or $...$ in TeX), is fed "
+            "tags, as if within \\(..\\) in LaTeX (or $...$ in TeX), is fed "
             "through latex and replaced by images.")
         parser = HelpfulCmdParser(epilog=epilog, description=description)
         parser.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
@@ -40,6 +40,9 @@ class Main:
                 help="Set foreground color for resulting images (default 0,0,0)")
         parser.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in (relative path)")
+        parser.add_argument('-e', dest='latex_maths_env', default="UTF-8",
+                help="set custom maths environment to surround the formula" + \
+                        " (e.g. flalign)")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
                 help="Overwrite encoding to use (default UTF-8)")
         parser.add_argument('-i', metavar='CLASS', dest='inlinemath',
@@ -167,7 +170,7 @@ class Main:
             conv = gleetex.convenience.CachedConverter(base_path)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
-        options_to_query = ['dpi', 'preamble']
+        options_to_query = ['dpi', 'preamble', 'latex_maths_env']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:
