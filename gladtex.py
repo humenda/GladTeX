@@ -40,7 +40,7 @@ class Main:
                 help="Set foreground color for resulting images (default 0,0,0)")
         parser.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in (relative path)")
-        parser.add_argument('-e', dest='latex_maths_env', default="UTF-8",
+        parser.add_argument('-e', dest='latex_maths_env',
                 help="set custom maths environment to surround the formula" + \
                         " (e.g. flalign)")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
@@ -131,7 +131,7 @@ class Main:
         except gleetex.htmlhandling.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
             self.exit('Error while parsing {}: {}'.format(input_fn,
-                (str(e[0]) if len(e) > 0 else str(e))), 5)
+                str(e)), 5)
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, options)
         with gleetex.htmlhandling.HtmlImageFormatter(encoding=self.__encoding) \
@@ -192,7 +192,7 @@ class Main:
                     data['displaymath'] = displaymath
                     result.append(data)
                 except SubprocessError as e:
-                    pos = chunk['pos']
+                    pos = chunk[0]
                     self.exit(("Error while converting the formula: %s at "
                         "line %d pos %d\n") % (equation, pos[0], pos[1]) + \
                         str(e.args[0]), 91)

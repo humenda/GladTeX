@@ -1,7 +1,7 @@
 """Everything regarding parsing, generating and writing HTML belongs in here."""
 
 import collections
-from html.parser import HTMLParser
+import html.parser
 import os
 import posixpath
 
@@ -9,11 +9,16 @@ import posixpath
 
 class ParseException(Exception):
     """Exception to propagate an parsing error."""
-    def __init__(self, msg):
-        super().__init__(msg)
+    def __init__(self, msg, pos):
+        self.msg = msg
+        self.pos = pos
+        super().__init__(msg, pos)
+
+    def __str__(self):
+        return 'line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
 
 
-class EqnParser(HTMLParser):
+class EqnParser(html.parser.HTMLParser):
     """This HTML parser parses a given document and tries to preserve the
     original document as much as possible. It is saved in chunks which
     reconstruct the whole document, when joined. An exception are formulas from
@@ -35,13 +40,14 @@ class EqnParser(HTMLParser):
 
     def feed(self, arg):
         """Overwrite to run a final step after parsing was completed."""
-        super().feed(arg)
+        try:
+            super().feed(arg)
+        except html.parser.HTMLParseError as e:
+            raise ParseException(e.args[0], e.args[1])
         if self.in_eqn:
-            started_at = ''
             if isinstance(self.__data[-1], list):
-                started_at = ' Equation started on line ' + \
-                        str(self.__data[-1][0][0])
-            raise ParseException("Unclosed equation environment." + started_at)
+                start_pos = self.__data[-1][0]
+                raise ParseException("Unclosed equation environment.", start_pos)
         self.__data += self.__lastchunk
         self.__lastchunk = []
 
@@ -50,8 +56,8 @@ class EqnParser(HTMLParser):
             self.__lastchunk.append(self.get_starttag_text())
         else:
             if self.in_eqn:
-                raise ParseException("Opening eq tag encountered at line " +
-                        str(self.getpos()[0]) + ", while the previous one wasn't closed.")
+                raise ParseException(("Opening eq tag encountered while the "
+                    "last one wasn't yet closed."), self.getpos())
             attrs = dict((k.lower(), v.lower()) for k,v in attrs)
             displaymath = (True if 'env' in attrs and attrs['env'] == 'displaymath'
                     else False)
@@ -118,7 +124,7 @@ def gen_id(formula):
     return ''.join(id)
 
 
-class OutsourcedFormulaParser(HTMLParser):
+class OutsourcedFormulaParser(html.parser.HTMLParser):
     """This HTML parser parses the head and tries to keep it close to the
     original document as possible. As soon as a formula is encountered, only
     the formulas  are parsed. Everything in between and after the them will be
@@ -220,7 +226,7 @@ class HtmlImageFormatter: # ToDo: localisation
     255 characters, so formula blocks exceeding that limit need to be treated
     differently anyway. If that behavior is not wanted, it can be disabled and
     nothing will be excluded."""
-    
+
     HTML_TEMPLATE_HEAD = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"' +
         '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n' +
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
@@ -239,10 +245,9 @@ class HtmlImageFormatter: # ToDo: localisation
         self.__cached_formula_pars = collections.OrderedDict()
         self.__url = ''
         self.initialized = False
-        self.encoding = encoding
         self.initialize() # read already written file, if any
-        self.__css_inlinemath = 'inlinemath'
-        self.__css_displaymath = 'displaymath'
+        self.encoding = encoding
+        self.__css = {'inline' : 'inlinemath', 'display' : 'displaymath'}
 
     def set_max_formula_length(self, length):
         """Set maximum length of a formula before it gets outsourced into a
@@ -251,11 +256,11 @@ class HtmlImageFormatter: # ToDo: localisation
 
     def set_inline_math_css_class(self, css):
         """set css class for inline math."""
-        self.__css_inlinemath = css
+        self.__css['inline'] = css
 
     def set_display_math_css_class(self, css):
         """set css class for display math."""
-        self.__css_displaymath = css
+        self.__css['displaymath'] = css
 
     def set_exclude_long_formulas(self, flag):
         """When set, the LaTeX code of a formula longer than the configured
@@ -283,7 +288,7 @@ class HtmlImageFormatter: # ToDo: localisation
         # parse html document:
         parser = OutsourcedFormulaParser()
         parser.feed(document)
-        self.__file_head =parser.get_head()
+        self.__file_head = parser.get_head()
         self.__cached_formula_pars = parser.get_formulas()
         return self
 
@@ -317,7 +322,7 @@ class HtmlImageFormatter: # ToDo: localisation
             full_url = self.__url + '/' + img_path
         # depth is a negative offset
         depth = str(int(pos['depth']) * -1)
-        css = (self.__css_displaymath if displaymath else self.__css_inlinemath)
+        css = (self.__css['display'] if displaymath else self.__css['inline'])
         return ('<img src="{0}" style="vertical-align: {3}; margin: 0;" '
                 'height="{2[height]}" width="{2[width]}" alt="{1}" '
                 'class="{4}" />').format(full_url, formula, pos, depth, css)
