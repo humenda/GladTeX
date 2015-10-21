@@ -244,9 +244,9 @@ class HtmlImageFormatter: # ToDo: localisation
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
         self.__url = ''
+        self.encoding = encoding
         self.initialized = False
         self.initialize() # read already written file, if any
-        self.encoding = encoding
         self.__css = {'inline' : 'inlinemath', 'display' : 'displaymath'}
 
     def set_max_formula_length(self, length):
