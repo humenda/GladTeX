@@ -1,14 +1,16 @@
 1.6 - complete rewrite
-
-	- rewrite GladTeX fully in Python
-		- allows easy compilation into a binary for a specific platform
-		- comes with a new library to use GladTeX functionality within other
-		  applications
-		- fully unit-tested
-	- enable piping support; GladTeX can read from stdin and write to stdout
-	- drop -t switch; image is either transparent by default or has a background
-	  color which can be set with -b
-	- introduce -o (output) option
+    - rewrite GladTeX fully in Python
+        - allows easy compilation into a binary for a specific platform
+        - comes with a new library to use GladTeX functionality within other
+          applications
+        - fully unit-tested
+    - enable piping support; GladTeX can read from stdin and write to stdout
+    - drop -t switch; image is either transparent by default or has a background
+      color which can be set with -b
+    - drop -s switch
+    - introduce -o (output) option
+    - introduce new cache format containing version numbers; json, so
+      interchangeable between programming languages
 
 1.5 - Introduce options to make embedding of GladTeX easier
     - Try to parse LaTeX's error output and display it to help users to find the
