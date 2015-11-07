@@ -49,7 +49,7 @@ About the rewritten (new) version:
 This program is distributed under the GNU GPL; for details
 see the accompanying file COPYING.
 
-Project homepage is at http://gladtex.sourceforge.net
+Project homepage is at http://humenda.github.io/GladTeX
 
 Installation
 ============
