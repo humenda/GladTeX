@@ -14,15 +14,7 @@ in C. One major issue was that it wasn't easily portable across platforms. The
 new version is purely implemented in Python, gets rid of the Ghostscript
 dependency and additionally offers the GladTeX functionality in a Python module
 called gleetex.  
-It is not feature-complete yet.
 
-
-*contents*
-----------
-
-* License
-* Installation
-* Documentation
 
 License
 -------
@@ -46,10 +38,10 @@ About the rewritten (new) version:
 -   (c) 2015 Sebastian Humenda
     -   credits go to Martin G. Gulbrandsen who had the idea in the first place
 
-This program is distributed under the GNU GPL; for details
+This program is distributed under the LGPL-3; for details
 see the accompanying file COPYING.
 
-Project homepage is at http://humenda.github.io/GladTeX
+The official project homepage is at <http://humenda.github.io/GladTeX>
 
 Installation
 ============
