@@ -55,7 +55,7 @@ class CachedConverter:
         else:
             eqnpath = lambda x: posixpath.join(self.__linkpath, 'eqn%03d.png' % x)
             num = 0
-            while os.path.exists(eqnpath(num)):
+            while os.path.exists(os.path.join(self.__base_path, eqnpath(num))):
                 num += 1
             latex = document.LaTeXDocument(formula)
             latex.set_displaymath(displaymath)
