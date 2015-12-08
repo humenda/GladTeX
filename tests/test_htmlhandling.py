@@ -120,6 +120,17 @@ class HtmlImageTest(unittest.TestCase):
         for character in {'!', "'", '\\', '{', '}'}:
             self.assertFalse(character in data)
 
+    def test_that_empty_ids_raise_exception(self):
+        self.assertRaises(ValueError, htmlhandling.gen_id, '')
+
+    def test_that_same_characters_are_not_repeated(self):
+        id = htmlhandling.gen_id("jo{{{{{{{{ha")
+        self.assertEqual(id, "jo_ha")
+
+    def test_that_ids_are_max_150_characters_wide(self):
+        id = htmlhandling.gen_id('\\alpha\\cdot\\gamma + ' * 999)
+        self.assertTrue(len(id) == 150)
+
     def test_that_link_to_external_image_points_to_file_and_formula(self):
         expected_id = None
         formatted_img = None
@@ -207,6 +218,7 @@ class HtmlImageTest(unittest.TestCase):
             img.set_inline_math_css_class('no2')
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
                     True)
+            import sys;sys.stderr.write('S: ' + str(img._HtmlImageFormatter__css)+'\n')
             self.assertTrue('="no1"' in data)
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
                     False)

@@ -111,17 +111,27 @@ class EqnParser(html.parser.HTMLParser):
 
 
 def gen_id(formula):
-    """Generate an id for identifying a formula."""
+    """Generate an id for identifying a formula.
+    It will be valid to be used within a HTML attribute and it won't be too
+    long. If you happen to have a lot of formulas > 150 characters with exactly
+    the same content in the document, that'll cause a clash of id's."""
     # for some characters we just use a simple replacement (otherwise the
     # would be lost)
     mapped = {'{':'_', '}':'_', '(':'-', ')':'-', '\\':'.', '^':','}
     id = []
+    prevchar = ''
     for c in formula:
+        if prevchar == c:
+            continue # avoid multiple same characters
         if mapped.get(c):
             id.append(mapped[c])
         elif c.isalpha() or c.isdigit():
             id.append(c)
-    return ''.join(id)
+        prevchar = c
+    if not id: # is empty
+        raise ValueError("For the formula '%s' no referencable id could be generated." \
+                    % formula)
+    return ''.join(id[:150])
 
 
 class OutsourcedFormulaParser(html.parser.HTMLParser):
@@ -260,7 +270,7 @@ class HtmlImageFormatter: # ToDo: localisation
 
     def set_display_math_css_class(self, css):
         """set css class for display math."""
-        self.__css['displaymath'] = css
+        self.__css['display'] = css
 
     def set_exclude_long_formulas(self, flag):
         """When set, the LaTeX code of a formula longer than the configured
