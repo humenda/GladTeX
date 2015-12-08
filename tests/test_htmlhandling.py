@@ -131,6 +131,10 @@ class HtmlImageTest(unittest.TestCase):
         id = htmlhandling.gen_id('\\alpha\\cdot\\gamma + ' * 999)
         self.assertTrue(len(id) == 150)
 
+    def test_that_ids_start_with_letter(self):
+        id = htmlhandling.gen_id('{}\\[]ÖÖÖö9343...·tau')
+        self.assertTrue(id[0].isalpha())
+
     def test_that_link_to_external_image_points_to_file_and_formula(self):
         expected_id = None
         formatted_img = None
@@ -218,7 +222,6 @@ class HtmlImageTest(unittest.TestCase):
             img.set_inline_math_css_class('no2')
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
                     True)
-            import sys;sys.stderr.write('S: ' + str(img._HtmlImageFormatter__css)+'\n')
             self.assertTrue('="no1"' in data)
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
                     False)

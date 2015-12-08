@@ -1,3 +1,12 @@
+1.6.1 - bug fix release
+    -    set css class correctly for display math formulas
+    -    HTML label/id generation:
+        -    do not create overlong id's
+        -    do only generate id's starting with an alphabetical character
+        -    squeeze multiple identical characters
+    -    reparse outsourced formulas correctly (was a mixture of formatted vs.
+        unformatted formulas)
+
 1.6 - complete rewrite
     - rewrite GladTeX fully in Python
         - allows easy compilation into a binary for a specific platform

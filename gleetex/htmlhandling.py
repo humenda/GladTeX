@@ -123,11 +123,14 @@ def gen_id(formula):
     for c in formula:
         if prevchar == c:
             continue # avoid multiple same characters
-        if mapped.get(c):
+        if c in mapped:
             id.append(mapped[c])
         elif c.isalpha() or c.isdigit():
             id.append(c)
         prevchar = c
+    # id's must start with an alphabetical character, so strip everything before
+    while len(id) and not id[0].isalpha():
+        id = id[1:]
     if not id: # is empty
         raise ValueError("For the formula '%s' no referencable id could be generated." \
                     % formula)
@@ -354,7 +357,7 @@ class HtmlImageFormatter: # ToDo: localisation
         identifier = gen_id(formula)
         # write formula out to external file
         if not identifier in self.__cached_formula_pars:
-            self.__cached_formula_pars[identifier] = ext_formula
+            self.__cached_formula_pars[identifier] = formula
         exclusion_filelink = posixpath.join( \
                 *self.__exclusion_filepath.split('\\'))
         return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
