@@ -86,9 +86,11 @@ class ImageCache:
         :param formula formula to add
         :pos positioning information (dictionary with keys height, width and
                 depth)
-        :param file_path path to image file which contains the formula.
+        :param file_path path to image file which contains the formula. (may not
+                        be absolute path)
         :param displaymath True if displaymath, else False (inline maths); default False
-        :raises OSError if specified image doesn't exist
+        :raises OSError if specified image doesn't exist or if file_path is
+            absolute
         :raises ValueError if specified path contains backslashes"""
         if not pos or not formula or not file_path:
             raise ValueError("the supplied arguments may not be empty/none")
@@ -96,8 +98,14 @@ class ImageCache:
             raise ValueError("displaymath must be a boolean")
         if '\\' in file_path:
             raise ValueError("path may not contain backslashes")
+        if os.path.isabs(file_path):
+            raise OSError("The file path to the image may NOT be an absolute path")
         if not os.path.exists(file_path):
-            raise OSError("cannot add %s to the cache: doesn't exist" %
+            # could be that the current working directory is different
+            test_path = os.path.join(os.path.split(self.__path)[0],
+                    os.path.split(file_path)[1])
+            if not os.path.exists(test_path):
+                raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
         formula = unify_formula(formula)
         self.__cache[formula] = {'pos' : pos, 'path' : file_path,

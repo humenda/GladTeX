@@ -30,11 +30,13 @@ class test_caconvenience(unittest.TestCase):
         self.assertEqual(get_number_of_files('.'), 2)
 
     def test_that_subdirectory_is_created(self):
-        c = convenience.CachedConverter('subdirectory')
+        c = convenience.CachedConverter(os.getcwd(), 'subdirectory')
         formula = '\\textbf{FOO!}'
         c.convert(formula)
         # one directory exists
-        self.assertEqual(get_number_of_files('.'), 1)
+        self.assertEqual(get_number_of_files('.'), 1,
+                "Found the following files, expected only 'subdirectory': " + \
+                ', '.join(os.listdir('.')))
         # subdirectory contains 1 image and a cache
         self.assertEqual(get_number_of_files('subdirectory'), 2)
 

@@ -110,3 +110,10 @@ class test_caching(unittest.TestCase):
         self.assertRaises(ValueError, c.add_formula, '\\tau', self.pos,
                 'bilder\\foo.png', False)
 
+    def test_that_absolute_paths_trigger_OSError(self):
+        c = caching.ImageCache('gladtex.cache')
+        open('foo.png','w').write("dummy")
+        fn = os.path.abspath('foo.png')
+        self.assertRaises(OSError, c.add_formula, '\\tau', self.pos,
+                fn, False)
+

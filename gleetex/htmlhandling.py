@@ -328,7 +328,7 @@ class HtmlImageFormatter: # ToDo: localisation
         :param formula LaTeX alternative text
         :param img_path: path to image
         :param displaymath display or inline math (default False, inline maths)
-        :returns a string with the formatted HTML string"""
+        :returns a string with the formatted HTML"""
         full_url = img_path
         if self.__url:
             if self.__url.endswith('/'): self.__url = self.__url[:-1]

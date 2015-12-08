@@ -1,6 +1,7 @@
 import argparse
 import gleetex
 import os
+import posixpath
 import re
 import sys
 from subprocess import SubprocessError
@@ -115,16 +116,17 @@ class Main:
             if options.input != '-':
                 base_path = os.path.split(options.input)[0]
                 output = os.path.splitext(options.input)[0] + '.html'
+        link_path = ''
         if options.directory:
-            base_path = os.path.join(base_path, options.directory)
-        return (data, base_path, output)
+            link_path = posixpath.join(*(options.directory.split('\\')))
+        return (data, base_path, link_path, output)
 
 
     def run(self, args):
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        doc, base_path, output = self.get_input_output(options)
+        doc, base_path, link_path, output = self.get_input_output(options)
         docparser = gleetex.htmlhandling.EqnParser()
         try:
             docparser.feed(doc)
@@ -133,9 +135,10 @@ class Main:
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
         doc = docparser.get_data()
-        processed = self.convert_images(doc, base_path, options)
-        with gleetex.htmlhandling.HtmlImageFormatter(encoding=self.__encoding) \
-                as img_fmt:
+        processed = self.convert_images(doc, base_path, link_path, options)
+        exclusion_filepath = os.path.join(base_path, 'outsourced_formulas.html')
+        with gleetex.htmlhandling.HtmlImageFormatter(exclusion_filepath=\
+                exclusion_filepath, encoding=self.__encoding)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.url:
                 img_fmt.set_url(options.url)
@@ -161,13 +164,13 @@ class Main:
             else:
                 file.write(chunk)
 
-    def convert_images(self, parsed_htex_document, base_path, options):
+    def convert_images(self, parsed_htex_document, base_path, link_path, options):
         """Convert all formulas to images and store file path and equation in a
         list to be processed later on."""
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
         try:
-            conv = gleetex.convenience.CachedConverter(base_path)
+            conv = gleetex.convenience.CachedConverter(base_path, link_path)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
         options_to_query = ['dpi', 'preamble', 'latex_maths_env']
