@@ -107,6 +107,9 @@ class Main:
                 self.exit(('Error while reading from %s: %s\nProbably this file'
                     ' has a different encoding, try specifying -E.') % \
                             (options.input, str(e)), 88)
+            except IsADirectoryError:
+                self.exit("Error: cannot open %s for reading: is a directory." \
+                        % options.input, 19)
             base_path = os.path.split(options.input)[0]
         # check which output file name to use
         if options.output:
