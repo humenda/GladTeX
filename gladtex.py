@@ -136,9 +136,8 @@ class Main:
                 str(e)), 5)
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, link_path, options)
-        exclusion_filepath = os.path.join(base_path, 'outsourced_formulas.html')
-        with gleetex.htmlhandling.HtmlImageFormatter(exclusion_filepath=\
-                exclusion_filepath, encoding=self.__encoding)  as img_fmt:
+        with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
+                link_path=link_path, encoding=self.__encoding)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.url:
                 img_fmt.set_url(options.url)
@@ -162,6 +161,7 @@ class Main:
                 file.write(formatter.format(chunk['pos'], chunk['formula'],
                     chunk['path'], is_displaymath))
             else:
+                print(chunk)
                 file.write(chunk)
 
     def convert_images(self, parsed_htex_document, base_path, link_path, options):

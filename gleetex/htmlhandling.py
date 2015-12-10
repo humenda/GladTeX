@@ -240,19 +240,23 @@ class HtmlImageFormatter: # ToDo: localisation
     differently anyway. If that behavior is not wanted, it can be disabled and
     nothing will be excluded."""
 
+    EXCLUSION_FILE_NAME = 'outsourced-descriptions.html'
     HTML_TEMPLATE_HEAD = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"' +
         '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n' +
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
         '\n<title>Outsourced Formulas</title>\n</head>\n<!-- ' +
         'Do not modify this file, it is automatically generated -->\n<body>\n')
-    def __init__(self, exclusion_filepath='outsourced_formulas.html',
+    def __init__(self, base_path='', link_path='',
             encoding="UTF-8"):
         self.__exclude_descriptions = False
-        if os.path.exists(exclusion_filepath):
-            if not os.access(exclusion_filepath, os.W_OK):
+        self.__exclusion_filepath = os.path.join(base_path, link_path,
+                HtmlImageFormatter.EXCLUSION_FILE_NAME)
+        if os.path.exists(self.__exclusion_filepath):
+            if not os.access(self.__exclusion_filepath, os.W_OK):
                 raise OSError('The file %s is not writable!' %
-                        exclusion_filepath)
-        self.__exclusion_filepath = exclusion_filepath
+                        self.__exclusion_filepath)
+        self.__base_path = base_path
+        self.__link_path = link_path
         self.__inline_maxlength=100
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
@@ -353,13 +357,12 @@ class HtmlImageFormatter: # ToDo: localisation
         formula"""
         shortened = (formula[:100] + '...'  if len(formula) > 100 else formula)
         img = self.get_html_img(pos, shortened, img_path, displaymath)
-        ext_formula = format_formula_paragraph(formula)
         identifier = gen_id(formula)
         # write formula out to external file
         if not identifier in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
-        exclusion_filelink = posixpath.join( \
-                *self.__exclusion_filepath.split('\\'))
+        exclusion_filelink = posixpath.join(self.__link_path, \
+                os.path.split(self.__exclusion_filepath)[1])
         return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
                 gen_id(formula), img)
 

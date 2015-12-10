@@ -18,7 +18,8 @@ class CachedConverter:
     directory like the images."""
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
     def __init__(self, base_path='', linkpath=''):
-        if not os.path.exists(os.path.join(base_path, linkpath)):
+        if not os.path.exists(os.path.join(base_path, linkpath)) and (base_path
+                or linkpath):
             os.makedirs(os.path.join(base_path, linkpath))
         cache_path = os.path.join(base_path, linkpath,
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)

@@ -3,6 +3,10 @@ import os, re, shutil, tempfile
 import unittest
 from gleetex import htmlhandling
 
+
+excl_filename = htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME
+
+
 def read(file_name, mode='r', encoding='utf-8'):
     """Read the file, return the string. Close file properly."""
     with open(file_name, mode, encoding=encoding) as handle:
@@ -102,14 +106,14 @@ class HtmlImageTest(unittest.TestCase):
         self.assertFalse(os.path.exists('foo.html')        )
 
     def test_file_if_written_when_content_exists(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter() as img:
             img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
-        self.assertTrue(os.path.exists('foo.html')        )
+        self.assertTrue(os.path.exists(excl_filename)        )
 
     def test_written_file_starts_and_ends_more_or_less_properly(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter('.') as img:
             img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
-        data = read('foo.html', 'r', encoding='utf-8')
+        data = read(htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME, 'r', encoding='utf-8')
         self.assertTrue('<html' in data and '</html>' in data)
         self.assertTrue('<body' in data and '</body>' in data)
         # make sure encoding is specified
@@ -138,17 +142,17 @@ class HtmlImageTest(unittest.TestCase):
     def test_that_link_to_external_image_points_to_file_and_formula(self):
         expected_id = None
         formatted_img = None
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter() as img:
             formatted_img = img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
             expected_id = htmlhandling.gen_id('\\tau\\tau')
-        external_file = read('foo.html', 'r', encoding='utf-8')
+        external_file = read(excl_filename, 'r', encoding='utf-8')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
         self.assertTrue(href != None)
         # extract path and id from it
         self.assertTrue('#' in href.groups()[0])
         path, id = href.groups()[0].split('#')
-        self.assertEqual(path, 'foo.html')
+        self.assertEqual(path, excl_filename)
         self.assertEqual(id, expected_id)
 
         # check external file
@@ -163,11 +167,11 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue('width=' in data and self.pos['width'] in data)
 
     def test_no_formula_gets_lost_when_reparsing_external_formula_file(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter() as img:
             img.format_excluded(self.pos, '\\tau' * 999, 'foo.png')
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter() as img:
             img.format_excluded(self.pos, '\\pi' * 666, 'foo_2.png')
-        data = read('foo.html')
+        data = read(excl_filename)
         self.assertTrue('\\tau' in data)
         self.assertTrue('\\pi' in data)
 
@@ -177,12 +181,12 @@ class HtmlImageTest(unittest.TestCase):
         self.assertFalse(os.path.exists('foo.html'))
 
     def test_that_too_long_formulas_get_outsourced_if_configured(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+        with htmlhandling.HtmlImageFormatter() as img:
             img.set_max_formula_length(90)
             img.set_exclude_long_formulas(True)
             img.format(self.pos, '\\tau' * 999, 'foo.png')
-        self.assertTrue(os.path.exists('foo.html'))
-        data = read('foo.html')
+        self.assertTrue(os.path.exists(excl_filename))
+        data = read(htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME)
         self.assertTrue('\\tau\\tau' in data)
 
     def test_url_is_included(self):
