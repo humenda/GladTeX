@@ -105,10 +105,12 @@ class test_caching(unittest.TestCase):
         self.assertRaises(ValueError, c.add_formula, '\\gamma', self.pos, 'foo.png',
                 'some stuff')
 
-    def test_that_backslash_in_path_cause_exception(self):
+    def test_that_backslash_in_path_is_replaced_through_slash(self):
         c = caching.ImageCache('gladtex.cache')
-        self.assertRaises(ValueError, c.add_formula, '\\tau', self.pos,
-                'bilder\\foo.png', False)
+        os.mkdir('bilder')
+        open('foo.png','w').write(str(0xdeadbeef))
+        c.add_formula('\\tau', self.pos, 'bilder\\foo.png', False)
+        self.assertTrue('/' in c.get_data_for('\\tau')['path'])
 
     def test_that_absolute_paths_trigger_OSError(self):
         c = caching.ImageCache('gladtex.cache')
