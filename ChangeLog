@@ -7,7 +7,7 @@
     -    reparse outsourced formulas correctly (was a mixture of formatted vs.
         unformatted formulas)
     -	do not use absolute links when operating on file which is not in current
-    working directory
+		working directory
 
 1.6 - complete rewrite
     - rewrite GladTeX fully in Python
