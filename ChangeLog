@@ -1,13 +1,16 @@
 1.6.1 - bug fix release
-    -    set css class correctly for display math formulas
-    -    HTML label/id generation:
+    -   set css class correctly for display math formulas
+    -   HTML label/id generation:
         -    do not create overlong id's
         -    do only generate id's starting with an alphabetical character
         -    squeeze multiple identical characters
-    -    reparse outsourced formulas correctly (was a mixture of formatted vs.
+    -   reparse outsourced formulas correctly (was a mixture of formatted vs.
         unformatted formulas)
-    -	do not use absolute links when operating on file which is not in current
-		working directory
+    -   do not use absolute links when operating on file which is not in current
+        working directory
+    -   allow formulas consisting only of numbers (i.e. example calculations) by
+        prefixing "form_" in front of the HTML id (id must start with a letter
+        but may be followed by digits)
 
 1.6 - complete rewrite
     - rewrite GladTeX fully in Python

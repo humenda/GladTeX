@@ -117,7 +117,7 @@ def gen_id(formula):
     the same content in the document, that'll cause a clash of id's."""
     # for some characters we just use a simple replacement (otherwise the
     # would be lost)
-    mapped = {'{':'_', '}':'_', '(':'-', ')':'-', '\\':'.', '^':','}
+    mapped = {'{':'_', '}':'_', '(':'-', ')':'-', '\\':'.', '^':',', '*':'_'}
     id = []
     prevchar = ''
     for c in formula:
@@ -128,9 +128,10 @@ def gen_id(formula):
         elif c.isalpha() or c.isdigit():
             id.append(c)
         prevchar = c
-    # id's must start with an alphabetical character, so strip everything before
-    while len(id) and not id[0].isalpha():
-        id = id[1:]
+    # id's must start with an alphabetical character, so prefix the formula with
+    # "formula" to make it a valid html id
+    if len(id) and not id[0].isalpha():
+        id = ['f', 'o', 'r', 'm', '_'] + id
     if not id: # is empty
         raise ValueError("For the formula '%s' no referencable id could be generated." \
                     % formula)

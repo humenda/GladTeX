@@ -124,6 +124,11 @@ class HtmlImageTest(unittest.TestCase):
         for character in {'!', "'", '\\', '{', '}'}:
             self.assertFalse(character in data)
 
+    def test_formula_can_consist_only_of_numbers_and_id_is_generated(self):
+        data = htmlhandling.gen_id('9*8*7=504')
+        self.assertTrue(data.startswith('form'))
+        self.assertTrue(data.endswith('504'))
+
     def test_that_empty_ids_raise_exception(self):
         self.assertRaises(ValueError, htmlhandling.gen_id, '')
 
