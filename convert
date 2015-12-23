@@ -7,8 +7,7 @@ do
     if [ $input = 'manpage.md' ]
     then
         echo "Converting manual page"
-        echo "GladTeX(1) &nbsp;&nbsp;Sebastian Humenda `date +%Y`" | cat $input - | \
-        pandoc -T 'GladTeX &mbash; Generator For HTML With Embedded LaTeX Formulas' -s -f markdown -t html -o $output
+        pandoc -T 'GladTeX - Generator For HTML With Embedded LaTeX Formulas' -s -f markdown -t html -o $output $input
     else
         echo "Converting $input"
         pandoc -s -f markdown -t html -o $output $input

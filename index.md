@@ -34,8 +34,10 @@ Documentation
 You can obtain documentation on the command line by executing `gladtex -h`.
 Furthermore there's a man page available with `man gladtex`.
 
-The man page can be viewed [online](manpage.html) and it also contains details
-on the [file format](manpage.html#file-format).
+The documentation can be viewed [online](manpage.html) as well. It contains the
+program usage, as well as the description of the [file
+format](manpage.html#file-format) and
+[examples](manpage.html#examples).
 
 
 
