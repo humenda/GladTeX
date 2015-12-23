@@ -178,7 +178,7 @@ class Tex2img:
         copy = False
         for line in logdata.split('\n'):
             if line.startswith('! '):
-                line = line[2:]
+                lines.append(line[2:])
                 copy = True
             else:
                 if copy:
