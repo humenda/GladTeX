@@ -22,7 +22,6 @@ class Main:
     conversion. Only the run method needs to be called."""
     def __init__(self):
         self.__encoding = "utf-8"
-        self.__equations = []
 
     def _parse_args(self, args):
         """Parse command line arguments and return option instance."""
@@ -42,7 +41,7 @@ class Main:
         parser.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in (relative path)")
         parser.add_argument('-e', dest='latex_maths_env',
-                help="set custom maths environment to surround the formula" + \
+                help="Set custom maths environment to surround the formula" + \
                         " (e.g. flalign)")
         parser.add_argument('-E', dest='encoding', default="UTF-8",
                 help="Overwrite encoding to use (default UTF-8)")
@@ -50,19 +49,22 @@ class Main:
                 help="CSS class to assign to inline math (default: 'inlinemath')")
         parser.add_argument('-l', metavar='CLASS', dest='displaymath',
                 help="CSS class to assign to block-level math (default: 'displaymath')")
+        parser.add_argument('-m', dest='machinereadable', action="store_true",
+                default=False,
+                help="Print output in machine-readable format (less concise)")
         parser.add_argument('-o', metavar='FILENAME', dest='output',
-                help=("set output file name; '-' will print text to stdout (by"
+                help=("Set output file name; '-' will print text to stdout (by"
                     "default input file name is used and .htex extension changed "
                     "to .html)"))
         parser.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
-                help="add given LaTeX code to preamble of document; that'll " +\
+                help="Add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
         parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
-                help="set resolution (size of images) to 'dpi' (100 by " + \
+                help="Set resolution (size of images) to 'dpi' (100 by " + \
                     "default)")
         parser.add_argument("-u", metavar="URL", dest='url',
-                help="url to image files (relative links are default)")
-        parser.add_argument('input', help="input .htex file with LaTeX " +
+                help="URL to image files (relative links are default)")
+        parser.add_argument('input', help="Input .htex file with LaTeX " +
                 "formulas (if omitted or -, stdin will be read)")
         return parser.parse_args(args)
 
@@ -202,12 +204,25 @@ class Main:
                     result.append(data)
                 except SubprocessError as e:
                     pos = chunk[0]
-                    self.exit(("Error while converting the formula at line %d, "
-                        "pos %d (no. %d):\n    %s\n\n%s") % (pos[0], pos[1]+1,
-                            formula_count, equation, str(e.args[0])), 91)
+                    self.format_latex_error(pos, formula_count, equation,
+                            str(e.args[0]), options.machinereadable)
             else:
                 result.append(chunk)
         return result
+
+    def format_latex_error(self, pos_info, formula_no, formula, error_output,
+            machine_readable):
+        msg = None
+        line, pos = pos_info
+        pos += 1 # starts counting from 0, not user friendly
+        if machine_readable:
+            msg = ('Line: %d\nPosition: %d\nNumber: %d\nFormula: %s\nMessage: '
+                    '%s') % (line, pos, formula_no, formula, error_output)
+        else:
+            msg = ("Error while converting the formula at line %d, pos %d "
+                    "(no. %d):\n    %s\n\n%s") % (line, pos, formula_no,
+                            formula, error_output)
+        self.exit(msg, 91)
 
 
 if __name__ == '__main__':

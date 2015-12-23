@@ -66,6 +66,12 @@ Pandoc.
 **-l** _CLASS_
 :   CSS class to assign to block-level math (default: 'displaymath').
 
+**-m**
+:     Print error output in machine-readable format (less concise).
+
+    Each line will start with a key, followed by a colon, followed by the value,
+    i.e. `line: 5`.
+
 **-o** _FILENAME_
 :   Set output file name. '-' will print text to stdout. Bydefault, input file
     name is used and .htex extension is replaced by .html.
