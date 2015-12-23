@@ -1,4 +1,6 @@
 *build*
+dist
+gladtex.1
 *.pyc
 *pycache*
-dist
+*.swp

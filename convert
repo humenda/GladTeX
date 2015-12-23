@@ -3,7 +3,14 @@ set -e
 
 for input in $(ls *.md)
 do
-    echo "Converting $input"
     output=`echo $input|sed 's/\(.*\)md$/\1html/g'`
-    pandoc -s -f markdown -t html -o $output $input
+    if [ $input = 'manpage.md' ]
+    then
+        echo "Converting manual page"
+        echo "GladTeX(1) &nbsp;&nbsp;Sebastian Humenda `date +%Y`" | cat $input - | \
+        pandoc -T 'GladTeX &mbash; Generator For HTML With Embedded LaTeX Formulas' -s -f markdown -t html -o $output
+    else
+        echo "Converting $input"
+        pandoc -s -f markdown -t html -o $output $input
+    fi
 done

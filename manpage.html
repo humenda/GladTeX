@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="Sebastian Humenda" />
+  <title>GladTeX &mbash; Generator For HTML With Embedded LaTeX Formulas - GLADTEX(1)</title>
+  <style type="text/css">code{white-space: pre;}</style>
+</head>
+<body>
+<div id="header">
+<h1 class="title">GLADTEX(1)</h1>
+<h2 class="author">Sebastian Humenda</h2>
+<h3 class="date">27th December 2015</h3>
+</div>
+<h1 id="name">NAME</h1>
+<p>GladTeX – generate HTML with LaTeX formulas embedded as images</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<p><strong>gladtex</strong> [OPTIONS] [INPUT FILE NAME]</p>
+<h1 id="description">DESCRIPTION</h1>
+<p><strong>GladTeX</strong> is a formula preprocessor for HTML files. It recognizes a special tag (<code>&lt;eq&gt;...&lt;/eq&gt;</code>) and will convert the contained LaTeX formulas into images. The resulting images will be linked into the resulting HTML document. This eases the process of creating HTML documents (or web sites) containing formulas.<br />
+The generated images are saved in a cache to not render the same image over and over again. This speeds up the process when formulas occur multiple times or when a document is extended gradually.</p>
+<p>The LaTeX formulas are preserved in the alt attribute of the embedded images. Hence screen reader users benefit from an accessible HTML version of the document.</p>
+<p>Furthermore it can be used with Pandoc to convert MarkDown documents with LaTeX formulas to HTML.</p>
+<p>See [FILE FORMAT('file-format) for an explanation of the file format and <a href="#examples">EXAMPLES</a> for examples on how to use GladTeX on its own or with Pandoc.</p>
+<h1 id="options">OPTIONS</h1>
+<dl>
+<dt><strong>INPUT FILE NAME</strong></dt>
+<dd>Input .htex file with LaTeX formulas (if omitted or -, stdin will be read).
+</dd>
+<dt><strong>-h</strong> <strong>--help</strong></dt>
+<dd>Show this help message and exit.
+</dd>
+<dt><strong>-a</strong></dt>
+<dd>Save text alternatives for images which are too long for the alt attribute into a single separate file and link images to it.
+</dd>
+<dt><strong>-b</strong> <em>BACKGROUND_COLOR</em></dt>
+<dd>Set background color for resulting images (default transparent).
+</dd>
+<dt><strong>-c</strong> <em><code>FOREGROUND_COLOR</code></em></dt>
+<dd>Set foreground color for resulting images (default 0,0,0).
+</dd>
+<dt><strong>-d</strong> <em>DIRECTORY</em></dt>
+<dd>Directory in which to store the generated images in (relative path).
+</dd>
+<dt><strong>-e</strong> <em><code>LATEX_MATHS_ENV</code></em></dt>
+<dd>Set custom maths environment to surround the formula (e.g. flalign).
+</dd>
+<dt><strong>-E</strong> <em>ENCODING</em></dt>
+<dd>Overwrite encoding to use (default UTF-8).
+</dd>
+<dt><strong>-i</strong> <em>CLASS</em></dt>
+<dd>CSS class to assign to inline math (default: 'inlinemath').
+</dd>
+<dt><strong>-l</strong> <em>CLASS</em></dt>
+<dd>CSS class to assign to block-level math (default: 'displaymath').
+</dd>
+<dt><strong>-o</strong> <em>FILENAME</em></dt>
+<dd>Set output file name. '-' will print text to stdout. Bydefault, input file name is used and .htex extension is replaced by .html.
+</dd>
+<dt><strong>-p</strong> <em><code>LATEX_STATEMENT</code></em></dt>
+<dd>Add given LaTeX code to preamble of document. That'll affect the conversion of every image.
+</dd>
+<dt><strong>-r</strong> <em>DPI</em></dt>
+<dd>Set resolution (size of images) to 'dpi' (100 by default).
+</dd>
+<dt><strong>-u</strong> <em>URL</em></dt>
+<dd>Base URL to image files (relative links are default).
+</dd>
+</dl>
+<h1 id="file-format">FILE FORMAT</h1>
+<p>A .htex file is essentially a HTML file containing LaTeX formulas. The formulas have to be surrounded by <code>&lt;eq&gt;</code> and <code>&lt;/eq&gt;</code>.</p>
+<p>By default, formulas are rendered as inline maths, so they are squeezed to the height of the line. It is possible to render a formula as display maths by setting the env attribute to displaymath, i.e. <code>&lt;eq env=&quot;displaymath&quot;&gt;...&lt;/eq&gt;</code>.</p>
+<h1 id="examples">EXAMPLES</h1>
+<h2 id="sample-htex-document">Sample HTEX document</h2>
+<p>A sample HTEX document could look like this:</p>
+<pre><code>&lt;html&gt;&lt;head&gt;&lt;!-- meta information --&gt;&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Some text&lt;/h1&gt;
+&lt;p&gt;Circumference of a circle: &lt;eq&gt;u = \pi\cdot d&lt;/eq&gt;&lt;p&gt;
+&lt;p&gt;A useful matrix: &lt;eq env=&quot;displaymath&quot;&gt;\begin{pmatrix}
+1 &amp;2 &amp;3 &amp;4\\
+5 &amp;6 &amp;7 &amp;8\\
+9 &amp;10&amp;11&amp;12
+\end{pmatrix}&lt;/eq&gt;&lt;/p&gt;
+&lt;/body&gt;&lt;/html&gt;</code></pre>
+<p>This can be converted using</p>
+<pre><code>gladtex file.htex</code></pre>
+<p>and the result will be a HTML document called <code>file.html</code> along with two files <code>eqn0000.png</code> and <code>eqn0001.png</code> in the same directory.</p>
+<h2 id="markdown-to-html">MarkDown to HTML</h2>
+<p>GladTeX can be used together with Pandoc. That can be handy to create an online version of a scientific paper written in MarkDown. The MarkDown document would look like this:</p>
+<pre><code>Some text
+=========
+
+Circumference of a circle: $u = \pi\cdot d$
+
+A useful matrix: $$\begin{pmatrix}
+1 &amp;2 &amp;3 &amp;4\\
+5 &amp;6 &amp;7 &amp;8\\
+9 &amp;10&amp;11&amp;12 \end{pmatrix}$$</code></pre>
+<p>The conversion is as easy as:</p>
+<pre><code>pandoc -s -t html --gladtex file.md | gladtex -o file.html</code></pre>
+<h1 id="project-home">Project Home</h1>
+<p>The project home is at <a href="http://humenda.github.io/GladTeX" class="uri">http://humenda.github.io/GladTeX</a>. The source can be found at <a href="https://github.com/humenda/gladtex" class="uri">https://github.com/humenda/gladtex</a>.</p>
+<p>GladTeX(1)   Sebastian Humenda 2015</p>
+</body>
+</html>

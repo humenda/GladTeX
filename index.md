@@ -27,7 +27,18 @@ Source Code
 The source code can be obtained using git:
 
     $ git clone https://github.com/humenda/gladtex.git
-    
+
+Documentation
+-------------
+
+You can obtain documentation on the command line by executing `gladtex -h`.
+Furthermore there's a man page available with `man gladtex`.
+
+The man page can be viewed [online](manpage.html) and it also contains details
+on the [file format](manpage.html#file-format).
+
+
+
 Contact
 -------
 
@@ -35,5 +46,5 @@ Please feel free to send patches, comments, feature requests or even simply
 thanks to `shumenda //at\\ gmx __dot__ de`.
 
 
-© Copyright 1999-2010 Martin Gulbrandsen, 2013-2015 Sebastian Humenda
+&copy; Copyright 1999-2010 Martin Gulbrandsen, 2013-2015 Sebastian Humenda
 
