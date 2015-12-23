@@ -137,7 +137,13 @@ The conversion is as easy as:
 
     pandoc -s -t html --gladtex file.md | gladtex -o file.html
 
-# Project Home
+# KNOWN LIMITATIONS
+
+LaTeX is *****NOT***** unicode aware. If you have any unicode signs in your
+documents, please look up the amsmath documentation (or similar) to find a LaTeX
+command replacing the unicode character.
+
+# PROJECT HOME
 
 The project home is at <http://humenda.github.io/GladTeX>. The source can be
 found at <https://github.com/humenda/gladtex>.

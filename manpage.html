@@ -101,7 +101,9 @@ A useful matrix: $$\begin{pmatrix}
 9 &amp;10&amp;11&amp;12 \end{pmatrix}$$</code></pre>
 <p>The conversion is as easy as:</p>
 <pre><code>pandoc -s -t html --gladtex file.md | gladtex -o file.html</code></pre>
-<h1 id="project-home">Project Home</h1>
+<h1 id="known-limitations">KNOWN LIMITATIONS</h1>
+<p>LaTeX is *****NOT***** unicode aware. If you have any unicode signs in your documents, please look up the amsmath documentation (or similar) to find a LaTeX command replacing the unicode character.</p>
+<h1 id="project-home">PROJECT HOME</h1>
 <p>The project home is at <a href="http://humenda.github.io/GladTeX" class="uri">http://humenda.github.io/GladTeX</a>. The source can be found at <a href="https://github.com/humenda/gladtex" class="uri">https://github.com/humenda/gladtex</a>.</p>
 </body>
 </html>
