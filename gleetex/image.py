@@ -21,15 +21,17 @@ def call(cmd):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
     stdin and stdout, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
+    decode = lambda x: bytes.decode(x, sys.getdefaultencoding(),
+            errors="surrogateescape")
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
-            universal_newlines=True) as proc:
+            universal_newlines=False) as proc:
         data = []
         try:
             if proc.wait(timeout=20):
                 # include stdout/stderr, if it exists
                 data = [d for d in proc.communicate(timeout=20) if d]
                 raise subprocess.SubprocessError("Problem occurred while executing %s%s\n" %
-                    (' '.join(cmd), '\n'.join(data)))
+                    (' '.join(cmd), '\n'.join(map(decode, data))))
             data = [d for d in proc.communicate(timeout=20) if d]
         except subprocess.TimeoutExpired as e:
             print(proc.poll())
@@ -43,7 +45,7 @@ def call(cmd):
             sys.stderr.write("\nInterrupted; ")
             import traceback
             traceback.print_exc(file=sys.stderr)
-        return data
+        return decode(data)
 
 class Tex2img:
     """
@@ -174,20 +176,7 @@ class Tex2img:
         """Parse the LaTeX error output and return the relevant part of it."""
         if not logdata:
             return None
-        lines = []
-        copy = False
         for line in logdata.split('\n'):
             if line.startswith('! '):
-                lines.append(line[2:])
-                copy = True
-            else:
-                if copy:
-                    if line.startswith('No pages of') or \
-                        line.startswith('Output written') or \
-                        line.startswith('!  ==> Fatal error o'):
-                        copy = False
-                        break
-                    else:
-                        lines.append(line)
-        return '\n'.join(lines)
+                return line[2:]
 
