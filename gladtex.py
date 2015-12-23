@@ -186,9 +186,12 @@ class Main:
             option = getattr(options, option_str)
             if option:
                 conv.set_option(option_str, tuple(map(float, option.split(','))))
+        formula_count = 0
         for chunk in parsed_htex_document:
-            # two types of chunks: a) str (uninteresting), b) list: formula
+            # chunk == an entity parsed by EqnParser; type 'str' will be taken
+            # literally, 'list' will be treated as formula
             if isinstance(chunk, list):
+                formula_count += 1
                 equation = chunk[2]
                 displaymath = chunk[1]
                 try:
@@ -199,9 +202,9 @@ class Main:
                     result.append(data)
                 except SubprocessError as e:
                     pos = chunk[0]
-                    self.exit(("Error while converting the formula: %s at "
-                        "line %d pos %d\n") % (equation, pos[0], pos[1]) + \
-                        str(e.args[0]), 91)
+                    self.exit(("Error while converting the formula at line %d, "
+                        "pos %d (no. %d):\n    %s\n\n%s") % (pos[0], pos[1]+1,
+                            formula_count, equation, str(e.args[0])), 91)
             else:
                 result.append(chunk)
         return result

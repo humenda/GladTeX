@@ -1,4 +1,7 @@
-1.6.1 - bug fix release
+2.0 - make GladTeX truely platform independent
+    -	add formula number in error output; makes tracking of formulas easier in
+        error case
+    -	write man page
     -   set css class correctly for display math formulas
     -   HTML label/id generation:
         -    do not create overlong id's
@@ -8,6 +11,7 @@
         unformatted formulas)
     -   do not use absolute links when operating on file which is not in current
         working directory
+    -   be more careful with backslashes vs. slashes
     -   allow formulas consisting only of numbers (i.e. example calculations) by
         prefixing "form_" in front of the HTML id (id must start with a letter
         but may be followed by digits)
