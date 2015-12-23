@@ -52,9 +52,9 @@ class Main:
                 help="CSS class to assign to block-level math (default: 'displaymath')")
         parser.add_argument('-o', metavar='FILENAME', dest='output',
                 help=("set output file name; '-' will print text to stdout (by"
-                    "default input file name is used and .htex ending changed "
+                    "default input file name is used and .htex extension changed "
                     "to .html)"))
-        parser.add_argument('-p', metavar='<LaTeX statement>', dest="preamble",
+        parser.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
                 help="add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
         parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
