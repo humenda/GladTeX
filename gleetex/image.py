@@ -45,7 +45,11 @@ def call(cmd):
             sys.stderr.write("\nInterrupted; ")
             import traceback
             traceback.print_exc(file=sys.stderr)
-        return decode(data)
+        if isinstance(data, list):
+            return '\n'.join(map(decode, data))
+        else:
+            return decode(data)
+
 
 class Tex2img:
     """
@@ -149,11 +153,11 @@ class Tex2img:
             raise
         finally:
             remove_all(dvi_fn)
-        for line in data[0].split('\n'):
+        for line in data.split('\n'):
             found = Tex2img.DVIPNG_REGEX.search(line)
             if found:
                 return dict(zip(['depth', 'height', 'width'], found.groups()))
-        raise ValueError("Could not parse dvi output: " + repr(data[0]))
+        raise ValueError("Could not parse dvi output: " + repr(data))
 
     def convert(self):
         """Convert the TeX document into an image.

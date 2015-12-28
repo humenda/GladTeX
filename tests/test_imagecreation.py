@@ -31,7 +31,8 @@ class test_imagecreation(unittest.TestCase):
         try:
             i.create_dvi('foo.dvi')
         except SubprocessError as e:
-            self.assertTrue('\\foo' in e.args[0])
+            # expect undefined control sequence in error output
+            self.assertTrue('Undefined' in e.args[0])
 
     def test_that_intermediate_files_are_removed_after_successful_run(self):
         files = ['foo.log', 'foo.aux', 'foo.tex']
