@@ -11,6 +11,15 @@ Gettext
 
 Gettext should be integrated to localize messages (especially errors).
 
+Compressed Cache
+----------------
+
+The cache stores the path, the formula and the positioning of an image. For
+large documents, this might be quite big, hence it makes sense to compress them.
+
+To make things easier, the cache should have a .gz extension.
+
+
 Support LuaLaTeX
 ----------------
 

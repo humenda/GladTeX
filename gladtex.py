@@ -166,7 +166,6 @@ class Main:
                 file.write(formatter.format(chunk['pos'], chunk['formula'],
                     chunk['path'], is_displaymath))
             else:
-                print(chunk)
                 file.write(chunk)
 
     def convert_images(self, parsed_htex_document, base_path, link_path, options):
