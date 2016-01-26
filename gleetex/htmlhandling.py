@@ -33,17 +33,14 @@ class EqnParser(html.parser.HTMLParser):
     spacing can be lost. The parser tries to preserve as much as possible, but
     e.g. stand-alone tags like `<br />` would loose the space."""
     def __init__(self):
+        super().__init__(convert_charrefs=False)
         self.__data = []
         self.__lastchunk = []
-        super().__init__(self, convert_charrefs=False)
         self.in_eqn = False
 
     def feed(self, arg):
         """Overwrite to run a final step after parsing was completed."""
-        try:
-            super().feed(arg)
-        except html.parser.HTMLParseError as e:
-            raise ParseException(e.args[0], e.args[1])
+        super().feed(arg)
         if self.in_eqn:
             if isinstance(self.__data[-1], list):
                 start_pos = self.__data[-1][0]
@@ -108,6 +105,9 @@ class EqnParser(html.parser.HTMLParser):
 
     def get_data(self):
         return self.__data[:]
+
+    def error(self, message):
+        raise ParseException(message, ('unknown', 'unknown'))
 
 
 def gen_id(formula):
@@ -217,6 +217,9 @@ class OutsourcedFormulaParser(html.parser.HTMLParser):
     def get_formulas(self):
         """Return an ordered dictionary with id : formula paragraph."""
         return self.__equations
+
+    def error(self, message):
+        raise ParseException(message, ('unknown', 'unknown'))
 
 def format_formula_paragraph(formula):
     """Format a formula to appear as if it would have been outsourced into an
@@ -341,8 +344,8 @@ class HtmlImageFormatter: # ToDo: localisation
         # depth is a negative offset
         depth = str(int(pos['depth']) * -1)
         css = (self.__css['display'] if displaymath else self.__css['inline'])
-        return ('<img src="{0}" style="vertical-align: {3}; margin: 0;" '
-                'height="{2[height]}" width="{2[width]}" alt="{1}" '
+        return ('<img src="{0}" style="vertical-align: {3}px; margin: 0;" '
+                'height="{2[height]}px" width="{2[width]}px" alt="{1}" '
                 'class="{4}" />').format(full_url, formula, pos, depth, css)
 
     def format_excluded(self, pos, formula, img_path, displaymath=False):
@@ -360,7 +363,7 @@ class HtmlImageFormatter: # ToDo: localisation
         img = self.get_html_img(pos, shortened, img_path, displaymath)
         identifier = gen_id(formula)
         # write formula out to external file
-        if not identifier in self.__cached_formula_pars:
+        if identifier not in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
         exclusion_filelink = posixpath.join(self.__link_path, \
                 os.path.split(self.__exclusion_filepath)[1])
