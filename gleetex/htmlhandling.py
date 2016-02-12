@@ -152,7 +152,7 @@ class OutsourcedFormulaParser(html.parser.HTMLParser):
         self.__id = None
         self.__passed_head = False
         self.__equations = collections.OrderedDict()
-        super().__init__(self, convert_charrefs=False)
+        super().__init__(convert_charrefs=False)
 
     def handle_starttag(self, tag, attrs):
         if tag == 'p':
