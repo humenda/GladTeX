@@ -1,0 +1,6 @@
+A few items which could go into a FAQ:
+
+What do the error messages mean?
+Why is my formula positioned awkardly within the text? (most probably displaymath instead of inline math)
+Why are limits over sums and similar not correctly set? (use displaymath, sometimes `\\limits`)
+

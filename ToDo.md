@@ -5,6 +5,13 @@ This list contains things to be implemented in GladTeX. If you have additions or
 even feel like you want to do it, feel free to drop me an email: `shumenda |aT|
 gmx //dot-- de`.
 
+Uncategorized
+-------------
+
+-   introduce command line option which will check whether all all formulas in a
+    cache are used and if not, remove the formula (only useful for caches
+    corresponding to a single document)
+
 Gettext
 -------
 
