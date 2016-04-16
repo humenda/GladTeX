@@ -1,10 +1,10 @@
 import argparse
-import gleetex
 import os
 import posixpath
 import re
 import sys
 from subprocess import SubprocessError
+import gleetex
 
 
 class HelpfulCmdParser(argparse.ArgumentParser):
@@ -43,7 +43,7 @@ class Main:
         parser.add_argument('-e', dest='latex_maths_env',
                 help="Set custom maths environment to surround the formula" + \
                         " (e.g. flalign)")
-        parser.add_argument('-E', dest='encoding', default="UTF-8",
+        parser.add_argument('-E', dest='encoding', default=None,
                 help="Overwrite encoding to use (default UTF-8)")
         parser.add_argument('-i', metavar='CLASS', dest='inlinemath',
                 help="CSS class to assign to inline math (default: 'inlinemath')")
@@ -95,7 +95,9 @@ class Main:
         """Determine whether GladTeX is reading from stdin/file, writing to
         stdout/file and determine base_directory if files are in another
         directory. If no output file name is given and there is a input file to
-        read from, output is written to a file ending on .html instead of .htex."""
+        read from, output is written to a file ending on .html instead of .htex.
+        The returned document is either string or byte, the latter if encoding
+        is unknown."""
         data = None
         base_path = ''
         output = '-'
@@ -103,8 +105,12 @@ class Main:
             data = sys.stdin.read()
         else:
             try:
-                with open(options.input, 'r', encoding=options.encoding) as file:
-                    data = file.read()
+                if options.encoding:
+                    with open(options.input) as f:
+                        data = f.read()
+                else:
+                    with open(options.input, 'rb') as file:
+                        data = file.read()
             except UnicodeDecodeError as e:
                 self.exit(('Error while reading from %s: %s\nProbably this file'
                     ' has a different encoding, try specifying -E.') % \
@@ -135,6 +141,8 @@ class Main:
         docparser = gleetex.htmlhandling.EqnParser()
         try:
             docparser.feed(doc)
+            self.__encoding = docparser.get_encoding()
+            self.__encoding = (self.__encoding if self.__encoding else 'utf-8')
         except gleetex.htmlhandling.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
             self.exit('Error while parsing {}: {}'.format(input_fn,

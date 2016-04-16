@@ -36,17 +36,32 @@ class EqnParser(html.parser.HTMLParser):
         super().__init__(convert_charrefs=False)
         self.__data = []
         self.__lastchunk = []
+        self.__encoding = None
         self.in_eqn = False
 
-    def feed(self, arg):
+    def feed(self, document):
         """Overwrite to run a final step after parsing was completed."""
-        super().feed(arg)
+        if isinstance(document, bytes): # try to guess encoding
+            encoding = "UTF-8"
+            if b'charset=' in document:
+                start = document.find(b'charset=') + 8
+                end = document[start:].find(b'"')
+                if end > -1:
+                    encoding = document[start:start+end].decode("utf-8")
+            document = document.decode(encoding)
+            self.__encoding = encoding
+        super().feed(document)
         if self.in_eqn:
             if isinstance(self.__data[-1], list):
                 start_pos = self.__data[-1][0]
                 raise ParseException("Unclosed equation environment.", start_pos)
         self.__data += self.__lastchunk
         self.__lastchunk = []
+
+    def get_encoding(self):
+        """Return encoding (if parsed) or none if no encoding was used (i.e. a
+        string was passed in."""
+        return self.__encoding
 
     def handle_starttag(self, tag, attrs):
         if not tag == 'eq':

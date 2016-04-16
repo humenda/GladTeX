@@ -6,6 +6,8 @@ from gleetex import htmlhandling
 
 excl_filename = htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME
 
+HTML_SKELETON = '''<html><head><meta http-equiv="Content-Type" content="text/html; charset={0}" />
+</head><body>{1}</body>'''
 
 def read(file_name, mode='r', encoding='utf-8'):
     """Read the file, return the string. Close file properly."""
@@ -88,6 +90,15 @@ class HtmlparserTest(unittest.TestCase):
     def test_displaymath_is_recognized(self):
         self.p.feed('<eq env="displaymath">\\sum\limits_{n=1}^{e^i} a^nl^n</eq>')
         self.assertEqual(self.p.get_data()[0][1], True) # displaymath flag set
+
+    def test_encodings_are_parsed_from_file(self):
+        iso8859_1 = HTML_SKELETON.format('iso-8859-15', 'öäüß').encode('iso-8859-1')
+        self.p.feed(iso8859_1)
+
+    def test_strings_can_be_passed_tO_parser_as_well(self):
+        # no exception - everything is working as expected
+        self.p.feed(HTML_SKELETON.format('utf-8', 'æø'))
+
 
 class HtmlImageTest(unittest.TestCase):
     def setUp(self):
