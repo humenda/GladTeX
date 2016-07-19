@@ -15,9 +15,22 @@ class CachedConverter:
         ...
 
     The formula is either converted  or retrieved from a cache in the same
-    directory like the images."""
+    directory like the images.
+
+    :param base_path directory to place files in (relative to the file
+            converted. So if the file being converted is foo/bar.htex and the
+            base_path is set to img, the image will be placed in foo/img/.
+    :param linkpath path to be prepended to each of the generated files; useful
+        if the document is placed on a server and the image directory resides
+        somewhere else
+    :param keep_old_images If an existing cache cannot be read (incompatible
+        GladTeX version, ...) Aand the flag is set, the program will simple
+        crash and tell the user to remove the cache (default). If set to False,
+        the program will instead remove the cache and all eqn* files and
+        recreate the cache.
+    """
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
-    def __init__(self, base_path='', linkpath=''):
+    def __init__(self, base_path='', linkpath='', keep_old_images=False):
         if not os.path.exists(os.path.join(base_path, linkpath)) and (base_path
                 or linkpath):
             os.makedirs(os.path.join(base_path, linkpath))
@@ -26,7 +39,8 @@ class CachedConverter:
         self.__base_path = base_path
         # on Windows, links in HTML pages should still use /
         self.__linkpath = linkpath
-        self.__cache = caching.ImageCache(cache_path)
+        self.__cache = caching.ImageCache(cache_path,
+                keep_old_images=keep_old_images)
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None}

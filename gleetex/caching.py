@@ -23,12 +23,18 @@ class JsonParserException(Exception):
 
 class ImageCache:
     VERSION_STR = 'GladTeX__cache__version'
-    def __init__(self, path='gladtex.cache'):
+    def __init__(self, path='gladtex.cache', keep_old_images=True):
         self.__cache = {}
         self.__set_version(CACHE_VERSION)
         self.__path = path
         if os.path.exists(path):
-            self._read()
+            try:
+                self._read()
+            except JsonParserException:
+                if keep_old_images:
+                    raise
+                else:
+                    self._remove_old_cache_and_files()
 
     def __contains__(self, formula):
         """Check whether given formula is already in cache. Formulas are unified
@@ -57,6 +63,7 @@ class ImageCache:
             raise JsonParserException(msg + "\nPlease delete the cache (and" + \
                         " the images) and rerun the program.")
         if os.path.exists(self.__path):
+            #pylint: disable=broad-except
             try:
                 with open(self.__path, 'r', encoding='utf-8') as file:
                     self.__cache = json.load(file)
@@ -78,6 +85,16 @@ class ImageCache:
         if cur_version != CACHE_VERSION:
             raise_error("Cache in %s has version %s, expected %s." % \
                     (self.__path, cur_version, CACHE_VERSION))
+
+    def _remove_old_cache_and_files(self):
+        os.remove(self.__path)
+        directory = os.path.split(self.__path)[0]
+        if not directory:
+            directory = '.'
+        # remove all files starting with eqn*
+        for file in (d for d in os.listdir(directory)
+                if os.path.isfile(d) and d.startswith('eqn')):
+            os.remove(os.path.join(directory, file))
 
     def add_formula(self, formula, pos, file_path, displaymath=False):
         """Add formula to cache. The cache consists of a mapping from formula to
@@ -121,8 +138,9 @@ class ImageCache:
 
     def get_data_for(self, formula):
         """get_data_for(formula)
-        Return dictionary with position (pos), formula path (path) and boolean
-        for displaymath True/False (displaymath) as a dictionary with the keys
+        Return a dictionary with meta information for a formula. That includes
+        position (pos), formula path (path) and boolean for displaymath
+        True/False (displaymath) as a dictionary with the keys
         shown in parenthesis.
         This method raises a ValueError if formula wasn't found."""
         formula = unify_formula(formula)
