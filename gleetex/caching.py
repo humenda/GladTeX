@@ -23,7 +23,14 @@ class JsonParserException(Exception):
 
 class ImageCache:
     """ImageCache(path='gladtex.cache', keep_old_cache=True)
-    This cache stores formulas which have 
+    This cache stores formulas which have been converted already and don't need
+    to be converted again. That may be useful for large documents and which
+    would hence speed up conversion time considerably. It's also helpful when
+    building a document incrementally.
+    if keep_old_cache is True, the cache will raise a JsonParserException if
+    that file could not be read (i.e. incompatible GladTeX version). If set to
+    False, it'll discard the cache along with all eqn* files and start with a
+    clean cache.
     """
     VERSION_STR = 'GladTeX__cache__version'
     def __init__(self, path='gladtex.cache', keep_old_cache=True):
