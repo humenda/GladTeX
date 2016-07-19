@@ -8,6 +8,7 @@ from gleetex import caching
 def write(path, content):
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
+
 class test_caching(unittest.TestCase):
     def setUp(self):
         self.pos = {'height' : 8, 'depth' : 2, 'width' : 666}
@@ -43,8 +44,7 @@ class test_caching(unittest.TestCase):
         self.assertEqual(u(form2), u(form3))
 
     def test_empty_cache_works_fine(self):
-        with open('foo.png', 'wb') as f:
-            f.write(b'\x00')
+        write('foo.png', 'muha')
         c = caching.ImageCache('file.png')
         formula = r"f(x) = \ln(x)"
         c.add_formula(formula, self.pos, 'foo.png')
@@ -59,8 +59,7 @@ class test_caching(unittest.TestCase):
     def test_that_correct_pos_and_path_are_returned_after_writing_the_cache_back(self):
         c = caching.ImageCache()
         formula = r"f(x) = \ln(x)"
-        with open('file.png', 'w') as f:
-            f.write('dummy')
+        write('file.png', 'dummy')
         c.add_formula(formula, self.pos, 'file.png')
         c.write()
         c = caching.ImageCache()
@@ -97,8 +96,7 @@ class test_caching(unittest.TestCase):
         self.assertRaises(caching.JsonParserException, caching.ImageCache, 'gladtex.cache')
 
     def test_that_invalid_style_is_detected(self):
-        with open('foo.png', 'w') as f:
-            f.write("dummy")
+        write('foo.png', "dummy")
         c = caching.ImageCache('gladtex.cache')
         c.add_formula('\\tau', self.pos, 'foo.png', False)
         c.add_formula('\\theta', self.pos, 'foo.png', True)
@@ -108,14 +106,33 @@ class test_caching(unittest.TestCase):
     def test_that_backslash_in_path_is_replaced_through_slash(self):
         c = caching.ImageCache('gladtex.cache')
         os.mkdir('bilder')
-        open('foo.png','w').write(str(0xdeadbeef))
+        write('foo.png', str(0xdeadbeef))
         c.add_formula('\\tau', self.pos, 'bilder\\foo.png', False)
         self.assertTrue('/' in c.get_data_for('\\tau')['path'])
 
     def test_that_absolute_paths_trigger_OSError(self):
         c = caching.ImageCache('gladtex.cache')
-        open('foo.png','w').write("dummy")
+        write('foo.png', "dummy")
         fn = os.path.abspath('foo.png')
         self.assertRaises(OSError, c.add_formula, '\\tau', self.pos,
                 fn, False)
+
+    def test_that_invalid_caches_are_removed_automatically_if_desired(self):
+        file_was_removed = lambda x: self.assertFalse(os.path.exists(x),
+                "expected that file %s was removed, but it still exists" % x)
+        write('gladtex.cache', 'some non-json rubbish')
+        c = caching.ImageCache('gladtex.cache', keep_old_images=False)
+        file_was_removed('gladtex.cache')
+        # try the same in a subdirectory
+        os.mkdir('foo')
+        cache_path = os.path.join('foo', 'gladtex.cache')
+        eqn1_path = os.path.join('foo', 'eqn000.png')
+        eqn2_path = os.path.join('foo', 'eqn003.png')
+        write(cache_path, 'some non-json rubbish')
+        write(eqn1_path, 'binary')
+        write(eqn2_path, 'more binary')
+        c = caching.ImageCache(cache_path, keep_old_images=False)
+        file_was_removed(cache_path)
+        file_was_removed(eqn1_path)
+        file_was_removed(eqn2_path)
 

@@ -92,9 +92,12 @@ class ImageCache:
         if not directory:
             directory = '.'
         # remove all files starting with eqn*
-        for file in (d for d in os.listdir(directory)
-                if os.path.isfile(d) and d.startswith('eqn')):
-            os.remove(os.path.join(directory, file))
+        for file in os.listdir(directory):
+            if not file.startswith('eqn'):
+                continue
+            file = os.path.join(directory, file)
+            if os.path.isfile(file):
+                os.remove(file)
 
     def add_formula(self, formula, pos, file_path, displaymath=False):
         """Add formula to cache. The cache consists of a mapping from formula to
