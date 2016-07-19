@@ -22,8 +22,11 @@ class JsonParserException(Exception):
     pass
 
 class ImageCache:
+    """ImageCache(path='gladtex.cache', keep_old_cache=True)
+    This cache stores formulas which have 
+    """
     VERSION_STR = 'GladTeX__cache__version'
-    def __init__(self, path='gladtex.cache', keep_old_images=True):
+    def __init__(self, path='gladtex.cache', keep_old_cache=True):
         self.__cache = {}
         self.__set_version(CACHE_VERSION)
         self.__path = path
@@ -31,7 +34,7 @@ class ImageCache:
             try:
                 self._read()
             except JsonParserException:
-                if keep_old_images:
+                if keep_old_cache:
                     raise
                 else:
                     self._remove_old_cache_and_files()
@@ -150,5 +153,11 @@ class ImageCache:
         if not formula in self.__cache:
             raise KeyError(formula)
         else:
-            return self.__cache[formula]
+            # check whether file still exists
+            meta_data = self.__cache[formula]
+            if not os.path.exists(meta_data['path']):
+                del self.__cache[formula]
+                raise KeyError(formula)
+            else:
+                return meta_data
 

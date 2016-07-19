@@ -23,14 +23,14 @@ class CachedConverter:
     :param linkpath path to be prepended to each of the generated files; useful
         if the document is placed on a server and the image directory resides
         somewhere else
-    :param keep_old_images If an existing cache cannot be read (incompatible
+    :param keep_old_cache If an existing cache cannot be read (incompatible
         GladTeX version, ...) Aand the flag is set, the program will simple
         crash and tell the user to remove the cache (default). If set to False,
         the program will instead remove the cache and all eqn* files and
         recreate the cache.
     """
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
-    def __init__(self, base_path='', linkpath='', keep_old_images=False):
+    def __init__(self, base_path='', linkpath='', keep_old_cache=False):
         if not os.path.exists(os.path.join(base_path, linkpath)) and (base_path
                 or linkpath):
             os.makedirs(os.path.join(base_path, linkpath))
@@ -40,7 +40,7 @@ class CachedConverter:
         # on Windows, links in HTML pages should still use /
         self.__linkpath = linkpath
         self.__cache = caching.ImageCache(cache_path,
-                keep_old_images=keep_old_images)
+                keep_old_cache=keep_old_cache)
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None}

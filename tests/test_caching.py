@@ -20,7 +20,7 @@ class test_caching(unittest.TestCase):
         os.chdir(self.original_directory)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
-    def test_differently_spaced_formulas_are_the_smae(self):
+    def test_differently_spaced_formulas_are_the_same(self):
         form1 = r'\tau  \pi'
         form2 = '\tau\\pi'
         self.assertTrue(caching.unify_formula(form1),
@@ -106,7 +106,7 @@ class test_caching(unittest.TestCase):
     def test_that_backslash_in_path_is_replaced_through_slash(self):
         c = caching.ImageCache('gladtex.cache')
         os.mkdir('bilder')
-        write('foo.png', str(0xdeadbeef))
+        write(os.path.join('bilder', 'foo.png'), str(0xdeadbeef))
         c.add_formula('\\tau', self.pos, 'bilder\\foo.png', False)
         self.assertTrue('/' in c.get_data_for('\\tau')['path'])
 
@@ -121,7 +121,7 @@ class test_caching(unittest.TestCase):
         file_was_removed = lambda x: self.assertFalse(os.path.exists(x),
                 "expected that file %s was removed, but it still exists" % x)
         write('gladtex.cache', 'some non-json rubbish')
-        c = caching.ImageCache('gladtex.cache', keep_old_images=False)
+        c = caching.ImageCache('gladtex.cache', keep_old_cache=False)
         file_was_removed('gladtex.cache')
         # try the same in a subdirectory
         os.mkdir('foo')
@@ -131,8 +131,19 @@ class test_caching(unittest.TestCase):
         write(cache_path, 'some non-json rubbish')
         write(eqn1_path, 'binary')
         write(eqn2_path, 'more binary')
-        c = caching.ImageCache(cache_path, keep_old_images=False)
+        c = caching.ImageCache(cache_path, keep_old_cache=False)
         file_was_removed(cache_path)
         file_was_removed(eqn1_path)
         file_was_removed(eqn2_path)
+
+    def test_that_formulas_in_cache_with_no_file_raise_key_error(self):
+        c = caching.ImageCache('gladtex.cache', keep_old_cache=False)
+        write('foo.png', 'dummy')
+        c.add_formula('\\tau', self.pos, 'foo.png')
+        c.write()
+        os.remove('foo.png')
+        c = caching.ImageCache('gladtex.cache', keep_old_cache=False)
+        with self.assertRaises(KeyError):
+            c.get_data_for('foo.png')
+
 
