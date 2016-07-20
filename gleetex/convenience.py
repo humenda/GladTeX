@@ -78,16 +78,24 @@ class CachedConverter:
         self.__options[option] = value
 
     #pylint: disable=too-many-locals
-    def convert_concurrent(self, base_path, formulas):
-        """convert_concurrent(formulas)
-        Convert all formulas using self.convert using parallel execution. Each
+    def convert_all(self, base_path, formulas):
+        """convert_all(formulas)
+        Convert all formulas using self.convert using concurrently. Each
         element of `formulas` must be a tuple containing (formula, displaymath,
+        Formulas already contained in the cache are not convered.
         """
+        formulas_to_convert = self._get_formulas_to_convert(base_path, formulas)
+        self._convert_concurrently(formulas, formulas_to_convert)
+
+    def _get_formulas_to_convert(self, base_path, formulas):
+        """Return a list of formulas to convert, along with their count in the
+        global list of formulas of the document being converted and the file
+        name. Function was decomposed for better testability."""
         formulas_to_convert = [] # find as many file names as equations
         file_name_count = 0
         eqn_path = lambda x: '%s/eqn%03d.png' % (base_path, x)
 
-        formula_was_converted = lambda x: unify_formula(formula) in \
+        formula_was_converted = lambda x: unify_formula(x) in \
                 (unify_formula(u[0]) for u in formulas_to_convert)
         # find enough free file names
         for formula_count, (_pos, dsp, formula) in enumerate(formulas):
@@ -96,7 +104,12 @@ class CachedConverter:
                     file_name_count += 1
                 formulas_to_convert.append((formula, eqn_path(file_name_count),
                     dsp, formula_count + 1))
+        return formulas_to_convert
 
+
+    def _convert_concurrently(self, formulas, formulas_to_convert):
+        """The actual concurrent conversion process. Method is intended to be
+        called from convert_all()."""
         # convert missing formulas
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             # start conversion and mark each thread with it's formula
