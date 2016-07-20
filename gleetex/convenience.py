@@ -117,10 +117,11 @@ class CachedConverter:
             # formulas)
             jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, pos, count)
                 for (eqn, pos, path, dsp, count) in formulas_to_convert}
-            cancel_requested = False
+            error_occurred = None
             for future in concurrent.futures.as_completed(jobs):
-                if cancel_requested:
+                if error_occurred and not future.done():
                     future.cancel()
+                    continue
                 formula, pos_in_src, formula_count = jobs[future]
                 try:
                     data = future.result()
@@ -128,16 +129,16 @@ class CachedConverter:
                     # retrieve the position (line, pos on line) in the source
                     # document from original formula list
                     pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1
-                    executor.shutdown(wait=False)
-                    cancel_requested = True
                     self.__cache.write() # write back cache with valid entries
-                    raise ConversionException(str(e.args[0]), formula,
-                            *pos_in_src, formula_count + 1)
+                    error_occurred = ConversionException(str(e.args[0]), formula,
+                            *pos_in_src, formula_count)
                 else:
                     self.__cache.add_formula(formula, data['pos'], data['path'],
                             data['displaymath'])
                     self.__cache.write()
-
+            #pylint: disable=raising-bad-type
+            if error_occurred:
+                raise error_occurred
 
 
 
