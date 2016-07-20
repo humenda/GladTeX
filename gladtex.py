@@ -51,7 +51,12 @@ class Main:
                 help="CSS class to assign to block-level math (default: 'displaymath')")
         parser.add_argument('-m', dest='machinereadable', action="store_true",
                 default=False,
-                help="Print output in machine-readable format (less concise)")
+                help="Print output in machine-readable format (less concise, better parseable)")
+        parser.add_argument("-n", action="store_true", dest="notkeepoldcache",
+                    help=("Purge unreadable caches along with all eqn*.png files. "
+                        "Caches can be unreadable if the used GladTeX version is "
+                        "incompatible. If this option is unset, GladTeX will "
+                        "simply fail when the cache is unreadable."))
         parser.add_argument('-o', metavar='FILENAME', dest='output',
                 help=("Set output file name; '-' will print text to stdout (by"
                     "default input file name is used and .htex extension changed "
@@ -182,7 +187,8 @@ class Main:
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
         try:
-            conv = gleetex.convenience.CachedConverter(base_path, link_path)
+            conv = gleetex.convenience.CachedConverter(base_path, link_path,
+                    not options.notkeepoldcache)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
         options_to_query = ['dpi', 'preamble', 'latex_maths_env']
