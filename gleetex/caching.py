@@ -46,11 +46,6 @@ class ImageCache:
                 else:
                     self._remove_old_cache_and_files()
 
-    def __contains__(self, formula):
-        """Check whether given formula is already in cache. Formulas are unified
-        using `unify_formula`."""
-        return unify_formula(formula) in self.__cache.keys()
-
     def __len__(self):
         """Remove number of entries in cache."""
         # ignore version
@@ -149,13 +144,26 @@ class ImageCache:
         else:
             del self.__cache[formula]
 
-    def get_data_for(self, formula):
-        """get_data_for(formula)
-        Return a dictionary with meta information for a formula. That includes
-        position (pos), formula path (path) and boolean for displaymath
-        True/False (displaymath) as a dictionary with the keys
-        shown in parenthesis.
-        This method raises a ValueError if formula wasn't found."""
+    def contains(self, formula, displaymath):
+        """Check whether a formula was already cached.
+        :param the formula to be checked (internally normalized)
+        :param displaymath (bool) is the formula display math (or inline math, if false)
+        :returns true if formula was found."""
+        try:
+            bool(self.get_data_for(formula, displaymath))
+        except KeyError:
+            return False
+
+
+    def get_data_for(self, formula, displaymath):
+        """get_data_for(formula, displaymath)
+        Retrieve meta data about a already converted formula.
+        :param formula Formula to look up (normalized internally)
+        :param displaymath (boolean) query for displaymath or inlinemath formula
+        :return position (pos), formula path (path) and boolean for displaymath
+            True/False (displaymath) as a dictionary with the keys shown in
+            parenthesis.
+        This method raises a KeyError if formula wasn't found."""
         formula = unify_formula(formula)
         if not formula in self.__cache:
             raise KeyError(formula)
@@ -165,6 +173,8 @@ class ImageCache:
             if not os.path.exists(meta_data['path']):
                 del self.__cache[formula]
                 raise KeyError(formula)
+            elif meta_data['displaymath'] != displaymath:
+                raise KeyError(formula) # inline math formulas are not equal to display math formulas
             else:
                 return meta_data
 

@@ -2,9 +2,31 @@
 converter sacrifices customizability for convenience and provides a class
 converting a formula directly to a png file."""
 
+import concurrent.futures
 import os
-import posixpath
+import subprocess
+
 from . import caching, document, image
+from .caching import unify_formula
+
+class ConversionException(Exception):
+    """This exception is raised whenever a problem occurs during conversion.
+    Example:
+    c = ConversionException("cause", 10, 38, 5)
+    assert c.cause == cause
+    assert c.src_line_number == 10 # line number in source document (counting from 1)
+    assert c.src_pos_on_line == 38 # position of formula in source line, counting from 1
+    assert c.formula_count == 5 # fifth formula in document (starting from 1)
+    """
+    def __init__(self, cause, src_line_number, src_pos_on_line, formula_count):
+        # provide a default error message
+        super().__init__("LaTeX failed at formula line {}, {}, no. {}: {}".format(
+            src_line_number, src_pos_on_line, formula_count, cause))
+        # provide attributes for upper level error handling
+        self.cause = cause
+        self.src_line_number = src_line_number
+        self.src_pos_on_line = src_pos_on_line
+        self.formula_count = formula_count
 
 class CachedConverter:
     """Convert formulas to images.
@@ -55,38 +77,75 @@ class CachedConverter:
                     ', '.join(self.__options.keys()))
         self.__options[option] = value
 
-    def convert(self, formula, displaymath=False):
-        """convert(formula, displaymath=False)
-        Convert given formula with displaymath/inlinemath or retrieve data from
-        cache.
+    def convert_concurrent(self, base_path, formulas):
+        """convert_concurrent(formulas)
+        Convert all formulas using self.convert using parallel execution. Each
+        element of `formulas` must be a tuple containing (formula, displaymath,
+        """
+        formulas_to_convert = [] # find as many file names as equations
+        file_name_count = 0
+        eqn_path = lambda x: '%s/eqn%03d.png' % (base_path, x)
+
+        formula_was_converted = lambda x: unify_formula(formula) in \
+                (unify_formula(u[0]) for u in formulas_to_convert)
+        # find enough free file names
+        for formula_count, (_pos, dsp, formula) in enumerate(formulas):
+            if not self.__cache.contains(formula, dsp) and not formula_was_converted(formula):
+                while os.path.exists(eqn_path(file_name_count)):
+                    file_name_count += 1
+                formulas_to_convert.append((formula, eqn_path(file_name_count),
+                    dsp, formula_count + 1))
+
+        # convert missing formulas
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            # start conversion and mark each thread with it's formula
+            jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, count)
+                for (eqn, path, dsp, count) in formulas_to_convert}
+            for future in concurrent.futures.as_completed(jobs):
+                formula, formula_count = jobs[future]
+                try:
+                    data = future.result()
+                except subprocess.SubprocessError as e:
+                    # retrieve the position (line, pos on line) in the source
+                    # document from original formula list
+                    pos = next(pos for pos, _d, f in formulas
+                        if unify_formula(f) == unify_formula(formula))
+                    raise ConversionException(str(e.args[0]), *pos, formula_count)
+                else:
+                    self.__cache.add_formula(formula, data['pos'], data['path'],
+                        data['displaymath'])
+                    self.__cache.write()
+
+
+
+
+    def convert(self, formula, output_path, displaymath=False):
+        """convert(formula, output_path, displaymath=False)
+        Convert given formula with displaymath/inlinemath.
         :param formula formula to convert
+        :param output_path image output path
         :param displaymath whether or not to use displaymath during the conversion
         :return dictionary with position (pos), image path (path) and formula
             style (displaymath, boolean) as a dictionary with the keys in
             parenthesis
         """
-        if formula in self.__cache:
-            return self.__cache.get_data_for(formula)
-        else:
-            eqnpath = lambda x: posixpath.join(self.__linkpath, 'eqn%03d.png' % x)
-            num = 0
-            while os.path.exists(os.path.join(self.__base_path, eqnpath(num))):
-                num += 1
-            latex = document.LaTeXDocument(formula)
-            latex.set_displaymath(displaymath)
-            if self.__options['preamble']: # add preamble to LaTeX document
-                latex.set_preamble_string(self.__options['preamble'])
-            if self.__options['latex_maths_env']:
-                latex.set_latex_environment(self.__options['latex_maths_env'])
-            conv = image.Tex2img(latex, os.path.join(self.__base_path,
-                eqnpath(num)))
-            for option, value in self.__options.items():
-                if value and hasattr(conv, 'set_' + option):
-                    getattr(conv, 'set_' + option)(value)
-            conv.convert()
-            pos = conv.get_positioning_info()
-            self.__cache.add_formula(formula, pos, eqnpath(num), displaymath)
-            self.__cache.write()
-            return {'pos' : pos, 'path' : eqnpath(num), 'displaymath' :
-                displaymath}
+        latex = document.LaTeXDocument(formula)
+        latex.set_displaymath(displaymath)
+        if self.__options['preamble']: # add preamble to LaTeX document
+            latex.set_preamble_string(self.__options['preamble'])
+        if self.__options['latex_maths_env']:
+            latex.set_latex_environment(self.__options['latex_maths_env'])
+        conv = image.Tex2img(latex, os.path.join(self.__base_path, output_path))
+        # apply configured image output options
+        for option, value in self.__options.items():
+            if value and hasattr(conv, 'set_' + option):
+                getattr(conv, 'set_' + option)(value)
+        conv.convert()
+        pos = conv.get_positioning_info()
+        return {'pos' : pos, 'path' : output_path, 'displaymath' :
+            displaymath}
+
+    def get_data_for(self, formula, display_mat):
+        """Simple wrapper around ImageCache."""
+        return self.__cache.get_data_for(formula, display_mat)
 

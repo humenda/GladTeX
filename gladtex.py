@@ -3,7 +3,6 @@ import os
 import posixpath
 import re
 import sys
-from subprocess import SubprocessError
 import gleetex
 
 
@@ -201,24 +200,18 @@ class Main:
             option = getattr(options, option_str)
             if option:
                 conv.set_option(option_str, tuple(map(float, option.split(','))))
-        formula_count = 0
+        formulas = [c for c in parsed_htex_document if isinstance(c, list)]
+        conv.convert_concurrent(formulas)
         for chunk in parsed_htex_document:
             # chunk == an entity parsed by EqnParser; type 'str' will be taken
             # literally, 'list' will be treated as formula
             if isinstance(chunk, list):
-                formula_count += 1
-                equation = chunk[2]
-                displaymath = chunk[1]
-                try:
-                    data = conv.convert(equation, displaymath=displaymath)
-                    # add data for formatting to `result`
-                    data['formula'] = equation
-                    data['displaymath'] = displaymath
-                    result.append(data)
-                except SubprocessError as e:
-                    pos = chunk[0]
-                    self.format_latex_error(pos, formula_count, equation,
-                            str(e.args[0]), options.machinereadable)
+                formula = chunk[2]
+                data = None
+                data = conv.get_data_for(formula)
+                if not data:
+                    raise KeyError("ToDo: handle the case where no equation found even though there should be.")
+                result.append(data)
             else:
                 result.append(chunk)
         return result
