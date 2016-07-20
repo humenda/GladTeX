@@ -119,6 +119,13 @@ class EqnParser(html.parser.HTMLParser):
         self.__lastchunk.append('<!%s>' % declaration)
 
     def get_data(self):
+        """Return the chunks parsed from the HTML file. Everything which is not
+        a formula, formulas are lists. A formula looks like this:
+            (pos, display_math, formula)
+        pos: tuple of line number, position in line (both counting from 0)
+        display_math: boolean indicating whether formula is in display math
+        formula: the formula as a string.
+        """
         return self.__data[:]
 
     def error(self, message):

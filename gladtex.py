@@ -152,7 +152,7 @@ class Main:
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
         doc = docparser.get_data()
-        processed = self.convert_images(doc, base_path, link_path, options)
+        processed = self.convert_images(doc, base_path, options)
         with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
                 link_path=link_path, encoding=self.__encoding)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
@@ -180,13 +180,13 @@ class Main:
             else:
                 file.write(chunk)
 
-    def convert_images(self, parsed_htex_document, base_path, link_path, options):
+    def convert_images(self, parsed_htex_document, base_path, options):
         """Convert all formulas to images and store file path and equation in a
         list to be processed later on."""
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
         try:
-            conv = gleetex.convenience.CachedConverter(base_path, link_path,
+            conv = gleetex.convenience.CachedConverter(base_path,
                     not options.notkeepoldcache)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
