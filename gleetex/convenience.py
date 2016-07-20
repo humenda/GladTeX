@@ -77,6 +77,7 @@ class CachedConverter:
                     ', '.join(self.__options.keys()))
         self.__options[option] = value
 
+    #pylint: disable=too-many-locals
     def convert_concurrent(self, base_path, formulas):
         """convert_concurrent(formulas)
         Convert all formulas using self.convert using parallel execution. Each
