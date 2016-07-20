@@ -10,10 +10,10 @@ LaTeX-equivalent of the image. This is handy for text-mode browsers or blind
 people.
 
 This is a complete rewrite of the old GladTeX which was implemented in Perl and
-in C. One major issue was that it wasn't easily portable across platforms. The
+in C. The old version was not easily portable across platforms. The
 new version is purely implemented in Python, gets rid of the Ghostscript
 dependency and additionally offers the GladTeX functionality in a Python module
-called gleetex.  
+called gleetex.  to be embedded in other applications.
 
 
 License
@@ -35,7 +35,7 @@ Credits go to
 
 About the rewritten (new) version:
 
--   (c) 2015 Sebastian Humenda
+-   (c) 2015-2016 Sebastian Humenda
     -   credits go to Martin G. Gulbrandsen who had the idea in the first place
 
 This program is distributed under the LGPL-3; for details
@@ -57,7 +57,7 @@ On all derivatives of Debian, installing GladTeX is as easy as
 The following is required for installing GladTeX:
 
 -   Python >= 3.4
--   LaTeX, dvipng
+-   LaTeX (2e), dvipng
 -   the LaTeX package preview.sty
 
 On Debian systems the following commands will satisfy the dependencies:
