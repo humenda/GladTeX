@@ -131,7 +131,7 @@ class Tex2img:
                 print(repr(self.tex_document))
             call(cmd)
         except subprocess.SubprocessError as e:
-            remove_all(tex_fn, dvi_fn)
+            remove_all(dvi_fn)
             msg = ''
             if e.args:
                 data = self.parse_log(e.args[0])
@@ -139,7 +139,7 @@ class Tex2img:
                     msg += data
             raise subprocess.SubprocessError(msg) # propagate subprocess error
         finally:
-            remove_all(aux_fn, log_fn)
+            remove_all(tex_fn, aux_fn, log_fn)
             os.chdir(cwd)
 
     def create_png(self, dvi_fn):

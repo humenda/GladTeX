@@ -117,7 +117,10 @@ class CachedConverter:
             # formulas)
             jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, pos, count)
                 for (eqn, pos, path, dsp, count) in formulas_to_convert}
+            cancel_requested = False
             for future in concurrent.futures.as_completed(jobs):
+                if cancel_requested:
+                    future.cancel()
                 formula, pos_in_src, formula_count = jobs[future]
                 try:
                     data = future.result()
@@ -125,6 +128,9 @@ class CachedConverter:
                     # retrieve the position (line, pos on line) in the source
                     # document from original formula list
                     pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1
+                    executor.shutdown(wait=False)
+                    cancel_requested = True
+                    self.__cache.write() # write back cache with valid entries
                     raise ConversionException(str(e.args[0]), formula,
                             *pos_in_src, formula_count + 1)
                 else:

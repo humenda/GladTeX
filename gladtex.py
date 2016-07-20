@@ -16,6 +16,10 @@ class HelpfulCmdParser(argparse.ArgumentParser):
 
 
 
+def format_ordinal(number):
+    endings = ['th', 'st', 'nd', 'rd'] + ['th'] * 6
+    return '%d%s' % (number, endings[number%10])
+
 class Main:
     """This class parses command line arguments and deals with the
     conversion. Only the run method needs to be called."""
@@ -235,9 +239,10 @@ class Main:
                     err.src_line_number, err.src_pos_on_line, err.formula_count,
                     err.formula, err.cause)
         else:
-            msg = ("Error while converting the formula at line %d, %d (no. %d):"
-                   "\n    %s\n\n%s") % (err.src_line_number, err.src_pos_on_line,
-                           err.formula_count, err.formula, err.cause)
+            msg = ("Error while converting the %s formula at line %d, %d:"
+                   "\n    %s\n\n%s") % (format_ordinal(err.formula_count),
+                           err.src_line_number, err.src_pos_on_line,
+                           err.formula, err.cause)
         self.exit(msg, 91)
 
 
