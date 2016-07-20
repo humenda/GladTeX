@@ -15,6 +15,10 @@
     -   allow formulas consisting only of numbers (i.e. example calculations) by
         prefixing "form_" in front of the HTML id (id must start with a letter
         but may be followed by digits)
+    -	allow removal of unreadable caches with the `-n` switch (extend library
+		with this functionality)
+	-	introduce `-m` switch to print the output in a less concise, but more
+		machine-parseable format
 
 1.6 - complete rewrite
     - rewrite GladTeX fully in Python
@@ -28,7 +32,7 @@
     - drop -s switch
     - introduce -o (output) option
     - introduce new cache format containing version numbers; json, so
-      interchangeable between programming languages
+      interface to other programming languages
 
 1.5 - Introduce options to make embedding of GladTeX easier
     - Try to parse LaTeX's error output and display it to help users to find the
