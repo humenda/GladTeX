@@ -101,6 +101,7 @@ class CachedConverter:
                 while os.path.exists(eqn_path(file_name_count)) or \
                     eqn_path(file_name_count) in used_file_names:
                     file_name_count += 1
+                used_file_names.append(eqn_path(file_name_count))
                 formulas_to_convert.append((formula, pos, eqn_path(file_name_count),
                     dsp, formula_count + 1))
         return formulas_to_convert

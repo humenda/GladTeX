@@ -34,9 +34,11 @@ def call(cmd):
                     (' '.join(cmd), '\n'.join(map(decode, data))))
             data = [d for d in proc.communicate(timeout=20) if d]
         except subprocess.TimeoutExpired as e:
-            print(proc.poll())
             proc.kill()
             sys.stderr.write('Subprocess expired with time out: ' + str(cmd) + '\n')
+            poll = proc.poll()
+            if poll:
+                sys.stdout.write(str(poll) + '\n')
             if data:
                 raise subprocess.SubprocessError(str(data))
             else:
@@ -125,9 +127,11 @@ class Tex2img:
         with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
             tex.write(str(self.tex_document))
         try:
+            if not str(self.tex_document).rstrip().endswith('document}'):
+                print(repr(self.tex_document))
             call(cmd)
         except subprocess.SubprocessError as e:
-            remove_all(dvi_fn)
+            remove_all(tex_fn, dvi_fn)
             msg = ''
             if e.args:
                 data = self.parse_log(e.args[0])
@@ -135,7 +139,7 @@ class Tex2img:
                     msg += data
             raise subprocess.SubprocessError(msg) # propagate subprocess error
         finally:
-            remove_all(tex_fn, aux_fn, log_fn)
+            remove_all(aux_fn, log_fn)
             os.chdir(cwd)
 
     def create_png(self, dvi_fn):
