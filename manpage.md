@@ -1,6 +1,6 @@
 % GLADTEX(1)
 % Sebastian Humenda
-% 27th December 2015
+% 20th of July 2016
 
 # NAME
 
@@ -66,8 +66,14 @@ Pandoc.
 **-l** _CLASS_
 :   CSS class to assign to block-level math (default: 'displaymath').
 
+**-n**
+:   Purge unreadable caches along with all eqn*.png files.
+
+    Caches can be unreadable if the used GladTeX version is incompatible. If
+    this option is unset, GladTeX will simply fail when the cache is unreadable.
+
 **-m**
-:     Print error output in machine-readable format (less concise).
+:     Print error output in machine-readable format (less concise, more parseable).
 
     Each line will start with a key, followed by a colon, followed by the value,
     i.e. `line: 5`.
