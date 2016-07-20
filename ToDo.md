@@ -11,6 +11,7 @@ Uncategorized
 -   introduce command line option which will check whether all all formulas in a
     cache are used and if not, remove the formula (only useful for caches
     corresponding to a single document)
+-   rewrite tests in test_image to use a mock instead of a real LaTeX subprocess
 
 Gettext
 -------

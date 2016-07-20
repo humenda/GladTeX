@@ -196,7 +196,7 @@ class Main:
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.convenience.ConversionException as e:
-            self.format_latex_error(e, options.machine_readable)
+            self.format_latex_error(e, options.machinereadable)
 
         # iterate over chunks of eqnparser
         for chunk in parsed_htex_document:

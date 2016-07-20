@@ -30,7 +30,7 @@ def call(cmd):
             if proc.wait(timeout=20):
                 # include stdout/stderr, if it exists
                 data = [d for d in proc.communicate(timeout=20) if d]
-                raise subprocess.SubprocessError("Problem occurred while executing %s%s\n" %
+                raise subprocess.SubprocessError("Error while executing %s\n%s\n" %
                     (' '.join(cmd), '\n'.join(map(decode, data))))
             data = [d for d in proc.communicate(timeout=20) if d]
         except subprocess.TimeoutExpired as e:

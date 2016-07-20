@@ -19,12 +19,13 @@ class ConversionException(Exception):
     assert c.src_pos_on_line == 38 # position of formula in source line, counting from 1
     assert c.formula_count == 5 # fifth formula in document (starting from 1)
     """
-    def __init__(self, cause, src_line_number, src_pos_on_line, formula_count):
+    def __init__(self, cause, formula, src_line_number, src_pos_on_line, formula_count):
         # provide a default error message
         super().__init__("LaTeX failed at formula line {}, {}, no. {}: {}".format(
             src_line_number, src_pos_on_line, formula_count, cause))
         # provide attributes for upper level error handling
         self.cause = cause
+        self.formula = formula
         self.src_line_number = src_line_number
         self.src_pos_on_line = src_pos_on_line
         self.formula_count = formula_count
@@ -52,7 +53,7 @@ class CachedConverter:
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
     _converter = image.Tex2img # can be statically altered for testing purposes
 
-    def __init__(self, base_path='', keep_old_cache=False):
+    def __init__(self, base_path='', keep_old_cache=True):
         if base_path and not os.path.exists(base_path):
             os.makedirs(base_path)
         cache_path = os.path.join(base_path,
@@ -74,58 +75,60 @@ class CachedConverter:
                     ', '.join(self.__options.keys()))
         self.__options[option] = value
 
-    #pylint: disable=too-many-locals
     def convert_all(self, base_path, formulas):
         """convert_all(formulas)
-        Convert all formulas using self.convert using concurrently. Each
-        element of `formulas` must be a tuple containing (formula, displaymath,
-        Formulas already contained in the cache are not convered.
+        Convert all formulas using self.convert concurrently. Each element of
+        `formulas` must be a tuple containing (formula, displaymath,
+        Formulas already contained in the cache are not converted.
         """
         formulas_to_convert = self._get_formulas_to_convert(base_path, formulas)
-        self._convert_concurrently(formulas, formulas_to_convert)
+        self._convert_concurrently(formulas_to_convert)
 
     def _get_formulas_to_convert(self, base_path, formulas):
         """Return a list of formulas to convert, along with their count in the
         global list of formulas of the document being converted and the file
         name. Function was decomposed for better testability."""
         formulas_to_convert = [] # find as many file names as equations
-        file_name_count = 0
-        eqn_path = lambda x: '%s/eqn%03d.png' % (base_path, x)
+        eqn_path = lambda x: os.path.join(base_path, 'eqn%03d.png' % x)
 
         formula_was_converted = lambda x: unify_formula(x) in \
                 (unify_formula(u[0]) for u in formulas_to_convert)
         # find enough free file names
-        for formula_count, (_pos, dsp, formula) in enumerate(formulas):
+        file_name_count = 0
+        used_file_names = [] # track which file names have been assigned
+        for formula_count, (pos, dsp, formula) in enumerate(formulas):
             if not self.__cache.contains(formula, dsp) and not formula_was_converted(formula):
-                while os.path.exists(eqn_path(file_name_count)):
+                while os.path.exists(eqn_path(file_name_count)) or \
+                    eqn_path(file_name_count) in used_file_names:
                     file_name_count += 1
-                formulas_to_convert.append((formula, eqn_path(file_name_count),
+                formulas_to_convert.append((formula, pos, eqn_path(file_name_count),
                     dsp, formula_count + 1))
         return formulas_to_convert
 
 
-    def _convert_concurrently(self, formulas, formulas_to_convert):
+    def _convert_concurrently(self, formulas_to_convert):
         """The actual concurrent conversion process. Method is intended to be
         called from convert_all()."""
         # convert missing formulas
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            # start conversion and mark each thread with it's formula
-            jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, count)
-                for (eqn, path, dsp, count) in formulas_to_convert}
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # start conversion and mark each thread with it's formula, position
+            # in the source file and formula_count (index into a global list of
+            # formulas)
+            jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, pos, count)
+                for (eqn, pos, path, dsp, count) in formulas_to_convert}
             for future in concurrent.futures.as_completed(jobs):
-                formula, formula_count = jobs[future]
+                formula, pos_in_src, formula_count = jobs[future]
                 try:
                     data = future.result()
                 except subprocess.SubprocessError as e:
                     # retrieve the position (line, pos on line) in the source
                     # document from original formula list
-                    pos = next(pos for pos, _d, f in formulas
-                        if unify_formula(f) == unify_formula(formula))
-                    pos = list(p+1 for p in pos) # user expects lines/pos' to count from 1
-                    raise ConversionException(str(e.args[0]), formula, *pos, formula_count)
+                    pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1
+                    raise ConversionException(str(e.args[0]), formula,
+                            *pos_in_src, formula_count + 1)
                 else:
                     self.__cache.add_formula(formula, data['pos'], data['path'],
-                        data['displaymath'])
+                            data['displaymath'])
                     self.__cache.write()
 
 
