@@ -12,8 +12,9 @@ from .caching import unify_formula
 class ConversionException(Exception):
     """This exception is raised whenever a problem occurs during conversion.
     Example:
-    c = ConversionException("cause", 10, 38, 5)
+    c = ConversionException("cause", "\\tau", 10, 38, 5)
     assert c.cause == cause
+    assert c.formula == '\\tau'
     assert c.src_line_number == 10 # line number in source document (counting from 1)
     assert c.src_pos_on_line == 38 # position of formula in source line, counting from 1
     assert c.formula_count == 5 # fifth formula in document (starting from 1)
@@ -124,7 +125,7 @@ class CachedConverter:
                     # document from original formula list
                     pos = next(pos for pos, _d, f in formulas
                         if unify_formula(f) == unify_formula(formula))
-                    raise ConversionException(str(e.args[0]), *pos, formula_count)
+                    raise ConversionException(str(e.args[0]), formula, *pos, formula_count)
                 else:
                     self.__cache.add_formula(formula, data['pos'], data['path'],
                         data['displaymath'])

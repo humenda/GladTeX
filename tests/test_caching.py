@@ -48,7 +48,7 @@ class test_caching(unittest.TestCase):
         c = caching.ImageCache('file.png')
         formula = r"f(x) = \ln(x)"
         c.add_formula(formula, self.pos, 'foo.png')
-        self.assertTrue(formula in c)
+        self.assertTrue(c.contains(formula, False))
 
     def test_that_invalid_cach_entries_are_detected(self):
         # entry is invalid if file doesn't exist
@@ -63,10 +63,10 @@ class test_caching(unittest.TestCase):
         c.add_formula(formula, self.pos, 'file.png')
         c.write()
         c = caching.ImageCache()
-        self.assertTrue(formula in c)
-        self.assertEqual(c.get_data_for(formula)['pos'], self.pos)
-        self.assertEqual(c.get_data_for(formula)['path'], 'file.png')
-        self.assertEqual(c.get_data_for(formula)['displaymath'], False)
+        self.assertTrue(c.contains(formula, False))
+        self.assertEqual(c.get_data_for(formula, False)['pos'], self.pos)
+        self.assertEqual(c.get_data_for(formula, False)['path'], 'file.png')
+        self.assertEqual(c.get_data_for(formula, False)['displaymath'], False)
 
 
     def test_formulas_are_not_added_twice(self):
@@ -108,7 +108,7 @@ class test_caching(unittest.TestCase):
         os.mkdir('bilder')
         write(os.path.join('bilder', 'foo.png'), str(0xdeadbeef))
         c.add_formula('\\tau', self.pos, 'bilder\\foo.png', False)
-        self.assertTrue('/' in c.get_data_for('\\tau')['path'])
+        self.assertTrue('/' in c.get_data_for('\\tau', False)['path'])
 
     def test_that_absolute_paths_trigger_OSError(self):
         c = caching.ImageCache('gladtex.cache')
@@ -144,6 +144,6 @@ class test_caching(unittest.TestCase):
         os.remove('foo.png')
         c = caching.ImageCache('gladtex.cache', keep_old_cache=False)
         with self.assertRaises(KeyError):
-            c.get_data_for('foo.png')
+            c.get_data_for('foo.png', 'False')
 
 

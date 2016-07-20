@@ -190,6 +190,33 @@ class Main:
                     not options.notkeepoldcache)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
+
+        self.set_options(conv, options)
+        formulas = [c for c in parsed_htex_document if isinstance(c, list)]
+        try:
+            conv.convert_all(base_path, formulas)
+        except gleetex.convenience.ConversionException as e:
+            self.format_latex_error(e, options.machine_readable)
+
+        # iterate over chunks of eqnparser
+        for chunk in parsed_htex_document:
+            # chunk == an entity parsed by EqnParser; type 'str' will be taken
+            # literally, 'list' will be treated as formula
+            if isinstance(chunk, list):
+                _p, displaymath, formula = chunk
+                try:
+                    data = conv.get_data_for(formula, displaymath)
+                except KeyError as e:
+                    raise KeyError("formula '%s' not found; that means it was not converted which should usually not happen.")
+                result.append(data)
+            else:
+                result.append(chunk)
+        return result
+
+
+    def set_options(self, conv, options):
+        """Apply options from command line parser to the converter."""
+        # set options
         options_to_query = ['dpi', 'preamble', 'latex_maths_env']
         for option_str in options_to_query:
             option = getattr(options, option_str)
@@ -200,34 +227,16 @@ class Main:
             option = getattr(options, option_str)
             if option:
                 conv.set_option(option_str, tuple(map(float, option.split(','))))
-        formulas = [c for c in parsed_htex_document if isinstance(c, list)]
-        conv.convert_concurrent(formulas)
-        for chunk in parsed_htex_document:
-            # chunk == an entity parsed by EqnParser; type 'str' will be taken
-            # literally, 'list' will be treated as formula
-            if isinstance(chunk, list):
-                formula = chunk[2]
-                data = None
-                data = conv.get_data_for(formula)
-                if not data:
-                    raise KeyError("ToDo: handle the case where no equation found even though there should be.")
-                result.append(data)
-            else:
-                result.append(chunk)
-        return result
 
-    def format_latex_error(self, pos_info, formula_no, formula, error_output,
-            machine_readable):
-        msg = None
-        line, pos = pos_info
-        pos += 1 # starts counting from 0, not user friendly
+    def format_latex_error(self, err, machine_readable):
         if machine_readable:
-            msg = ('Line: %d\nPosition: %d\nNumber: %d\nFormula: %s\nMessage: '
-                    '%s') % (line, pos, formula_no, formula, error_output)
+            msg = 'Line: {}, {}\nNumber: {}\nFormula: {}\nMessage: {}'.format(
+                    err.src_line_number, err.src_pos_on_line, err.formula_count,
+                    err.formula, err.cause)
         else:
-            msg = ("Error while converting the formula at line %d, pos %d "
-                    "(no. %d):\n    %s\n\n%s") % (line, pos, formula_no,
-                            formula, error_output)
+            msg = ("Error while converting the formula at line %d, %d (no. %d):"
+                   "\n    %s\n\n%s") % (err.src_line_number, err.src_pos_on_line,
+                           err.formula_count, err.formula, err.cause)
         self.exit(msg, 91)
 
 

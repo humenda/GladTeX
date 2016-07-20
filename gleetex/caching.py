@@ -153,6 +153,8 @@ class ImageCache:
             bool(self.get_data_for(formula, displaymath))
         except KeyError:
             return False
+        else:
+            return True
 
 
     def get_data_for(self, formula, displaymath):

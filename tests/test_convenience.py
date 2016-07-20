@@ -20,25 +20,17 @@ class test_caconvenience(unittest.TestCase):
 
 
 
-    def test_file_is_cached(self):
-        c = convenience.CachedConverter()
-        formula = '\\log\\log\\log'
-        c.convert(formula)
-        self.assertTrue(os.path.exists('gladtex.cache'))
-        c.convert(formula)
-        # one png and one cache file should exist
-        self.assertEqual(get_number_of_files('.'), 2)
-
     def test_that_subdirectory_is_created(self):
         c = convenience.CachedConverter(os.getcwd(), 'subdirectory')
         formula = '\\textbf{FOO!}'
-        c.convert(formula)
+        c.convert(formula, 'subdirectory/eqn000.png')
         # one directory exists
         self.assertEqual(get_number_of_files('.'), 1,
                 "Found the following files, expected only 'subdirectory': " + \
                 ', '.join(os.listdir('.')))
         # subdirectory contains 1 image and a cache
-        self.assertEqual(get_number_of_files('subdirectory'), 2)
+        self.assertEqual(get_number_of_files('subdirectory'), 1, "expected one"+\
+            " files, found only " + repr(os.listdir('subdirectory')))
 
     def test_that_unknown_options_trigger_exception(self):
         c = convenience.CachedConverter('subdirectory')
