@@ -77,7 +77,9 @@ class EqnParser(html.parser.HTMLParser):
             self.__data += self.__lastchunk
             self.__lastchunk = []
             # initialize list item in self.__data for equation
-            self.__data.append([self.getpos(), displaymath, None])
+            lnum, pos = self.getpos() # position in document
+            self.__data.append([(lnum-1, pos), # let line number count from 0 as well
+                displaymath, None])
             self.in_eqn = True
 
     def handle_startendtag(self, tag, attrs):

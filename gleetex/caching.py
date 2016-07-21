@@ -6,7 +6,7 @@ import os
 
 CACHE_VERSION = '2.0'
 
-def unify_formula(formula):
+def normalize_formula(formula):
     """This function unifies a formula. This e.g. means that multiple white
     spaces are squeezed into one and a tab will be replaced by a space. With
     this it is more realistic that a recurring formula in a document is detected
@@ -106,7 +106,7 @@ class ImageCache:
 
     def add_formula(self, formula, pos, file_path, displaymath=False):
         """Add formula to cache. The cache consists of a mapping from formula to
-        (pos, file path). Formulas are "unified" with `unify_formula`. Existing
+        (pos, file path). Formulas are "unified" with `normalize_formula`. Existing
         formulas are overwritten.
         :param formula formula to add
         :pos positioning information (dictionary with keys height, width and
@@ -131,14 +131,14 @@ class ImageCache:
             if not os.path.exists(test_path):
                 raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
-        formula = unify_formula(formula)
+        formula = normalize_formula(formula)
         self.__cache[formula] = {'pos' : pos, 'path' : file_path,
                 'displaymath' : displaymath}
 
     def remove_formula(self, formula):
-        """Formula is unified using `unify_formula` and removed. If no such
+        """Formula is unified using `normalize_formula` and removed. If no such
         formula was found, a KeyError is raised."""
-        formula = unify_formula(formula)
+        formula = normalize_formula(formula)
         if not formula in self.__cache:
             raise KeyError("key %s not in cache" % formula)
         else:
@@ -166,7 +166,7 @@ class ImageCache:
             True/False (displaymath) as a dictionary with the keys shown in
             parenthesis.
         This method raises a KeyError if formula wasn't found."""
-        formula = unify_formula(formula)
+        formula = normalize_formula(formula)
         if not formula in self.__cache:
             raise KeyError(formula)
         else:

@@ -7,7 +7,7 @@ import os
 import subprocess
 
 from . import caching, document, image
-from .caching import unify_formula
+from .caching import normalize_formula
 
 class ConversionException(Exception):
     """This exception is raised whenever a problem occurs during conversion.
@@ -19,6 +19,8 @@ class ConversionException(Exception):
     assert c.src_pos_on_line == 38 # position of formula in source line, counting from 1
     assert c.formula_count == 5 # fifth formula in document (starting from 1)
     """
+    # mind your own business:
+    #pylint: disable=too-many-arguments
     def __init__(self, cause, formula, src_line_number, src_pos_on_line, formula_count):
         # provide a default error message
         super().__init__("LaTeX failed at formula line {}, {}, no. {}: {}".format(
@@ -91,8 +93,8 @@ class CachedConverter:
         formulas_to_convert = [] # find as many file names as equations
         eqn_path = lambda x: os.path.join(base_path, 'eqn%03d.png' % x)
 
-        formula_was_converted = lambda x: unify_formula(x) in \
-                (unify_formula(u[0]) for u in formulas_to_convert)
+        formula_was_converted = lambda x: normalize_formula(x) in \
+                (normalize_formula(u[0]) for u in formulas_to_convert)
         # find enough free file names
         file_name_count = 0
         used_file_names = [] # track which file names have been assigned
@@ -145,6 +147,9 @@ class CachedConverter:
     def convert(self, formula, output_path, displaymath=False):
         """convert(formula, output_path, displaymath=False)
         Convert given formula with displaymath/inlinemath.
+        This method wraps the formula in a tex document, executes all the steps
+        to produce a PNG file and return the positioning information as given by
+        dvipng.
         :param formula formula to convert
         :param output_path image output path
         :param displaymath whether or not to use displaymath during the conversion

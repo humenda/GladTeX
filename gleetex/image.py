@@ -143,7 +143,12 @@ class Tex2img:
             os.chdir(cwd)
 
     def create_png(self, dvi_fn):
-        """Return parsed HTML dimensions.""" # ToDo: more descriptive
+        """Create a PNG file from a given dvi file. The side effect is the PNG
+        file being written to disk.
+        :param dvi_fn   Dvi file name
+        :return dimensions for embedding into an HTML document
+        :raises ValueError raised whenever dvipng output coudln't be parsed
+        """
         cmd = ['dvipng', '-q*', '-D', str(self.__dpi),
                 # colors
                 '-bg', self.__background, '-fg', self.__foreground,
