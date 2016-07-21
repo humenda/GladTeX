@@ -57,7 +57,9 @@ class ImageCache:
 
     def write(self):
         """Write cache to disk. The file name will be the one configured during
-        construction of the cache. This method is intended for internal use."""
+        construction of the cache."""
+        if len(self.__cache) == 0:
+            return
         with open(self.__path, 'w', encoding='UTF-8') as file:
             file.write(json.dumps(self.__cache))
 

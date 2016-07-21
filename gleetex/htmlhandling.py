@@ -274,17 +274,16 @@ class HtmlImageFormatter: # ToDo: localisation
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
         '\n<title>Outsourced Formulas</title>\n</head>\n<!-- ' +
         'Do not modify this file, it is automatically generated -->\n<body>\n')
-    def __init__(self, base_path='', link_path='',
+    def __init__(self, base_path='', link_path=None,
             encoding="UTF-8"):
         self.__exclude_descriptions = False
-        self.__exclusion_filepath = os.path.join(base_path, link_path,
-                HtmlImageFormatter.EXCLUSION_FILE_NAME)
+        self.__link_path = (link_path if link_path else '')
+        self.__exclusion_filepath = os.path.join(base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
         if os.path.exists(self.__exclusion_filepath):
             if not os.access(self.__exclusion_filepath, os.W_OK):
                 raise OSError('The file %s is not writable!' %
                         self.__exclusion_filepath)
         self.__base_path = base_path
-        self.__link_path = link_path
         self.__inline_maxlength=100
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
@@ -390,7 +389,7 @@ class HtmlImageFormatter: # ToDo: localisation
         if identifier not in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
         exclusion_filelink = posixpath.join(self.__link_path, \
-                os.path.split(self.__exclusion_filepath)[1])
+                os.path.split(self.__exclusion_filepath))
         return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
                 gen_id(formula), img)
 

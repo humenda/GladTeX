@@ -161,7 +161,7 @@ class Main:
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, options)
         with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
-                link_path=options.link_path, encoding=self.__encoding)  as img_fmt:
+                link_path=options.url, encoding=self.__encoding)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.url:
                 img_fmt.set_url(options.url)

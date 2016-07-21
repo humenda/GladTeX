@@ -117,16 +117,16 @@ class Tex2img:
         Temporary files will be removed, even in the case of a LaTeX error.
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
-        new_ext = lambda x,y: '%s.%s' % (os.path.splitext(x)[0], y)
-        path, filename = os.path.split(dvi_fn)
-        tex_fn = new_ext(filename, 'tex')
-        aux_fn = new_ext(filename, '.aux')
-        log_fn = new_ext(filename, '.log')
-        cmd = ['latex', '-halt-on-error', tex_fn]
+        path = os.path.dirname(dvi_fn)
+        new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
+
+        tex_fn = new_extension('tex')
+        aux_fn = new_extension('aux')
+        log_fn = new_extension('log')
+        cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
         with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
             tex.write(str(self.tex_document))
         try:
-            if not str(self.tex_document).rstrip().endswith('document}'):
             call(cmd, cwd=path)
         except subprocess.SubprocessError as e:
             remove_all(dvi_fn)

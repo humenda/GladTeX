@@ -3,6 +3,7 @@ converter sacrifices customizability for convenience and provides a class
 converting a formula directly to a png file."""
 
 import concurrent.futures
+import multiprocessing
 import os
 import subprocess
 
@@ -111,8 +112,12 @@ class CachedConverter:
     def _convert_concurrently(self, formulas_to_convert):
         """The actual concurrent conversion process. Method is intended to be
         called from convert_all()."""
+        # use roughly 2,5 * number of processors as amount of threads (I/O
+        # bound); but don't overdo it with fivetimes like the thread pool does
+        # it (gladtex might be in turn run in parallel on a machine)
+        thread_count = int(multiprocessing.cpu_count() * 2.5)
         # convert missing formulas
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
             # start conversion and mark each thread with it's formula, position
             # in the source file and formula_count (index into a global list of
             # formulas)
