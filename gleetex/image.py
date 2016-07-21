@@ -17,14 +17,14 @@ def remove_all(*files):
         pass
 
 
-def call(cmd):
+def call(cmd, cwd=None):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
     stdin and stdout, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
     decode = lambda x: bytes.decode(x, sys.getdefaultencoding(),
             errors="surrogateescape")
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
-            universal_newlines=False) as proc:
+            universal_newlines=False, cwd=cwd) as proc:
         data = []
         try:
             if proc.wait(timeout=20):
@@ -35,14 +35,15 @@ def call(cmd):
             data = [d for d in proc.communicate(timeout=20) if d]
         except subprocess.TimeoutExpired as e:
             proc.kill()
-            sys.stderr.write('Subprocess expired with time out: ' + str(cmd) + '\n')
+            note = 'Subprocess expired with time out: ' + str(cmd) + '\n'
             poll = proc.poll()
             if poll:
-                sys.stdout.write(str(poll) + '\n')
+                note += str(poll) + '\n'
             if data:
-                raise subprocess.SubprocessError(str(data))
+                raise subprocess.SubprocessError(str(data + '\n' + note))
             else:
-                raise e
+                raise subprocess.SubprocessError('execution timed out after ' +
+                        str(e.args[1]) + ' s: ' + ' '.join(e.args[0]))
         except KeyboardInterrupt as e:
             sys.stderr.write("\nInterrupted; ")
             import traceback
@@ -116,20 +117,17 @@ class Tex2img:
         Temporary files will be removed, even in the case of a LaTeX error.
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
-        path, basename = os.path.split(dvi_fn)
-        tex_fn = os.path.splitext(basename)[0] + '.tex'
-        aux_fn = os.path.splitext(basename)[0] + '.aux'
-        log_fn = os.path.splitext(basename)[0] + '.log'
+        new_ext = lambda x,y: '%s.%s' % (os.path.splitext(x)[0], y)
+        path, filename = os.path.split(dvi_fn)
+        tex_fn = new_ext(filename, 'tex')
+        aux_fn = new_ext(filename, '.aux')
+        log_fn = new_ext(filename, '.log')
         cmd = ['latex', '-halt-on-error', tex_fn]
-        cwd = os.getcwd()
-        if cwd != path and path != '':
-            os.chdir(path)
         with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
             tex.write(str(self.tex_document))
         try:
             if not str(self.tex_document).rstrip().endswith('document}'):
-                print(repr(self.tex_document))
-            call(cmd)
+            call(cmd, cwd=path)
         except subprocess.SubprocessError as e:
             remove_all(dvi_fn)
             msg = ''
@@ -137,10 +135,11 @@ class Tex2img:
                 data = self.parse_log(e.args[0])
                 if data:
                     msg += data
+                else:
+                    msg += str(e.args[0])
             raise subprocess.SubprocessError(msg) # propagate subprocess error
         finally:
             remove_all(tex_fn, aux_fn, log_fn)
-            os.chdir(cwd)
 
     def create_png(self, dvi_fn):
         """Create a PNG file from a given dvi file. The side effect is the PNG

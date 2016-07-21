@@ -107,7 +107,7 @@ class Main:
         The returned document is either string or byte, the latter if encoding
         is unknown."""
         data = None
-        base_path = ''
+        base_path = options.directory
         output = '-'
         if options.input == '-':
             data = sys.stdin.read()
@@ -126,26 +126,29 @@ class Main:
             except IsADirectoryError:
                 self.exit("Error: cannot open %s for reading: is a directory." \
                         % options.input, 19)
-            base_path = os.path.split(options.input)[0]
         # check which output file name to use
         if options.output:
-            base_path = os.path.split(options.output)[0]
             output = options.output
         else:
             if options.input != '-':
-                base_path = os.path.split(options.input)[0]
                 output = os.path.splitext(options.input)[0] + '.html'
-        link_path = ''
-        if options.directory:
-            link_path = posixpath.join(*(options.directory.split('\\')))
-        return (data, base_path, link_path, output)
+        if not base_path:
+            if options.output and os.path.dirname(options.output):
+                base_path = os.path.dirname(output)
+            elif options.input and os.path.dirname(options.input):
+                base_path = os.path.dirname(input)
+        if base_path: # if finally a basepath found:, strip \\ if on Windows
+            base_path = posixpath.join(*(options.directory.split('\\')))
+        # strip base_path from output, if there's one
+        output = os.path.basename(output)
+        return (data, base_path, output)
 
 
     def run(self, args):
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        doc, base_path, link_path, output = self.get_input_output(options)
+        doc, base_path, output = self.get_input_output(options)
         docparser = gleetex.htmlhandling.EqnParser()
         try:
             docparser.feed(doc)
@@ -158,7 +161,7 @@ class Main:
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, options)
         with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
-                link_path=link_path, encoding=self.__encoding)  as img_fmt:
+                link_path=options.link_path, encoding=self.__encoding)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.url:
                 img_fmt.set_url(options.url)
@@ -197,6 +200,7 @@ class Main:
 
         self.set_options(conv, options)
         formulas = [c for c in parsed_htex_document if isinstance(c, list)]
+        import time
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.convenience.ConversionException as e:

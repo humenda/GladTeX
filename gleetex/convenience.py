@@ -55,12 +55,11 @@ class CachedConverter:
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
     _converter = image.Tex2img # can be statically altered for testing purposes
 
-    def __init__(self, base_path='', keep_old_cache=True):
+    def __init__(self, base_path, keep_old_cache=True):
         if base_path and not os.path.exists(base_path):
             os.makedirs(base_path)
         cache_path = os.path.join(base_path,
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)
-        self.__base_path = base_path
         self.__cache = caching.ImageCache(cache_path,
                 keep_old_cache=keep_old_cache)
         self.__options = {'dpi' : None, 'transparency' : None,
@@ -163,7 +162,7 @@ class CachedConverter:
             latex.set_preamble_string(self.__options['preamble'])
         if self.__options['latex_maths_env']:
             latex.set_latex_environment(self.__options['latex_maths_env'])
-        conv = self._converter(latex, os.path.join(self.__base_path, output_path))
+        conv = self._converter(latex, output_path)
         # apply configured image output options
         for option, value in self.__options.items():
             if value and hasattr(conv, 'set_' + option):
