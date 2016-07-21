@@ -118,6 +118,8 @@ class Tex2img:
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
         path = os.path.dirname(dvi_fn)
+        if not path:
+            path = os.getcwd()
         new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
 
         tex_fn = new_extension('tex')

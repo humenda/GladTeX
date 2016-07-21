@@ -278,12 +278,12 @@ class HtmlImageFormatter: # ToDo: localisation
             encoding="UTF-8"):
         self.__exclude_descriptions = False
         self.__link_path = (link_path if link_path else '')
-        self.__exclusion_filepath = os.path.join(base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
+        self.__base_path = (base_path if base_path else '')
+        self.__exclusion_filepath = os.path.join(self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
         if os.path.exists(self.__exclusion_filepath):
             if not os.access(self.__exclusion_filepath, os.W_OK):
                 raise OSError('The file %s is not writable!' %
                         self.__exclusion_filepath)
-        self.__base_path = base_path
         self.__inline_maxlength=100
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
