@@ -93,13 +93,16 @@ class CachedConverter:
         formulas_to_convert = [] # find as many file names as equations
         eqn_path = lambda x: os.path.join(base_path, 'eqn%03d.png' % x)
 
-        formula_was_converted = lambda x: normalize_formula(x) in \
-                (normalize_formula(u[0]) for u in formulas_to_convert)
+        # is (formula, display_math) already in the list of formulas to convert;
+        # displaymath is important since formulas look different in inline maths
+        formula_was_converted = lambda f, dsp: (normalize_formula(f), dsp) in \
+                ((normalize_formula(u[0]), u[3]) for u in formulas_to_convert)
         # find enough free file names
         file_name_count = 0
         used_file_names = [] # track which file names have been assigned
         for formula_count, (pos, dsp, formula) in enumerate(formulas):
-            if not self.__cache.contains(formula, dsp) and not formula_was_converted(formula):
+            if not self.__cache.contains(formula, dsp) and \
+                    not formula_was_converted(formula, dsp):
                 while os.path.exists(eqn_path(file_name_count)) or \
                     eqn_path(file_name_count) in used_file_names:
                     file_name_count += 1
@@ -177,7 +180,7 @@ class CachedConverter:
         return {'pos' : pos, 'path' : output_path, 'displaymath' :
             displaymath}
 
-    def get_data_for(self, formula, display_mat):
+    def get_data_for(self, formula, display_math):
         """Simple wrapper around ImageCache."""
-        return self.__cache.get_data_for(formula, display_mat)
+        return self.__cache.get_data_for(formula, display_math)
 

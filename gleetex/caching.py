@@ -1,5 +1,22 @@
 """This file contains the class for caching converted formulas to not convert a
-formula twice."""
+formula twice.
+
+Cache format:
+
+{ # dict of formulas
+    'some formula': # formula as key into dictionary
+        { # list of display math / inline maths variants
+            True: # displaymath = True
+                { # dictionary of values describing formula
+                    'path': 'some/path'
+                    'pos': { # positioning within the HTML document
+                        'height': ..., 'width':..., 'depth:....
+                    }
+                }
+                }
+        }
+}
+"""
 
 import json
 import os
@@ -33,6 +50,7 @@ class ImageCache:
     clean cache.
     """
     VERSION_STR = 'GladTeX__cache__version'
+
     def __init__(self, path='gladtex.cache', keep_old_cache=True):
         self.__cache = {}
         self.__set_version(CACHE_VERSION)
@@ -134,17 +152,24 @@ class ImageCache:
                 raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
         formula = normalize_formula(formula)
-        self.__cache[formula] = {'pos' : pos, 'path' : file_path,
-                'displaymath' : displaymath}
+        if not formula in self.__cache:
+            self.__cache[formula] = {}
+        val = self.__cache[formula]
+        if not displaymath in val:
+            val[displaymath] = {'pos' : pos, 'path' : file_path}
 
-    def remove_formula(self, formula):
+    def remove_formula(self, formula, displaymath=True):
         """Formula is unified using `normalize_formula` and removed. If no such
         formula was found, a KeyError is raised."""
         formula = normalize_formula(formula)
         if not formula in self.__cache:
             raise KeyError("key %s not in cache" % formula)
         else:
-            del self.__cache[formula]
+            value = self.__cache[formula]
+            if displaymath in value:
+                del self.__cache[formula]
+            else:
+                raise KeyError("key %s (%s) not in cache" % (formula, displaymath))
 
     def contains(self, formula, displaymath):
         """Check whether a formula was already cached.
@@ -173,12 +198,13 @@ class ImageCache:
             raise KeyError(formula)
         else:
             # check whether file still exists
-            meta_data = self.__cache[formula]
-            if not os.path.exists(meta_data['path']):
-                del self.__cache[formula]
-                raise KeyError(formula)
-            elif meta_data['displaymath'] != displaymath:
-                raise KeyError(formula) # inline math formulas are not equal to display math formulas
+            value = self.__cache[formula]
+            if displaymath in value:
+                if not os.path.exists(value[displaymath]['path']):
+                    del self.__cache[formula]
+                    raise KeyError((formula, displaymath))
+                else:
+                    return value[displaymath]
             else:
-                return meta_data
+                raise KeyError((formula, displaymath))
 

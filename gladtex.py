@@ -215,8 +215,10 @@ class Main:
                 try:
                     data = conv.get_data_for(formula, displaymath)
                 except KeyError as e:
-                    raise KeyError("formula '%s' not found; that means it was not converted which should usually not happen.")
+                    raise KeyError(("formula '%s' not found; that means it was "
+                        "not converted which should usually not happen.") % e.args[0])
                 data['formula'] = formula
+                data['displaymath'] = displaymath
                 result.append(data)
             else:
                 result.append(chunk)
