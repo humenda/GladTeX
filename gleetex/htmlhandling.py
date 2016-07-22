@@ -388,8 +388,7 @@ class HtmlImageFormatter: # ToDo: localisation
         # write formula out to external file
         if identifier not in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
-        exclusion_filelink = posixpath.join(self.__link_path, \
-                os.path.split(self.__exclusion_filepath))
+        exclusion_filelink = posixpath.join(self.__link_path, self.__exclusion_filepath)
         return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
                 gen_id(formula), img)
 

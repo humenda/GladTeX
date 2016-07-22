@@ -23,11 +23,11 @@ class test_caching(unittest.TestCase):
     def test_differently_spaced_formulas_are_the_same(self):
         form1 = r'\tau  \pi'
         form2 = '\tau\\pi'
-        self.assertTrue(caching.unify_formula(form1),
-                caching.unify_formula(form2))
+        self.assertTrue(caching.normalize_formula(form1),
+                caching.normalize_formula(form2))
 
     def test_trailing_and_leading_spaces_and_tabs_are_no_problem(self):
-        u = caching.unify_formula
+        u = caching.normalize_formula
         form1 = '  hi'
         form2 = 'hi  '
         form3 = '\thi'
@@ -35,7 +35,7 @@ class test_caching(unittest.TestCase):
         self.assertEqual(u(form1), u(form3))
 
     def test_that_empty_braces_are_ignored(self):
-        u = caching.unify_formula
+        u = caching.normalize_formula
         form1 = r'\sin{}x'
         form2 = r'\sin x'
         form3 = r'\sin{} x'
@@ -58,15 +58,15 @@ class test_caching(unittest.TestCase):
 
     def test_that_correct_pos_and_path_are_returned_after_writing_the_cache_back(self):
         c = caching.ImageCache()
-        formula = r"f(x) = \ln(x)"
+        formula = r"g(x) = \ln(x)"
         write('file.png', 'dummy')
-        c.add_formula(formula, self.pos, 'file.png')
+        c.add_formula(formula, self.pos, 'file.png', displaymath=False)
         c.write()
         c = caching.ImageCache()
         self.assertTrue(c.contains(formula, False))
-        self.assertEqual(c.get_data_for(formula, False)['pos'], self.pos)
-        self.assertEqual(c.get_data_for(formula, False)['path'], 'file.png')
-        self.assertEqual(c.get_data_for(formula, False)['displaymath'], False)
+        data = c.get_data_for(formula, False)
+        self.assertEqual(data['pos'], self.pos)
+        self.assertEqual(data['path'], 'file.png')
 
 
     def test_formulas_are_not_added_twice(self):

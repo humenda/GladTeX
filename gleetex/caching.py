@@ -34,6 +34,24 @@ def normalize_formula(formula):
     return formula.replace('{}', ' ').replace('\t', ' ').replace('  ', ' '). \
         rstrip().lstrip()
 
+def recover_bools(object):
+    """After JSon is read from disk, keys as False or True have been serialized
+    to 'false' and 'true', but they're not recovered by the json parser. This
+    function alters converts these keys back to booleans; note: it only works
+    with references."""
+    if isinstance(object, dict):
+        for key in ['false', 'true']:
+            if key in object:
+                val = object[key] # store value
+                object[key == 'true'] = val # safe it with boolean representation
+                del object[key] # remove string key
+        # iterate recursively through dict
+        for value in object.values():
+            recover_bools(value)
+    if isinstance(object, list):
+        for item in object:
+            recover_bools(item)
+
 class JsonParserException(Exception):
     """For errors which could occur while parsing the dumped json cache."""
     pass
@@ -110,6 +128,7 @@ class ImageCache:
         if cur_version != CACHE_VERSION:
             raise_error("Cache in %s has version %s, expected %s." % \
                     (self.__path, cur_version, CACHE_VERSION))
+        recover_bools(self.__cache)
 
     def _remove_old_cache_and_files(self):
         os.remove(self.__path)
@@ -126,7 +145,7 @@ class ImageCache:
 
     def add_formula(self, formula, pos, file_path, displaymath=False):
         """Add formula to cache. The cache consists of a mapping from formula to
-        (pos, file path). Formulas are "unified" with `normalize_formula`. Existing
+        (pos, file path). Formulas are "normalized" with `normalize_formula`. Existing
         formulas are overwritten.
         :param formula formula to add
         :pos positioning information (dictionary with keys height, width and
@@ -158,7 +177,7 @@ class ImageCache:
         if not displaymath in val:
             val[displaymath] = {'pos' : pos, 'path' : file_path}
 
-    def remove_formula(self, formula, displaymath=True):
+    def remove_formula(self, formula, displaymath=False):
         """Formula is unified using `normalize_formula` and removed. If no such
         formula was found, a KeyError is raised."""
         formula = normalize_formula(formula)
@@ -177,11 +196,9 @@ class ImageCache:
         :param displaymath (bool) is the formula display math (or inline math, if false)
         :returns true if formula was found."""
         try:
-            bool(self.get_data_for(formula, displaymath))
+            return bool(self.get_data_for(formula, displaymath))
         except KeyError:
             return False
-        else:
-            return True
 
 
     def get_data_for(self, formula, displaymath):
@@ -195,11 +212,11 @@ class ImageCache:
         This method raises a KeyError if formula wasn't found."""
         formula = normalize_formula(formula)
         if not formula in self.__cache:
-            raise KeyError(formula)
+            raise KeyError(formula, displaymath)
         else:
             # check whether file still exists
             value = self.__cache[formula]
-            if displaymath in value:
+            if displaymath in value.keys():
                 if not os.path.exists(value[displaymath]['path']):
                     del self.__cache[formula]
                     raise KeyError((formula, displaymath))

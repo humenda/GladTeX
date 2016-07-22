@@ -156,8 +156,6 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue(id[0].isalpha())
 
     def test_that_link_to_external_image_points_to_file_and_formula(self):
-        expected_id = None
-        formatted_img = None
         with htmlhandling.HtmlImageFormatter() as img:
             formatted_img = img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
             expected_id = htmlhandling.gen_id('\\tau\\tau')
@@ -174,6 +172,22 @@ class HtmlImageTest(unittest.TestCase):
         # check external file
         self.assertTrue('<p id' in external_file)
         self.assertTrue('="'+expected_id in external_file)
+
+
+    def test_that_link_to_external_image_points_to_file_basepath_and_formula(self):
+        os.mkdir('basepath')
+        with htmlhandling.HtmlImageFormatter('basepath') as img:
+            formatted_img = img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
+            expected_id = htmlhandling.gen_id('\\tau\\tau')
+        external_file = read(os.path.join('basepath', excl_filename), 'r')
+        # find linked formula path
+        href = re.search('href="(.*?)"', formatted_img)
+        self.assertTrue(href != None)
+        # extract path and id from it
+        self.assertTrue('#' in href.groups()[0])
+        path, id = href.groups()[0].split('#')
+        self.assertEqual(path, 'basepath/' + excl_filename)
+        self.assertEqual(id, expected_id)
 
     def test_height_and_width_is_in_formatted_html_img_tag(self):
         data = None
