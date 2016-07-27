@@ -190,7 +190,14 @@ class Tex2img:
         """Parse the LaTeX error output and return the relevant part of it."""
         if not logdata:
             return None
+        line = None
         for line in logdata.split('\n'):
             if line.startswith('! '):
-                return line[2:]
+                line = line[2:]
+                break
+        if line: # try to remove LaTeX line numbers
+            lineno = re.search(r'\s*on input line \d+', line)
+            if lineno:
+                line = line[:lineno.span()[0]] + line[lineno.span()[1]:]
+            return line
 
