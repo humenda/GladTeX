@@ -61,7 +61,7 @@ class Tex2imgMock():
         return {}
 
 
-class test_caconvenience(unittest.TestCase):
+class TestCachedConverter(unittest.TestCase):
     #pylint: disable=protected-access
     def setUp(self):
         self.original_directory = os.getcwd()
@@ -139,4 +139,13 @@ class test_caconvenience(unittest.TestCase):
             data = c.get_data_for(formula, False)
             self.assertEqual(data['pos'], {'depth': 9, 'height': 8, 'width': 7},
                     "expected the pos as defined in the dummy class")
+
+    def test_that_inline_math_and_display_math_results_in_different_formulas(self):
+        # two formulas, second is displaymath
+        formula = r'\sum_{i=0}^n x_i'
+        formulas = [((1,1), False, formula), ((3,1), True, formula)]
+        c = convenience.CachedConverter('.')
+        c.convert_all('.', formulas)
+        # expect all formulas and a gladtex cache to exist
+        self.assertEqual(get_number_of_files('.'), len(formulas)+1)
 
