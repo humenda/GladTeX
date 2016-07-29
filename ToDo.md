@@ -46,7 +46,6 @@ Advantages:
 \usepackage{unicode-math}
 \setmathfont{xits-math.otf}
 ~~~~
-% remove inputenc - LuaTeX is UTF-8 aware
 
 ### Packages on Debian:
 

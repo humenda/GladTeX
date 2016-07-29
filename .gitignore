@@ -1,5 +1,7 @@
 *build*
 dist
+doc/gleetex.*html
+doc/index.html
 gladtex.1
 *.pyc
 *pycache*
