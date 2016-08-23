@@ -56,7 +56,7 @@ On all derivatives of Debian, installing GladTeX is as easy as
 
 The following is required for installing GladTeX:
 
--   Python >= 3.4
+-   Python >= 3.5
 -   LaTeX (2e), dvipng
 -   the LaTeX package preview.sty
 

@@ -23,13 +23,14 @@ def call(cmd, cwd=None):
     subprocess error is raised. Timeouts will happen after 20 seconds."""
     decode = lambda x: bytes.decode(x, sys.getdefaultencoding(),
             errors="surrogateescape")
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1,
-            universal_newlines=False, cwd=cwd) as proc:
+    with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, bufsize=1, universal_newlines=False,
+            cwd=cwd) as proc:
         data = []
         try:
             if proc.wait(timeout=20):
                 # include stdout/stderr, if it exists
-                data = [d for d in proc.communicate(timeout=20) if d]
+                data = [d for d in proc.communicate('', timeout=20) if d]
                 raise subprocess.SubprocessError("Error while executing %s\n%s\n" %
                     (' '.join(cmd), '\n'.join(map(decode, data))))
             data = [d for d in proc.communicate(timeout=20) if d]
