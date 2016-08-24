@@ -80,7 +80,7 @@ Pandoc.
 
 **-o** _FILENAME_
 :   Set output file name. '-' will print text to stdout. Bydefault, input file
-    name is used and .htex extension is replaced by .html.
+    name is used and the `.htex` extension is replaced by `.html`.
 
 **-p** _`LATEX_STATEMENT`_
 :   Add given LaTeX code to preamble of document. That'll affect the conversion
@@ -151,9 +151,10 @@ The conversion is as easy as:
 
 # KNOWN LIMITATIONS
 
-LaTeX is *****NOT***** unicode aware. If you have any unicode signs in your
-documents, please look up the amsmath documentation (or similar) to find a LaTeX
-command replacing the unicode character.
+LaTeX is ***NOT*** unicode aware. If you have any unicode (more precisely,
+non-ascii characters) signs in your documents, please look up the amsmath
+documentation (or similar) to find a LaTeX command replacing the unicode
+character.
 
 # PROJECT HOME
 
