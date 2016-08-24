@@ -4,7 +4,7 @@
 
 # NAME
 
-GladTeX – generate HTML with LaTeX formulas embedded as images
+**GladTeX** - generate HTML with LaTeX formulas embedded as images
 
 # SYNOPSIS
 
