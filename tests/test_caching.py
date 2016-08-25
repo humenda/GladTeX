@@ -82,12 +82,12 @@ class test_caching(unittest.TestCase):
         write('happyness.png', 'binaryBinary_binary')
         c = caching.ImageCache()
         c.add_formula(form1, self.pos, 'happyness.png')
-        c.remove_formula(form1)
+        c.remove_formula(form1, False)
         self.assertEqual(len(c), 0)
 
     def test_removal_of_non_existing_formula_raises_exception(self):
         c = caching.ImageCache()
-        self.assertRaises(KeyError, c.remove_formula, 'Haha!')
+        self.assertRaises(KeyError, c.remove_formula, 'Haha!', False)
 
     def test_that_invalid_version_is_detected(self):
         c = caching.ImageCache('gladtex.cache')
