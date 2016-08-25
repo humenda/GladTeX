@@ -115,7 +115,7 @@ class Tex2img:
 
     def create_dvi(self, dvi_fn):
         """
-        Tex2img.call LaTeX to produce a dvi file with the given LaTeX document.
+        Call LaTeX to produce a dvi file with the given LaTeX document.
         Temporary files will be removed, even in the case of a LaTeX error.
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
