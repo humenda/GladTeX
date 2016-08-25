@@ -17,7 +17,7 @@ def remove_all(*files):
         pass
 
 
-def call(cmd, cwd=None):
+def proc_call(cmd, cwd=None):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
     stdin and stdout, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
@@ -63,6 +63,7 @@ class Tex2img:
     the issue.
     The background of the PNG files will be transparent by default.
     """
+    call = proc_call
     DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
     def __init__(self, tex_document, output_fn, encoding="UTF-8"):
         """tex_document should be either a full TeX document as a string or a
@@ -114,7 +115,7 @@ class Tex2img:
 
     def create_dvi(self, dvi_fn):
         """
-        Call LaTeX to produce a dvi file with the given LaTeX document.
+        Tex2img.call LaTeX to produce a dvi file with the given LaTeX document.
         Temporary files will be removed, even in the case of a LaTeX error.
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
@@ -130,7 +131,7 @@ class Tex2img:
         with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
             tex.write(str(self.tex_document))
         try:
-            call(cmd, cwd=path)
+            Tex2img.call(cmd, cwd=path)
         except subprocess.SubprocessError as e:
             remove_all(dvi_fn)
             msg = ''
@@ -158,7 +159,7 @@ class Tex2img:
                 '-o', self.output_name, dvi_fn]
         data = None
         try:
-            data = call(cmd)
+            data = Tex2img.call(cmd)
         except subprocess.SubprocessError:
             remove_all(self.output_name)
             raise
