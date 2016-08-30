@@ -140,7 +140,7 @@ class CachedConverter:
                     pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1
                     self.__cache.write() # write back cache with valid entries
                     error_occurred = ConversionException(str(e.args[0]), formula,
-                            *pos_in_src, formula_count)
+                            pos_in_src[0], pos_in_src[1], formula_count)
                 else:
                     self.__cache.add_formula(formula, data['pos'], data['path'],
                             data['displaymath'])
