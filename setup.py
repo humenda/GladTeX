@@ -50,7 +50,12 @@ class CustomBuild(distutils.command.build.build):
         super().finalize_options()
 
     def run(self):
-        assert os.getcwd() == self.cwd, 'Must be in package root: %s' % self.cwd
+        if not cwd:
+            if not 'manpage.md' in os.listdir('.'):
+                print("setup.py must be run from the source root")
+                sys.exit(91)
+        else:
+            assert os.getcwd() == self.cwd, 'Must be in package root: %s' % self.cwd
         super().run()
         if shutil.which('pandoc'): # only build man page, if pandoc present
             import manpage
