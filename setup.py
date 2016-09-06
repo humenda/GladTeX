@@ -1,6 +1,7 @@
-import distutils.command.install_scripts
-from distutils.core import setup
+import distutils.command.install_scripts, distutils.command.build
+from distutils.core import setup, Command
 from gleetex import VERSION
+import os
 import shutil
 import sys
 try:
@@ -19,6 +20,28 @@ class my_install(distutils.command.install_scripts.install_scripts):
                 # a command
                 shutil.move(script, script[:-3])
 
+#class BuildCommandProxy(distutils.command.build.build):
+#    def __init__(self):
+#        print("test")
+
+
+class CleanCommand(Command):
+    description = "clean all build files, including __pycache__ and others"
+    user_options = []
+    def initialize_options(self):
+        self.cwd = None
+
+    def finalize_options(self):
+        self.cwd = os.getcwd()
+
+    def run(self):
+        assert os.getcwd() == self.cwd, 'Must be in package root: %s' % self.cwd
+        for directory in ['build', '__pycache__', 'dist',
+                os.path.join('gleetex', '__pycache')]:
+            if os.path.exists(directory):
+                shutil.rmtree(directory)
+        if os.path.exists('gladtex.1'):
+            os.remove('gladtex.1')
 
 setup(name='GladTeX',
       version=VERSION,
@@ -31,7 +54,8 @@ setup(name='GladTeX',
       console=['gladtex.py'],
       scripts=['gladtex.py'],
       license = "LGPL3.0",
-      cmdclass = {"install_scripts": my_install}
+      cmdclass = {"install_scripts": my_install,
+          'clean': CleanCommand}
      )
 
 
