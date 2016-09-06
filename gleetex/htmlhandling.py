@@ -279,7 +279,7 @@ class HtmlImageFormatter: # ToDo: localisation
         self.__exclude_descriptions = False
         self.__link_path = (link_path if link_path else '')
         self.__base_path = (base_path if base_path else '')
-        self.__exclusion_filepath = os.path.join(self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
+        self.__exclusion_filepath = posixpath.join(self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
         if os.path.exists(self.__exclusion_filepath):
             if not os.access(self.__exclusion_filepath, os.W_OK):
                 raise OSError('The file %s is not writable!' %

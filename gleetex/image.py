@@ -145,7 +145,7 @@ class Tex2img:
             raise subprocess.SubprocessError(msg) # propagate subprocess error
         except FileNotFoundError:
             # `latex` is missing, give suggestions on how to install it
-            text = cmd[0] + " not found."
+            text = "Command `%s` not found." % cmd[0]
             if shutil.which('dpkg'):
                 text += ' Install it using `sudo apt install texlive-latex-recommended preview-latex-style`'
             else:
@@ -174,7 +174,7 @@ class Tex2img:
             raise
         except FileNotFoundError:
             # `dvipng` is missing, give suggestions on how to install it
-            text = cmd[0] + " not found."
+            text = "Command `%s` not found." % cmd[0]
             if shutil.which('dpkg'):
                 text += ' Install it using `sudo apt install dvipng`'
             else:
