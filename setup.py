@@ -1,13 +1,14 @@
 import distutils.command.install_scripts, distutils.command.build
 from distutils.core import setup, Command
-from gleetex import VERSION
 import os
 import shutil
 import sys
+#pylint: disable=unused-import
 try:
     import py2exe # only works on windows
 except ImportError:
     pass
+from gleetex import VERSION
 
 class ScriptInstaller(distutils.command.install_scripts.install_scripts):
     """Custom script installer. Stript .py extension if not on Windows."""
@@ -20,6 +21,7 @@ class ScriptInstaller(distutils.command.install_scripts.install_scripts):
                 # a command
                 shutil.move(script, script[:-3])
 
+#pylint: disable=attribute-defined-outside-init
 class CleanCommand(Command):
     description = "clean all build files, including __pycache__ and others"
     user_options = []
@@ -50,7 +52,7 @@ class CustomBuild(distutils.command.build.build):
         super().finalize_options()
 
     def run(self):
-        if not cwd:
+        if not self.cwd:
             if not 'manpage.md' in os.listdir('.'):
                 print("setup.py must be run from the source root")
                 sys.exit(91)
