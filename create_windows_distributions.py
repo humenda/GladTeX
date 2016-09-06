@@ -50,8 +50,11 @@ def bundle_files(src, label):
             f.write('\r\nFor other information, see the file README.md or http://humenda.github.io/GladTeX\r\n')
 
     # copy README and other files
-    for file in ['README.md', 'COPYING']:
-        shutil.copy(file, os.path.join(output_name, file))
+    for file in ['README.md', 'COPYING', 'ChangeLog']:
+        dest = os.path.join(output_name, file)
+        if not '.' in dest[-5:]:
+            dest += '.txt'
+        shutil.copy(file, dest)
 
     with zipfile.ZipFile(output_name + '.zip', 'w', zipfile.ZIP_DEFLATED) as z:
         for file in files:
