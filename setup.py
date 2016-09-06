@@ -9,7 +9,7 @@ try:
 except ImportError:
     pass
 
-class my_install(distutils.command.install_scripts.install_scripts):
+class ScriptInstaller(distutils.command.install_scripts.install_scripts):
     """Custom script installer. Stript .py extension if not on Windows."""
     def run(self):
         distutils.command.install_scripts.install_scripts.run(self)
@@ -19,11 +19,6 @@ class my_install(distutils.command.install_scripts.install_scripts):
                 # strip file ending (if not on windows) to make it executable as
                 # a command
                 shutil.move(script, script[:-3])
-
-#class BuildCommandProxy(distutils.command.build.build):
-#    def __init__(self):
-#        print("test")
-
 
 class CleanCommand(Command):
     description = "clean all build files, including __pycache__ and others"
@@ -43,19 +38,40 @@ class CleanCommand(Command):
         if os.path.exists('gladtex.1'):
             os.remove('gladtex.1')
 
+class CustomBuild(distutils.command.build.build):
+    """Also build manpage to build/gladtex.1; it is not installed
+    automatically."""
+    def initialize_options(self):
+        self.cwd = None
+        super().initialize_options()
+
+    def finalize_options(self):
+        self.cwd = os.getcwd()
+        super().finalize_options()
+
+    def run(self):
+        assert os.getcwd() == self.cwd, 'Must be in package root: %s' % self.cwd
+        super().run()
+        if shutil.which('pandoc'): # only build man page, if pandoc present
+            import manpage
+            manpage.markdown2man('manpage.md', os.path.join('build', 'gladtex.1'))
+        else:
+            print("w: pandoc not found, skipping man page conversion.")
+
 setup(name='GladTeX',
       version=VERSION,
       description='generate html with LaTeX equations embedded as images',
       author='Sebastian Humenda',
-      setup_requires=['py2app'],
       author_email='shumenda |at| gmx |dot| de',
       url='https://humenda.github.io/GladTeX',
       packages=['gleetex'],
-      console=['gladtex.py'],
+      console=['gladtex.py'], # Windows-only option, use python instead of pythonw
+      setup_requires=['py2app'], # require py2app on Mac OS
       scripts=['gladtex.py'],
       license = "LGPL3.0",
-      cmdclass = {"install_scripts": my_install,
-          'clean': CleanCommand}
+      cmdclass = {"install_scripts": ScriptInstaller,
+          'clean': CleanCommand,
+          'build': CustomBuild}
      )
 
 

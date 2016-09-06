@@ -23,15 +23,16 @@ def markdown2man(input_fn, output_fn):
         return # pandoc is not present
 
 destdir = '.'
-if '-h' in sys.argv or '--help' in sys.argv:
-    print('%s [--dest output_directory]\n\n' % sys.argv[0])
-    print("Convert manpage.md to gladtex.1, which is either moved to the specified dest orput into the current working directory.")
-elif '--dest' in sys.argv:
-    index = sys.argv.index('--dest')
-    if index == (len(sys.argv)-1):
-        print("Error: destination required.")
-    destdir = sys.argv[index + 1]
-    if not os.path.exists(destdir) or os.path.isfile(destdir):
-        print("An existing directory as destination is required.")
-        sys.exit(5)
-markdown2man('manpage.md', os.path.join(destdir, 'gladtex.1'))
+if __name__ == '__main__':
+    if '-h' in sys.argv or '--help' in sys.argv:
+        print('%s [--dest output_directory]\n\n' % sys.argv[0])
+        print("convert manpage.md to gladtex.1, which is either moved to the specified dest orput into the current working directory.")
+    elif '--dest' in sys.argv:
+        index = sys.argv.index('--dest')
+        if index == (len(sys.argv)-1):
+            print("error: destination required.")
+        destdir = sys.argv[index + 1]
+        if not os.path.exists(destdir) or os.path.isfile(destdir):
+            print("an existing directory as destination is required.")
+            sys.exit(5)
+    markdown2man('manpage.md', os.path.join(destdir, 'gladtex.1'))
