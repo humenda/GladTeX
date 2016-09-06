@@ -60,10 +60,25 @@ class CustomBuild(distutils.command.build.build):
             assert os.getcwd() == self.cwd, 'Must be in package root: %s' % self.cwd
         super().run()
         if shutil.which('pandoc'): # only build man page, if pandoc present
-            import manpage
-            manpage.markdown2man('manpage.md', os.path.join('build', 'gladtex.1'))
+            self.build_manpage('manpage.md', os.path.join('build', 'gladtex.1'))
         else:
             print("w: pandoc not found, skipping man page conversion.")
+
+    def build_manpage(self, input_fn, output_fn):
+        """Convert `input_fn` from markdown into manpage format and save it to
+        `output_fn`. Pandoc is required."""
+        import subprocess
+        try:
+            cmd = ['pandoc', input_fn, '-s', '-t', 'man', '-o', output_fn]
+            proc = subprocess.Popen(cmd)
+            ret = proc.wait()
+            if ret:
+                raise subprocess.SubprocessError("Exit status %d when running '%s'" % (ret,
+                    ' '.join(cmd)))
+        except FileNotFoundError:
+            sys.stderr.write("Pandoc was not found on the system, skipping man " +
+                "page creation.")
+
 
 setup(name='GladTeX',
       version=VERSION,
