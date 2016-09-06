@@ -3,6 +3,10 @@ from distutils.core import setup
 from gleetex import VERSION
 import shutil
 import sys
+try:
+    import py2exe # only works on windows
+except ImportError:
+    pass
 
 class my_install(distutils.command.install_scripts.install_scripts):
     """Custom script installer. Stript .py extension if not on Windows."""
@@ -24,6 +28,7 @@ setup(name='GladTeX',
       author_email='shumenda |at| gmx |dot| de',
       url='https://humenda.github.io/GladTeX',
       packages=['gleetex'],
+      console=['gladtex.py'],
       scripts=['gladtex.py'],
       license = "LGPL3.0",
       cmdclass = {"install_scripts": my_install}
