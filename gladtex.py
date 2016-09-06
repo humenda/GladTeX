@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import multiprocessing
 import os
 import posixpath
 import re
@@ -254,5 +255,7 @@ class Main:
 
 
 if __name__ == '__main__':
+    # enable multiprocessing on Windows, see python docs
+    multiprocessing.freeze_support()
     m = Main()
     m.run(sys.argv)
