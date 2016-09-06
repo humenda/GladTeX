@@ -1,6 +1,7 @@
 2.0.1 Bug Fix Release
     -	show user a meaningful error message if LaTeX or dvipng is missing
     -	setup.py: build manual page, if pandoc present
+    -	freeze multiprocessing on Windows, to make executables distributable
 2.0 - make GladTeX truely platform independent
     -	add formula number in error output; makes tracking of formulas easier in
         error case
