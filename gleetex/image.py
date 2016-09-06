@@ -4,6 +4,7 @@ This module takes care of the actual image creation process.
 import distutils.dir_util
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -142,6 +143,14 @@ class Tex2img:
                 else:
                     msg += str(e.args[0])
             raise subprocess.SubprocessError(msg) # propagate subprocess error
+        except FileNotFoundError:
+            # `latex` is missing, give suggestions on how to install it
+            text = cmd[0] + " not found."
+            if shutil.which('dpkg'):
+                text += ' Install it using `sudo apt install texlive-latex-recommended preview-latex-style`'
+            else:
+                text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
+            raise subprocess.SubprocessError(text)
         finally:
             remove_all(tex_fn, aux_fn, log_fn)
 
@@ -163,6 +172,14 @@ class Tex2img:
         except subprocess.SubprocessError:
             remove_all(self.output_name)
             raise
+        except FileNotFoundError:
+            # `dvipng` is missing, give suggestions on how to install it
+            text = cmd[0] + " not found."
+            if shutil.which('dpkg'):
+                text += ' Install it using `sudo apt install dvipng`'
+            else:
+                text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
+            raise subprocess.SubprocessError(text)
         finally:
             remove_all(dvi_fn)
         for line in data.split('\n'):
