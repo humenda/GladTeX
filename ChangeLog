@@ -1,16 +1,22 @@
+2.1 add support for LuaLaTeX as LaTeX backend
+    -   add LuaLaTeX support and provide a command-line switch to enable it
+    -   handle subprocess stdin and stdout encoding properly
+    -   set UTF-8 as encoding for all LaTeX documents
+
 2.0.1 Bug Fix Release
-    -	show user a meaningful error message if LaTeX or dvipng is missing
-    -	setup.py: build manual page, if pandoc present
-    -	freeze multiprocessing on Windows, to make executables distributable
+    -   show user a meaningful error message if LaTeX or dvipng is missing
+    -   setup.py: build manual page, if pandoc present
+    -   freeze multiprocessing on Windows, to make executables distributable
+
 2.0 - make GladTeX truely platform independent
-    -	add formula number in error output; makes tracking of formulas easier in
+    -   add formula number in error output; makes tracking of formulas easier in
         error case
-    -	write man page
+    -   write man page
     -   set css class correctly for display math formulas
     -   HTML label/id generation:
-        -    do not create overlong id's
-        -    do only generate id's starting with an alphabetical character
-        -    squeeze multiple identical characters
+        -   do not create overlong id's
+        -   do only generate id's starting with an alphabetical character
+        -   squeeze multiple identical characters
     -   reparse outsourced formulas correctly (was a mixture of formatted vs.
         unformatted formulas)
     -   do not use absolute links when operating on file which is not in current
@@ -19,10 +25,10 @@
     -   allow formulas consisting only of numbers (i.e. example calculations) by
         prefixing "form_" in front of the HTML id (id must start with a letter
         but may be followed by digits)
-    -	allow removal of unreadable caches with the `-n` switch (extend library
-		with this functionality)
-	-	introduce `-m` switch to print the output in a less concise, but more
-		machine-parseable format
+    -    allow removal of unreadable caches with the `-n` switch (extend library
+        with this functionality)
+    -    introduce `-m` switch to print the output in a less concise, but more
+        machine-parseable format
 
 1.6 - complete rewrite
     - rewrite GladTeX fully in Python
