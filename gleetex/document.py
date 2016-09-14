@@ -60,6 +60,7 @@ class LaTeXDocument:
             closing = '\\]' if self.__displaymath else '\\)'
         return textwrap.dedent("""
         \\documentclass[fontsize=12pt]{scrartcl}\n
+        \\usepackage[utf8]{inputenc}
         %s
         \\usepackage{amsmath, amssymb}
         %s
