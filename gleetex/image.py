@@ -20,21 +20,17 @@ def remove_all(*files):
 
 def proc_call(cmd, cwd=None):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
-    stdin and stdout, decoded if not None. If the return value is not equal 0, a
+    stdout and stderr, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
-    decode = lambda x: bytes.decode(x, sys.getdefaultencoding(),
-            errors="surrogateescape")
-    with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, bufsize=1, universal_newlines=False,
-            cwd=cwd) as proc:
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            bufsize=1, universal_newlines=False, cwd=cwd) as proc:
         data = []
         try:
-            if proc.wait(timeout=20):
-                # include stdout/stderr, if it exists
-                data = [d for d in proc.communicate('', timeout=20) if d]
+            data = [d.decode(sys.getdefaultencoding(), errors="surrogateescape")
+                    for d in proc.communicate(timeout=20) if d]
+            if proc.wait():
                 raise subprocess.SubprocessError("Error while executing %s\n%s\n" %
-                    (' '.join(cmd), '\n'.join(map(decode, data))))
-            data = [d for d in proc.communicate(timeout=20) if d]
+                    (' '.join(cmd), '\n'.join(data)))
         except subprocess.TimeoutExpired as e:
             proc.kill()
             note = 'Subprocess expired with time out: ' + str(cmd) + '\n'
@@ -51,9 +47,9 @@ def proc_call(cmd, cwd=None):
             import traceback
             traceback.print_exc(file=sys.stderr)
         if isinstance(data, list):
-            return '\n'.join(map(decode, data))
+            return '\n'.join(data)
         else:
-            return decode(data)
+            return data
 
 
 class Tex2img:
