@@ -63,6 +63,10 @@ The following is required for installing GladTeX:
 On Debian systems the following commands will satisfy the dependencies:
 
     # apt-get install python3.4 texlive-latex-base preview-latex-style dvipng
+    
+If you plan to use lualatex, use:
+
+    sudo apt-get install texlive-maths-extra texlive-luatex texlive-xetex texlive-fonts-extra
 
 The package can then be installed using
 

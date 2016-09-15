@@ -11,7 +11,6 @@ Uncategorized
 -   introduce command line option which will check whether all all formulas in a
     cache are used and if not, remove the formula (only useful for caches
     corresponding to a single document)
--   rewrite tests in test_image to use a mock instead of a real LaTeX subprocess
 
 Gettext
 -------
@@ -26,28 +25,4 @@ The cache stores the path, the formula and the positioning of an image. For
 large documents, this might be quite big, hence it makes sense to compress them.
 
 To make things easier, the cache should have a .gz extension.
-
-
-Support LuaLaTeX
-----------------
-
-Advantages:
-
--   unicode / UTF-8-aware
-    -   hence would support umlauts in formulas
--   modern
-
-### Changes for preamble:
-
-~~~~
-% remove inputenc - LuaTeX is UTF-8 aware
-\usepackage{amsmath, amssymb}
-\usepackage{lualatex-math}
-\usepackage{unicode-math}
-\setmathfont{xits-math.otf}
-~~~~
-
-### Packages on Debian:
-
-    sudo apt-get install texlive-maths-extra texlive-luatex texlive-xetex texlive-fonts-extra
 
