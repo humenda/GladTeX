@@ -10,7 +10,7 @@ class LaTeXDocument:
         self.__encoding = None
         self.__equation = eqn
         self.__displaymath = False
-        self.__preamble = ''
+        self._preamble = ''
         self.__maths_env = None
 
     def set_latex_environment(self, env):
@@ -26,7 +26,7 @@ class LaTeXDocument:
 
     def set_preamble_string(self, p):
         """Set the string to add to the preamble of the LaTeX document."""
-        self.__preamble = p
+        self._preamble = p
 
     def set_encoding(self, encoding):
         """Set the encoding as used by the inputenc package."""
@@ -80,7 +80,7 @@ class LaTeXDocument:
     def __str__(self):
         preamble = self._get_encoding_preamble() + \
                 ('\n\\usepackage[utf8]{inputenc}\n\\usepackage{amsmath, amssymb}'
-                '\n') + (self.__preamble if self.__preamble else '')
+                '\n') + (self._preamble if self._preamble else '')
         return self._format_document(preamble)
 
     def _format_document(self, preamble):
@@ -100,5 +100,25 @@ class LaTeXDocument:
         \\usepackage[active,textmath,displaymath,tightpage]{preview} %% must be last one, see doc\n
         \\begin{document}\n%s%s%s\n\\end{document}""" % (preamble,
             opening, self.__equation, closing))
+
+
+class LuaLaTeXDocument(LaTeXDocument):
+    """This class behaves the same as the LaTeXDocument class, but uses
+    LuaLaTeX packages and directives instead. For document, please see the
+    mentioned class."""
+    def __init__(self, eqn):
+        super().__init__(eqn)
+
+    def set_encoding(self, _e):
+        pass # ignored, LuaLaTeX always uses UTF-8
+
+    def get_encoding(self):
+        return 'utf-8'
+
+    def __str__(self):
+        preamble = ('\\usepackage{fontspec}\n\\usepackage{amsmath}\n'
+            '\\usepackage{amssymb}\n\\usepackage{unicode-math}') + \
+            (self._preamble if self._preamble else '')
+        return super()._format_document(preamble)
 
 
