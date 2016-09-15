@@ -48,15 +48,16 @@ class CachedConverter:
             converted. So if the file being converted is foo/bar.htex and the
             base_path is set to img, the image will be placed in foo/img/.
     :param keep_old_cache If an existing cache cannot be read (incompatible
-        GladTeX version, ...) Aand the flag is set, the program will simple
+        GladTeX version, ...) Aand the flag is set, the program will simply
         crash and tell the user to remove the cache (default). If set to False,
         the program will instead remove the cache and all eqn* files and
         recreate the cache.
+    :param encoding The encoding for the LaTeX document, default None
     """
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
     _converter = image.Tex2img # can be statically altered for testing purposes
 
-    def __init__(self, base_path, keep_old_cache=True):
+    def __init__(self, base_path, keep_old_cache=True, encoding=None):
         if base_path and not os.path.exists(base_path):
             os.makedirs(base_path)
         cache_path = os.path.join(base_path,
@@ -66,6 +67,7 @@ class CachedConverter:
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None}
+        self.__encoding = encoding
 
 
     def set_option(self, option, value):
@@ -170,6 +172,12 @@ class CachedConverter:
             latex.set_preamble_string(self.__options['preamble'])
         if self.__options['latex_maths_env']:
             latex.set_latex_environment(self.__options['latex_maths_env'])
+        if self.__encoding:
+            latex.set_encoding(self.__encoding)
+        try:
+            latex = str(latex)
+        except ValueError as e: # propagate error
+            raise ConversionException(e.args[0], formula, 0, 0, 0)
         conv = self._converter(latex, output_path)
         # apply configured image output options
         for option, value in self.__options.items():

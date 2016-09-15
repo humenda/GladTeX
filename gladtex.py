@@ -196,7 +196,7 @@ class Main:
         result = []
         try:
             conv = gleetex.convenience.CachedConverter(base_path,
-                    not options.notkeepoldcache)
+                    not options.notkeepoldcache, encoding=self.__encoding)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
 

@@ -30,7 +30,7 @@ class test_document(unittest.TestCase):
     def test_obviously_wrong_encoding_trigger_exception(self):
         doc = LaTeXDocument('f00')
         self.assertRaises(ValueError, doc.set_encoding, 'latin1:')
-        self.assertRaises(ValueError, doc.set_encoding, 'utf_8')
+        self.assertRaises(ValueError, doc.set_encoding, 'utf66')
         # the following passes (assertRaisesNot)
         doc.set_encoding('utf-8')
 

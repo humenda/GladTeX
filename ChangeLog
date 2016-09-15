@@ -2,6 +2,8 @@
     -   add LuaLaTeX support and provide a command-line switch to enable it
     -   handle subprocess stdin and stdout encoding properly
     -   set UTF-8 as encoding for all LaTeX documents
+    -   handle encoding better and more strictly for LaTeX 2E, suggest using
+        LuaLaTeX if an encoding issue occurs
 
 2.0.1 Bug Fix Release
     -   show user a meaningful error message if LaTeX or dvipng is missing
@@ -121,3 +123,4 @@
 0.1 - Used only internally at the Dept. of Mathematics at the Univ. of Oslo
       July-August 1999 (for the project "Matteknekker'n") under the name
       htmleqn.
+# vim: set expandtab sts=4 ts=4 sw=4 expandtab:
