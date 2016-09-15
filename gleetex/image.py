@@ -72,6 +72,7 @@ class Tex2img:
         self.__dpi = 100
         self.__background = 'transparent'
         self.__foreground = 'rgb 0 0 0'
+        self.__use_lualatex = False
         # create directory for image if that doesn't exist
         base_name = os.path.split(output_fn)[0]
         if base_name and not os.path.exists(base_name):
@@ -110,6 +111,10 @@ class Tex2img:
         self.__check_rgb(rgb_list)
         self.__foreground = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
 
+    def set_use_lualatex(self, flag):
+        """Set, wehter lualatex should be used. Default is False."""
+        self.__use_lualatex = flag
+
     def create_dvi(self, dvi_fn):
         """
         Call LaTeX to produce a dvi file with the given LaTeX document.
@@ -124,7 +129,12 @@ class Tex2img:
         tex_fn = new_extension('tex')
         aux_fn = new_extension('aux')
         log_fn = new_extension('log')
-        cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
+        cmd = None
+        if self.__use_lualatex:
+            cmd = ['lualatex', '--output-format=dvi', '--halt-on-error',
+                    os.path.basename(tex_fn)]
+        else:
+            cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
         with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
             tex.write(str(self.tex_document))
         try:

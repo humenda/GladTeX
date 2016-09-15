@@ -156,3 +156,29 @@ class test_imagecreation(unittest.TestCase):
         self.assertFalse(os.path.exists("farce.log"))
         self.assertTrue(os.path.exists("bilder/farce.png"))
 
+    def test_whether_lualatex_is_used_if_set(self):
+        lualatex_used = False
+        def fake_subprocess(cmd, cwd=None):
+            nonlocal lualatex_used
+            if 'lualatex' in cmd:
+                lualatex_used = True
+            return 'stuff'
+        t = image.Tex2img(doc(r"\hat{es}\pi\pi\ldots"), "bilder/farce.png")
+        t.set_use_lualatex(True)
+        image.Tex2img.call = fake_subprocess
+        t.create_dvi('cat.dvi')
+        self.assertTrue(lualatex_used, ("LuaLaTeX was not used, even though it "
+            "was configured to do so."))
+
+    def test_whether_latex2e_is_used_if_lualatex_not_enabled(self):
+        lualatex_used = False
+        def fake_subprocess(cmd, cwd=None):
+            nonlocal lualatex_used
+            if 'lualatex' in cmd:
+                lualatex_used = True
+            return 'stuff'
+        t = image.Tex2img(doc(r"\hat{es}\pi\pi\ldots"), "bilder/farce.png")
+        image.Tex2img.call = fake_subprocess
+        t.create_dvi('cow.dvi')
+        self.assertFalse(lualatex_used, "LuaLaTeX was used, even though it was disabled.")
+
