@@ -54,6 +54,8 @@ class Main:
                 help="CSS class to assign to inline math (default: 'inlinemath')")
         parser.add_argument('-l', metavar='CLASS', dest='displaymath',
                 help="CSS class to assign to block-level math (default: 'displaymath')")
+        parser.add_argument('-L', dest='use_lualatex', action="store_true",
+                default="False", help="Enable LuaLaTeX as TeX backend (default: LaTeX2e)")
         parser.add_argument('-m', dest='machinereadable', action="store_true",
                 default=False,
                 help="Print output in machine-readable format (less concise, better parseable)")
@@ -202,7 +204,6 @@ class Main:
 
         self.set_options(conv, options)
         formulas = [c for c in parsed_htex_document if isinstance(c, list)]
-        import time
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.convenience.ConversionException as e:
@@ -230,7 +231,7 @@ class Main:
     def set_options(self, conv, options):
         """Apply options from command line parser to the converter."""
         # set options
-        options_to_query = ['dpi', 'preamble', 'latex_maths_env']
+        options_to_query = ['dpi', 'preamble', 'latex_maths_env', 'use_lualatex']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:

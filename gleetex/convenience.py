@@ -66,14 +66,14 @@ class CachedConverter:
                 keep_old_cache=keep_old_cache)
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
-                'preamble' : None, 'latex_maths_env' : None}
+                'preamble' : None, 'latex_maths_env' : None, 'use_lualatex': False}
         self.__encoding = encoding
 
 
     def set_option(self, option, value):
         """Set one of the options accepted for gleetex.image.Tex2img. `option`
         must be one of dpi, transparency, background_color, foreground_color,
-        preamble, latex_maths_env."""
+        preamble, latex_maths_env, use_lualatex."""
         if not option in self.__options.keys():
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
@@ -175,10 +175,10 @@ class CachedConverter:
         if self.__encoding:
             latex.set_encoding(self.__encoding)
         try:
-            latex = str(latex)
+            latex_str = str(latex)
         except ValueError as e: # propagate error
             raise ConversionException(e.args[0], formula, 0, 0, 0)
-        conv = self._converter(latex, output_path)
+        conv = self._converter(latex_str, output_path)
         # apply configured image output options
         for option, value in self.__options.items():
             if value and hasattr(conv, 'set_' + option):
