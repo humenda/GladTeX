@@ -105,7 +105,7 @@ class TemporaryBuildDirectory():
             tmp_base = tempfile.gettempdir()
         tmpdir = os.path.join(tmp_base, 'gladtex.build')
         if os.path.exists(tmpdir):
-            shutil.rmtree(tmpdir)
+            shutil.rmtree(tmpdir, onerror=self.__onerror)
         return tmpdir
 
     def __onerror(self, func, path, exc_info):
