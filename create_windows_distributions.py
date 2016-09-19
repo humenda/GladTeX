@@ -8,6 +8,7 @@ import zipfile
 import gleetex
 
 def exec_setup_py(arg_string):
+    """Execute `python setup.py` as a subprocess. Use Wine, if necessary."""
     ret = None
     if sys.platform.startswith('win'):
         ret = os.system('python setup.py ' + arg_string)
@@ -21,6 +22,7 @@ def exec_setup_py(arg_string):
         sys.exit(7)
 
 def get_python_version():
+    """Return the python version as a string."""
     import re, subprocess
     args = ['python', '--version']
     if not sys.platform.startswith('win'):
@@ -37,6 +39,7 @@ def get_executable_name(label):
             label)
 
 def bundle_files(src, output_name):
+    """Bundle the compiled binary files with README, ChangeLog and COPYING."""
     if os.path.exists(output_name):
         shutil.rmtree(output_name)
     os.rename(src, output_name)
@@ -61,6 +64,11 @@ def bundle_files(src, output_name):
     shutil.rmtree(output_name)
 
 class TemporaryBuildDirectory():
+    """Context handler to guard the build process.
+    Upon entering the context, the source is copied to a temporary directory and
+    the program changes to this directory. After all build actions have been
+    done, the output file is copied back to the original directory, the program
+    resets the current working directory and deletes the temporary directory."""
     def __init__(self, output_file_name):
         self.orig_cwd = os.getcwd()
         self.tmpdir = None
@@ -89,6 +97,8 @@ class TemporaryBuildDirectory():
             tmp_base = '/tmp'
         elif os.path.exists('\\temp'):
             tmp_base = '\\temp'
+        elif os.path.exists('\\windows\\temp'):
+            tmp_base = '\\windows\\temp'
         else:
             import tempfile
             tmp_base = tempfile.gettempdir()
@@ -97,15 +107,15 @@ class TemporaryBuildDirectory():
             shutil.rmtree(tmpdir)
         return tmpdir
 
+if __name__ == '__main__':
+    with TemporaryBuildDirectory(get_executable_name('embeddable')) as tb:
+        # build embeddable release, where all files are separate DLL's; if somebody
+        # distributes a python app, these DLL files can be shared
+        exec_setup_py('py2exe -c -O 2 -i gleetex --bundle-files 3')
+        bundle_files('dist', os.path.splitext(tb.output_file_name)[0])
 
-with TemporaryBuildDirectory(get_executable_name('embeddable')) as tb:
-    # build embeddable release, where all files are separate DLL's; if somebody
-    # distributes a python app, these DLL files can be shared
-    exec_setup_py('py2exe -c -O 2 -i gleetex --bundle-files 3')
-    bundle_files('dist', os.path.splitext(tb.output_file_name)[0])
-
-# create a stand-alone version of GladTeX
-with TemporaryBuildDirectory(get_executable_name('standalone')) as tb:
-    exec_setup_py('py2exe -i gleetex -c -O 2 --bundle-files 1')
-    bundle_files('dist', os.path.splitext(tb.output_file_name)[0])
+    # create a stand-alone version of GladTeX
+    with TemporaryBuildDirectory(get_executable_name('standalone')) as tb:
+        exec_setup_py('py2exe -i gleetex -c -O 2 --bundle-files 1')
+        bundle_files('dist', os.path.splitext(tb.output_file_name)[0])
 
