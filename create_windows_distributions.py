@@ -7,6 +7,26 @@ import sys
 import zipfile
 import gleetex
 
+def get_temp_directory():
+    """Find a temporary directory to work in. The checks are done to find a
+    directory which does not reside within the user's path, because py2exe
+    includes absolute paths for python scripts (in their tracebacks). It is not
+    desirable to show the whole world the directory layout of the computer where
+    the source code was built on."""
+    tmp_base = None
+    if os.path.exists('/tmp'):
+        tmp_base = '/tmp'
+    elif os.path.exists('\\temp'):
+        tmp_base = '\\temp'
+    else:
+        import tempfile
+        tmp_base = tempfile.getttempdir()
+    tmpdir = os.path.join(tmp_base, 'gladtex.build')
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
+    os.mkdir(tmpdir)
+    return tmpdir
+
 def clean():
     exec_setup_py('clean')
     if os.path.exists('build'):
@@ -61,12 +81,36 @@ def bundle_files(src, label):
             z.write(file)
     shutil.rmtree(output_name)
 
-clean()
+class BuildDirectory():
+    def __init__(self, file_to_copy):
+        self.cwd = os.getcwd()
+        self.tmpdir = None
+        self.file_to_copy = file_to_copy
+
+    def __enter__(self):
+        self.tmpdir = get_temp_directory()
+        shutil.copytree(os.getcwd(), self.tmpdir)
+        os.chdir(self.tmpdir)
+        return self
+
+    def __exit__(self, _a, _b, _c):
+        os.chdir(cwd)
+        shutil.copy(os.path.join(self.tmpdir, self.file_to_copy),
+                self.file_to_copy)
+        shutil.rmtree(self.tmpdir)
+
+def setup():
+    return tmpdir
+
+source_directory = os.getcwd()
+tmp_directory = setup()
+os.chdir(tmp_directory)
+#clean()
 # build embeddable release, where all files are separate DLL's; if somebody
 # distributes a python app, these DLL files can be shared
 exec_setup_py('py2exe -i gleetex --bundle-files 3')
 bundle_files('dist', 'embeddable')
-clean()
+#clean()
 
 # create a stand-alone version of GladTeX
 exec_setup_py('py2exe -i gleetex --bundle-files 1')

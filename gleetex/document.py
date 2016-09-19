@@ -65,7 +65,9 @@ class LaTeXDocument:
             encoding_preamble = r'\usepackage[T1]{fontenc}'
             # try to guess language and hence character set (fontenc)
             import locale
-            language = locale.getlocale()[0].split('_')[0]
+            language = locale.getdefaultlocale()
+            if language: # extract just the language code
+                language = language.split('_')[0]
             # check whether language on computer is within T1 and hence whether
             # it should be loaded; I know that this can be a misleading
             # assumption, but there's no better way that I know of
