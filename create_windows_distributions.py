@@ -3,6 +3,7 @@ This file builds windows distributions, zip files with GladTeX and all other
 files."""
 import os
 import shutil
+import stat
 import sys
 import zipfile
 import gleetex
@@ -84,7 +85,7 @@ class TemporaryBuildDirectory():
         os.chdir(self.orig_cwd)
         shutil.copy(os.path.join(self.tmpdir, self.output_file_name),
                 self.output_file_name)
-        shutil.rmtree(self.tmpdir)
+        shutil.rmtree(self.tmpdir, onerror=self.__onerror)
 
     def get_temp_directory(self):
         """Find a temporary directory to work in. The checks are done to find a
@@ -106,6 +107,20 @@ class TemporaryBuildDirectory():
         if os.path.exists(tmpdir):
             shutil.rmtree(tmpdir)
         return tmpdir
+
+    def __onerror(self, func, path, exc_info):
+        """
+        Error handler for ``shutil.rmtree``.
+	If the error is due to an access error (read only file) it attempts to
+	add write permission and then retries.  If the error is for another reason it re-raises the error.
+        Usage : ``shutil.rmtree(path, onerror=onerror)``."""
+        if not os.access(path, os.W_OK):
+            # Is the error an access error ?
+            os.chmod(path, stat.S_IWUSR)
+            func(path)
+        else:
+            raise exc_info
+
 
 if __name__ == '__main__':
     with TemporaryBuildDirectory(get_executable_name('embeddable')) as tb:
