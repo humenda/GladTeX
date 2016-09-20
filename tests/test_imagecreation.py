@@ -127,16 +127,23 @@ class test_imagecreation(unittest.TestCase):
     def test_intermediate_files_are_removed_when_exception_raised(self):
         files = ['foo.tex', 'foo.log', 'foo.aux', 'foo.dvi']
         i = image.Tex2img(doc('\\hat{x}'), 'foo.png')
+        self.create_intermediate_files('foo') # pretend that LaTeX was run
+        # let call() raise an arbitrari SubprocessError
+        image.Tex2img.call = latex_error_mock
+
         try:
-            self.create_intermediate_files('foo') # pretend that LaTeX was run
-            i.create_dvi('foo.dvi') # should remove *.tex
-            # raise SubprocessError; the text is the wrong one, doesn't matter
-            image.Tex2img.call = latex_error_mock
+            i.create_dvi('foo.dvi')
+        except SubprocessError:
+            self.assertFalse(os.path.exists('foo.tex'))
+            self.assertFalse(os.path.exists('foo.dvi'))
+            self.assertFalse(os.path.exists('foo.log'))
+            self.assertFalse(os.path.exists('foo.aux'))
+
+        try:
             i.create_png('foo.dvi')
         except SubprocessError:
-            for intermediate_file in files:
-                self.assertFalse(os.path.exists(intermediate_file),
-                        "%s exists, even though it should have been deleted" % intermediate_file)
+            self.assertFalse(os.path.exists('foo.dvi'))
+
 
     def test_that_values_for_positioning_png_are_returned(self):
         i = image.Tex2img(doc("\\sum\\limits_{i=0}^{\\infty} i^ie^i"), 'foo.png')

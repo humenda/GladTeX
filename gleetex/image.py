@@ -73,6 +73,7 @@ class Tex2img:
         self.__background = 'transparent'
         self.__foreground = 'rgb 0 0 0'
         self.__use_lualatex = False
+        self.__keep_latex_source = False
         # create directory for image if that doesn't exist
         base_name = os.path.split(output_fn)[0]
         if base_name and not os.path.exists(base_name):
@@ -112,7 +113,7 @@ class Tex2img:
         self.__foreground = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
 
     def set_keep_latex_source(self, flag):
-        """Set wether lualatex should be used. Default is False."""
+        """Set whether LaTeX source document should be kept."""
         self.__keep_latex_source = flag
 
 
@@ -132,8 +133,6 @@ class Tex2img:
         new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
 
         tex_fn = new_extension('tex')
-        print(repr(open(tex_fn).read()))
-        print(self.__keep_latex_source, self.__use_lualatex)
         aux_fn = new_extension('aux')
         log_fn = new_extension('log')
         cmd = None
