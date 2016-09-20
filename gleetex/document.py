@@ -62,7 +62,6 @@ class LaTeXDocument:
                         "present. Please specify an encoding or use LuaLaTeX instead."))
         encoding_preamble = ''
         if self.__encoding:
-            encoding_preamble = r'\usepackage[T1]{fontenc}'
             # try to guess language and hence character set (fontenc)
             import locale
             language = locale.getdefaultlocale()
@@ -96,12 +95,11 @@ class LaTeXDocument:
             # determine characters with which to surround the formula
             opening = '\\[' if self.__displaymath else '\\('
             closing = '\\]' if self.__displaymath else '\\)'
-        return textwrap.dedent("""
-        \\documentclass[fontsize=12pt]{scrartcl}\n
+        return textwrap.dedent("""\\documentclass[fontsize=12pt]{scrartcl}\n
         %s
         \\usepackage[active,textmath,displaymath,tightpage]{preview} %% must be last one, see doc\n
         \\begin{document}\n%s%s%s\n\\end{document}""" % (preamble,
-            opening, self.__equation, closing))
+            opening, self.__equation.lstrip().rstrip(), closing))
 
 
 class LuaLaTeXDocument(LaTeXDocument):

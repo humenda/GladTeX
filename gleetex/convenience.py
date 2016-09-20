@@ -66,14 +66,15 @@ class CachedConverter:
                 keep_old_cache=keep_old_cache)
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
-                'preamble' : None, 'latex_maths_env' : None, 'use_lualatex': False}
+                'preamble' : None, 'latex_maths_env' : None, 'use_lualatex': False,
+                'keep_latex_source': 'False'}
         self.__encoding = encoding
 
 
     def set_option(self, option, value):
         """Set one of the options accepted for gleetex.image.Tex2img. `option`
         must be one of dpi, transparency, background_color, foreground_color,
-        preamble, latex_maths_env, use_lualatex."""
+        preamble, latex_maths_env, use_lualatex, keep_latex_source."""
         if not option in self.__options.keys():
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
@@ -166,7 +167,10 @@ class CachedConverter:
             style (displaymath, boolean) as a dictionary with the keys in
             parenthesis
         """
-        latex = document.LaTeXDocument(formula)
+        if self.__options['use_lualatex']:
+            latex = document.LuaLaTeXDocument(formula)
+        else:
+            latex = document.LaTeXDocument(formula)
         latex.set_displaymath(displaymath)
         if self.__options['preamble']: # add preamble to LaTeX document
             latex.set_preamble_string(self.__options['preamble'])

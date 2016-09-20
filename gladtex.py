@@ -56,6 +56,8 @@ class Main:
                 help="CSS class to assign to block-level math (default: 'displaymath')")
         parser.add_argument('-L', dest='use_lualatex', action="store_true",
                 default="False", help="Enable LuaLaTeX as TeX backend (default: LaTeX2e)")
+        parser.add_argument('-K', dest='keep_latex_source', action="store_true",
+                default="False", help="keep LaTeX file(s) when converting formulas (useful for debugging)")
         parser.add_argument('-m', dest='machinereadable', action="store_true",
                 default=False,
                 help="Print output in machine-readable format (less concise, better parseable)")
@@ -231,7 +233,8 @@ class Main:
     def set_options(self, conv, options):
         """Apply options from command line parser to the converter."""
         # set options
-        options_to_query = ['dpi', 'preamble', 'latex_maths_env', 'use_lualatex']
+        options_to_query = ['dpi', 'preamble', 'latex_maths_env',
+                'use_lualatex', 'keep_latex_source']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:

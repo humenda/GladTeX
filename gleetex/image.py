@@ -111,8 +111,13 @@ class Tex2img:
         self.__check_rgb(rgb_list)
         self.__foreground = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
 
+    def set_keep_latex_source(self, flag):
+        """Set wether lualatex should be used. Default is False."""
+        self.__keep_latex_source = flag
+
+
     def set_use_lualatex(self, flag):
-        """Set, wehter lualatex should be used. Default is False."""
+        """Set wether lualatex should be used. Default is False."""
         self.__use_lualatex = flag
 
     def create_dvi(self, dvi_fn):
@@ -127,6 +132,8 @@ class Tex2img:
         new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
 
         tex_fn = new_extension('tex')
+        print(repr(open(tex_fn).read()))
+        print(self.__keep_latex_source, self.__use_lualatex)
         aux_fn = new_extension('aux')
         log_fn = new_extension('log')
         cmd = None
@@ -156,9 +163,12 @@ class Tex2img:
                 text += ' Install it using `sudo apt install texlive-latex-recommended preview-latex-style`'
             else:
                 text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
-            raise subprocess.SubprocessError(text)
+                raise subprocess.SubprocessError(text)
         finally:
-            remove_all(tex_fn, aux_fn, log_fn)
+            if self.__keep_latex_source:
+                remove_all(aux_fn, log_fn)
+            else:
+                remove_all(tex_fn, aux_fn, log_fn)
 
     def create_png(self, dvi_fn):
         """Create a PNG file from a given dvi file. The side effect is the PNG
