@@ -132,6 +132,9 @@ class Main:
             except IsADirectoryError:
                 self.exit("Error: cannot open %s for reading: is a directory." \
                         % options.input, 19)
+            except FileNotFoundError:
+                self.exit("Error: file %s not found." % options.input, 20)
+
         # check which output file name to use
         if options.output:
             output = options.output
