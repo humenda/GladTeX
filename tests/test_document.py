@@ -73,3 +73,8 @@ class test_lualatex_document(unittest.TestCase):
         self.assertTrue(r'\begin{flalign*}' in str(doc))
         self.assertTrue(r'\end{flalign*}' in str(doc))
 
+    def test_that_fontspec_is_loaded(self):
+        doc = LuaLaTeXDocument('f00')
+        self.assertTrue(r'\usepackage{fontspec}' in doc)
+        self.assertTrue(r'\end{flalign*}' in str(doc))
+
