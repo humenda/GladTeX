@@ -143,7 +143,8 @@ class Tex2img:
                     os.path.basename(tex_fn)]
         else:
             cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
-        with open(tex_fn, mode='w', encoding=self.__encoding) as tex:
+        encoding = ("UTF-8" if self.__use_lualatex else self.__encoding)
+        with open(tex_fn, mode='w', encoding=encoding) as tex:
             tex.write(str(self.tex_document))
         try:
             Tex2img.call(cmd, cwd=path)
