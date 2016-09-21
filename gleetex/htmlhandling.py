@@ -102,6 +102,8 @@ class EqnParser(html.parser.HTMLParser):
             self.__lastchunk.append('</%s>' % tag)
 
     def handle_data(self, data):
+        if '\r' in data:
+            data = data.replace('\r', '')
         self.__lastchunk.append(data)
 
     def handle_entityref(self, name):
