@@ -57,7 +57,7 @@ class Main:
         parser.add_argument('-L', dest='use_lualatex', action="store_true",
                 default="False", help="Enable LuaLaTeX as TeX backend (default: LaTeX2e)")
         parser.add_argument('-K', dest='keep_latex_source', action="store_true",
-                default="False", help="keep LaTeX file(s) when converting formulas (useful for debugging)")
+                default=False, help="keep LaTeX file(s) when converting formulas (useful for debugging)")
         parser.add_argument('-m', dest='machinereadable', action="store_true",
                 default=False,
                 help="Print output in machine-readable format (less concise, better parseable)")
@@ -241,6 +241,8 @@ class Main:
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:
+                if option in ('True', 'False'):
+                    option = option == 'True'
                 conv.set_option(option_str, option)
         # colors need special handling
         for option_str in ['foreground_color', 'background_color']:

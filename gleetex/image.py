@@ -114,6 +114,8 @@ class Tex2img:
 
     def set_keep_latex_source(self, flag):
         """Set whether LaTeX source document should be kept."""
+        if not isinstance(flag, bool):
+            raise TypeError("boolean object required, got %s." % repr(flag))
         self.__keep_latex_source = flag
 
 

@@ -67,7 +67,7 @@ class CachedConverter:
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None, 'use_lualatex': False,
-                'keep_latex_source': 'False'}
+                'keep_latex_source': False}
         self.__encoding = encoding
 
 
