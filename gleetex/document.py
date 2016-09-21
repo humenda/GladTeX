@@ -1,6 +1,5 @@
 """Create a LaTeX document around a formula."""
 
-import textwrap
 
 class LaTeXDocument:
     """This class represents a LaTeX document. It is intended to contain an
@@ -95,11 +94,11 @@ class LaTeXDocument:
             # determine characters with which to surround the formula
             opening = '\\[' if self.__displaymath else '\\('
             closing = '\\]' if self.__displaymath else '\\)'
-        return textwrap.dedent("""\\documentclass[fontsize=12pt]{scrartcl}\n
-        %s
-        \\usepackage[active,textmath,displaymath,tightpage]{preview} %% must be last one, see doc\n
-        \\begin{document}\n%s%s%s\n\\end{document}""" % (preamble,
-            opening, self.__equation.lstrip().rstrip(), closing))
+        return ("\\documentclass[fontsize=12pt]{scrartcl}\n\n%s\n"
+            "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
+            "%% must be last one, see doc\n\n\\begin{document}\n%s%s%s\n"
+            "\\end{document}\n") % (preamble, opening,
+                    self.__equation.lstrip().rstrip(), closing)
 
 
 class LuaLaTeXDocument(LaTeXDocument):
