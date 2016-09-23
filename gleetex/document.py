@@ -39,9 +39,7 @@ class LaTeXDocument:
             # function, which also loads the  fontenc package
             raise ValueError(("Encoding %s is not supported at the moment. If "
                 "you want to use LaTeX 2e, you should report a bug at the home "
-                "page of GladTeX. Alternatively, you can use LuaLaTeX, which "
-                "supports a wide range of languages through its default usage "
-                "of the UTF-8 encoding.") % encoding)
+                "page of GladTeX.") % encoding)
 
     def set_displaymath(self, flag):
         """Set whether the formula is set in displaymath."""
@@ -58,7 +56,7 @@ class LaTeXDocument:
         if any(ord(ch) > 128 for ch in self.__equation):
             if not self.__encoding:
                 raise ValueError(("No encoding set, but non-ascii characters "
-                        "present. Please specify an encoding or use LuaLaTeX instead."))
+                        "present. Please specify an encoding."))
         encoding_preamble = ''
         if self.__encoding:
             # try to guess language and hence character set (fontenc)
@@ -73,8 +71,7 @@ class LaTeXDocument:
                 encoding_preamble += '\n\\usepackage[T1]{fontenc}'
             else:
                 raise ValueError(("Language not supported by T1 fontenc "
-                    "encoding; please report this to the GladTeX project or use "
-                    "the more modern LuaLaTeX instead."))
+                    "encoding; please report this to the GladTeX project."))
         return encoding_preamble
 
     def __str__(self):
@@ -100,24 +97,5 @@ class LaTeXDocument:
             "\\end{document}\n") % (preamble, opening,
                     self.__equation.lstrip().rstrip(), closing)
 
-
-class LuaLaTeXDocument(LaTeXDocument):
-    """This class behaves the same as the LaTeXDocument class, but uses
-    LuaLaTeX packages and directives instead. For document, please see the
-    mentioned class."""
-    def __init__(self, eqn):
-        super().__init__(eqn)
-
-    def set_encoding(self, _e):
-        pass # ignored, LuaLaTeX always uses UTF-8
-
-    def get_encoding(self):
-        return 'utf-8'
-
-    def __str__(self):
-        preamble = ('\\usepackage{fontspec}\n\\usepackage{amsmath}\n'
-            '\\usepackage{amssymb}\n\\usepackage{unicode-math}') + \
-            (self._preamble if self._preamble else '')
-        return super()._format_document(preamble)
 
 
