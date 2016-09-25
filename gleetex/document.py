@@ -21,7 +21,7 @@ class DocumentSerializationException(Exception):
                     self.index, self.formula)
 
 
-def escape_unicode_in_formulas(formula):
+def escape_unicode_in_formulas(formula, replace_alphabeticals=True):
     """This function uses the unicode table to replace any non-ascii character
     (identified with its unicode code point)  with a LaTeX command.
     It also parses the formula for commands as e.g. \\\text or \\mbox and
@@ -46,44 +46,64 @@ def escape_unicode_in_formulas(formula):
             chunks.append(formula[start:opening_brace])
             closing_brace = get_matching_brace(formula, opening_brace)
             # add text-mode stuff
-            chunks.append(formula[opening_brace:closing_brace])
+            chunks.append(formula[opening_brace:closing_brace + 1])
             start = closing_brace + 1
 
     is_math = True
     for index, chunk in enumerate(chunks):
         try:
-            chunks[index] = replace_unicode_characters(chunk, is_math)
-        except ValueError as e:
-            index = e.args[0]
+            chunks[index] = replace_unicode_characters(chunk, is_math,
+                    replace_alphabeticals=replace_alphabeticals)
+        except ValueError as e: # unicode point missing
+            index = int(e.args[0])
             raise DocumentSerializationException(formula, index,
-                    ord(formula[index]))
+                    ord(formula[index])) from None
+        is_math = not is_math
     return ''.join(chunks)
 
 
-def replace_unicode_characters(characters, is_math):
+def replace_unicode_characters(characters, is_math, replace_alphabeticals=True):
     """Replace all non-ascii characters within the given string with their LaTeX
     equivalent. The boolean is_math indicates, whether text-mode commands (like
-    in \\text{}) or the amsmath equivalents should be used."""
+    in \\text{}) or the amsmath equivalents should be used.
+    When replace_alphabeticals is False, alphabetical characters will not be
+    replaced through their LaTeX command when in text mode, so that text within
+    \\text{} (and similar) is not garbled. For instance, \\text{für} is be
+    replaced by \\text{f\"{u}r} when replace_alphabeticals=True. This is useful
+    for the alt attribute of an image, where the reader might want to read
+    the normal text as such.
+    This function raises a ValueError if a unicode point is not in the table.
+    The first argument of the ValueError is the index within the string, where
+    the unknown unicode character has been encountered."""
     result = []
     for character in characters:
         if ord(character) < 161: # ignore normal ascii character and unicode control sequences
+            result.append(character)
+        # tread alphanumerical characters differntly when in text mode, see doc
+        # string; don't replace alphabeticals if specified
+        elif characters.isalpha() and not is_math and not replace_alphabeticals:
             result.append(character)
         else:
             mode = (unicode.LaTeXMode.mathmode if is_math else
                     unicode.LaTeXMode.textmode)
             commands = unicode.unicode_table.get(ord(character))
-            if commands:
-                result.append(commands[mode])
+            if not commands: # unicode point missing in table
+                # is catched one level above; provide index for more concise error output
+                raise ValueError(characters.index(character))
+            # if math mode and only a text alternative exists, add \\text{}
+            # around it
+            if mode == unicode.LaTeXMode.mathmode and mode not in commands:
+                result.append('\\text{%s}' % commands[unicode.LaTeXMode.textmode])
             else:
-                raise ValueError(character) # is catched above
+                result.append(commands[mode])
     return ''.join(result)
 
 def get_matching_brace(string, pos_of_opening_brace):
     if string[pos_of_opening_brace] != '{':
         raise ValueError("index %s in string %s: not a opening brace" % \
             (pos_of_opening_brace, repr(string)))
-    counter = 0
-    for index, ch in enumerate(string[pos_of_opening_brace + 1]):
+    counter = 1
+    for index, ch in enumerate(string[pos_of_opening_brace + 1:]):
         if ch == '{':
             counter += 1
         elif ch == '}':
