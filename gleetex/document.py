@@ -1,5 +1,99 @@
 """Create a LaTeX document around a formula."""
 
+from . import unicode
+
+class DocumentSerializationException(Exception):
+    """This error is raised whenever a non-ascii character contained in a
+    formula could not be replaced by a LaTeX command.
+    It provides the following attributes:
+    formula - the formula
+    index - position in formula
+    upoint - unicode point."""
+    def __init__(self, formula, index, upoint):
+        self.formula = formula
+        self.index = index
+        self.upoint = upoint
+        super().__init__(formula, index, upoint)
+
+    def __str__(self):
+        return ("could not find LaTeX replacement command for unicode "
+                "character %d, index %d in formula %s") % (self.upoint,
+                    self.index, self.formula)
+
+
+def escape_unicode_in_formulas(formula):
+    """This function uses the unicode table to replace any non-ascii character
+    (identified with its unicode code point)  with a LaTeX command.
+    It also parses the formula for commands as e.g. \\\text or \\mbox and
+    applies text-mode commands within them."""
+    if not any(ord(ch) > 160 for ch in formula):
+        return formula # no umlauts, no replacement
+
+    # characters in math mode need a different replacement than in text mode.
+    # Therefore, the string has to be split into parts of math and text mode.
+    chunks = []
+    if not ('\\text' in formula or '\\mbox' in formula):
+        #    no text mode, so tread a
+        chunks = [formula]
+    else:
+        start = 0
+        while '\\text' in formula[start:] or '\\mbox' in formula[start:]:
+            index = formula[start:].find('\\text')
+            if index < 0:
+                index = formula[start:].find('\\mbox')
+            opening_brace = formula[start + index:].find('{') + start + index
+            # add text before text-alike command and the command itself to chunks
+            chunks.append(formula[start:opening_brace])
+            closing_brace = get_matching_brace(formula, opening_brace)
+            # add text-mode stuff
+            chunks.append(formula[opening_brace:closing_brace])
+            start = closing_brace + 1
+
+    is_math = True
+    for index, chunk in enumerate(chunks):
+        try:
+            chunks[index] = replace_unicode_characters(chunk, is_math)
+        except ValueError as e:
+            index = e.args[0]
+            raise DocumentSerializationException(formula, index,
+                    ord(formula[index]))
+    return ''.join(chunks)
+
+
+def replace_unicode_characters(characters, is_math):
+    """Replace all non-ascii characters within the given string with their LaTeX
+    equivalent. The boolean is_math indicates, whether text-mode commands (like
+    in \\text{}) or the amsmath equivalents should be used."""
+    result = []
+    for character in characters:
+        if ord(character) < 161: # ignore normal ascii character and unicode control sequences
+            result.append(character)
+        else:
+            mode = (unicode.LaTeXMode.mathmode if is_math else
+                    unicode.LaTeXMode.textmode)
+            commands = unicode.unicode_table.get(ord(character))
+            if commands:
+                result.append(commands[mode])
+            else:
+                raise ValueError(character) # is catched above
+    return ''.join(result)
+
+def get_matching_brace(string, pos_of_opening_brace):
+    if string[pos_of_opening_brace] != '{':
+        raise ValueError("index %s in string %s: not a opening brace" % \
+            (pos_of_opening_brace, repr(string)))
+    counter = 0
+    for index, ch in enumerate(string[pos_of_opening_brace + 1]):
+        if ch == '{':
+            counter += 1
+        elif ch == '}':
+            counter -= 1
+            if counter == 0:
+                return pos_of_opening_brace + index + 1
+    if counter != 0:
+        raise ValueError("Unbalanced braces in formula " + repr(string))
+
+
 
 class LaTeXDocument:
     """This class represents a LaTeX document. It is intended to contain an
@@ -96,6 +190,5 @@ class LaTeXDocument:
             "%% must be last one, see doc\n\n\\begin{document}\n%s%s%s\n"
             "\\end{document}\n") % (preamble, opening,
                     self.__equation.lstrip().rstrip(), closing)
-
 
 
