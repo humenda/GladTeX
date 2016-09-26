@@ -275,9 +275,8 @@ class HtmlImageFormatter: # ToDo: localisation
         '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n' +
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
         '\n<title>Outsourced Formulas</title>\n</head>\n<!-- ' +
-        'Do not modify this file, it is automatically generated -->\n<body>\n')
-    def __init__(self, base_path='', link_path=None,
-            encoding="UTF-8"):
+        'DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n')
+    def __init__(self, base_path='', link_path=None):
         self.__exclude_descriptions = False
         self.__link_path = (link_path if link_path else '')
         self.__base_path = (base_path if base_path else '')
@@ -290,10 +289,16 @@ class HtmlImageFormatter: # ToDo: localisation
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
         self.__url = ''
-        self.encoding = encoding
         self.initialized = False
         self.initialize() # read already written file, if any
         self.__css = {'inline' : 'inlinemath', 'display' : 'displaymath'}
+        self.__replace_nonascii = False
+
+    def set_replace_nonascii(self, flag):
+        """If True, non-ascii characters will be replaced through their LaTeX
+        command. Note that alphabetical characters will not be replaced, to
+        allow easier readibility."""
+        self.__replace_nonascii = flag
 
     def set_max_formula_length(self, length):
         """Set maximum length of a formula before it gets outsourced into a
@@ -329,7 +334,7 @@ class HtmlImageFormatter: # ToDo: localisation
         if not os.path.exists(self.__exclusion_filepath):
             return self
         document = None
-        with open(self.__exclusion_filepath, 'r', encoding=self.encoding) as f:
+        with open(self.__exclusion_filepath, 'r', encoding='UTF-8') as f:
             document = f.read()
         # parse html document:
         parser = OutsourcedFormulaParser()
@@ -350,7 +355,7 @@ class HtmlImageFormatter: # ToDo: localisation
             return '<p id="%s"><pre>%s</pre></p>' % (gen_id(frml), frml)
         if not len(self.__cached_formula_pars):
             return
-        with open(self.__exclusion_filepath, 'w', encoding=self.encoding) as f:
+        with open(self.__exclusion_filepath, 'w', encoding='utf-8') as f:
             f.write(self.__file_head)
             f.write('\n<hr />\n'.join([formula2paragraph(formula) \
                     for formula in self.__cached_formula_pars.values()]))

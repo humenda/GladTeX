@@ -127,6 +127,12 @@ class LaTeXDocument:
         self.__displaymath = False
         self._preamble = ''
         self.__maths_env = None
+        self.__replace_nonascii = False
+
+    def set_replace_nonascii(self, flag):
+        """If True, all non-ascii character will be replaced through a LaTeX
+        command."""
+        self.__replace_nonascii = flag
 
     def set_latex_environment(self, env):
         """Set maths environment name like `displaymath` or `flalign*`."""
@@ -169,7 +175,8 @@ class LaTeXDocument:
     def _get_encoding_preamble(self):
         # first check whether there are umlauts within the formula and if so, an
         # encoding has been set
-        if any(ord(ch) > 128 for ch in self.__equation):
+        if any(ord(ch) > 128 for ch in self.__equation) and \
+                not self.__replace_nonascii:
             if not self.__encoding:
                 raise ValueError(("No encoding set, but non-ascii characters "
                         "present. Please specify an encoding."))
@@ -207,10 +214,12 @@ class LaTeXDocument:
             # determine characters with which to surround the formula
             opening = '\\[' if self.__displaymath else '\\('
             closing = '\\]' if self.__displaymath else '\\)'
+        formula = self.__equation.lstrip().rstrip()
+        if self.__replace_nonascii:
+            formula = escape_unicode_in_formulas(formula, replace_alphabeticals=True)
         return ("\\documentclass[fontsize=12pt]{scrartcl}\n\n%s\n"
             "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
             "%% must be last one, see doc\n\n\\begin{document}\n%s%s%s\n"
-            "\\end{document}\n") % (preamble, opening,
-                    self.__equation.lstrip().rstrip(), closing)
+            "\\end{document}\n") % (preamble, opening, formula, closing)
 
 
