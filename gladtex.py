@@ -74,6 +74,9 @@ class Main:
         parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
                 help="Set resolution (size of images) to 'dpi' (100 by " + \
                     "default)")
+        parser.add_argument('-R', action="store_true", dest='replace_nonascii',
+                default=False, help="Replace non-ascii characters in formulas "
+                    "through their LaTeX commands")
         parser.add_argument("-u", metavar="URL", dest='url',
                 help="URL to image files (relative links are default)")
         parser.add_argument('input', help="Input .htex file with LaTeX " +
@@ -120,7 +123,7 @@ class Main:
                 if options.encoding:
                     with open(options.input) as f:
                         data = f.read()
-                else:
+                else: # read as binary and guess from HTML meta charset
                     with open(options.input, 'rb') as file:
                         data = file.read()
             except UnicodeDecodeError as e:
@@ -136,9 +139,9 @@ class Main:
         # check which output file name to use
         if options.output:
             output = options.output
-        else:
-            if options.input != '-':
-                output = os.path.splitext(options.input)[0] + '.html'
+        elif options.input != '-':
+            output = os.path.splitext(options.input)[0] + '.html'
+        # else case: output = '-' (see above)
         if not base_path:
             if options.output and os.path.dirname(options.output):
                 base_path = os.path.dirname(output)
@@ -168,8 +171,10 @@ class Main:
         doc = docparser.get_data()
         processed = self.convert_images(doc, base_path, options)
         with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
-                link_path=options.url, encoding=self.__encoding)  as img_fmt:
+                link_path=options.url)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
+            if options.replace_nonascii:
+                img_fmt.set_replace_nonascii(True)
             if options.url:
                 img_fmt.set_url(options.url)
             if options.inlinemath:
@@ -247,6 +252,8 @@ class Main:
             option = getattr(options, option_str)
             if option:
                 conv.set_option(option_str, tuple(map(float, option.split(','))))
+        if options.replace_nonascii:
+            conv.set_replace_nonascii(True)
 
     def format_latex_error(self, err, machine_readable):
         if machine_readable:

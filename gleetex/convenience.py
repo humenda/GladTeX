@@ -69,6 +69,7 @@ class CachedConverter:
                 'preamble' : None, 'latex_maths_env' : None,
                 'keep_latex_source': False}
         self.__encoding = encoding
+        self.__replace_nonascii = False
 
 
     def set_option(self, option, value):
@@ -79,6 +80,12 @@ class CachedConverter:
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
         self.__options[option] = value
+
+    def set_replace_nonascii(self, flag):
+        """If set, GladTeX will convert all non-ascii character to LaTeX
+        commands. This setting is passed through to document.LaTeXDocument."""
+        self.__replace_nonascii = flag
+
 
     def convert_all(self, base_path, formulas):
         """convert_all(formulas)
@@ -175,6 +182,8 @@ class CachedConverter:
             latex.set_latex_environment(self.__options['latex_maths_env'])
         if self.__encoding:
             latex.set_encoding(self.__encoding)
+        if self.__replace_nonascii:
+            latex.set_replace_nonascii(True)
         try:
             latex_str = str(latex)
         except ValueError as e: # propagate error
