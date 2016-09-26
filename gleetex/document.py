@@ -1,4 +1,9 @@
-"""Create a LaTeX document around a formula."""
+"""
+This module wraps a formula in a LaTeX document. With this module, a formula can
+be turned into a convertable document. It also offers methods to escape
+non-ascii characters, so that formulas with unicode math or umlauts, etc. can be
+converted.
+"""
 
 from . import unicode
 

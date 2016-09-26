@@ -2,6 +2,9 @@
     -   handle subprocess stdin and stdout encoding properly
     -   set UTF-8 as encoding for all LaTeX documents
     -   add -R option (replace non ascii characters)
+        -   formulas in .htex documents may now contain umlauts or unicode math
+            characters; conversion will work without adjustments, only -R has to
+            be specified
     -   handle encoding better and more strictly for LaTeX 2E
 
 2.0.1 Bug Fix Release
