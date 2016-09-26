@@ -115,7 +115,7 @@ class test_escape_unicode_in_formulas(unittest.TestCase):
         self.assertFalse('ö' in text)
         # check whether characters got transcribed differently; it's enough to
         # check one character of the generated sequence, they should differ
-        self.assertNotEqual(math[-1], text[-2])
+        self.assertNotEqual(math[:2], text[6:8])
 
     def test_that_flag_to_preserve_alphas_is_passed_through(self):
         res = document.escape_unicode_in_formulas('\\text{ö}',
@@ -132,16 +132,17 @@ class test_escape_unicode_in_formulas(unittest.TestCase):
         self.assertEqual(document.escape_unicode_in_formulas(text,
             replace_alphabeticals=False), text)
 
-    def test_that_all_other_characters_are_preserved_when_characters_are_replaced(self):
-        print("----")
-        text = 'This is a \\text{testö} mate.'
+    def test_that_everything_around_surrounded_character_is_preserved(self):
+        text = 'This is a \\text{über} test. ;)'
         result = document.escape_unicode_in_formulas(text,
                 replace_alphabeticals=True)
-        oe_pos = text.index('ö')
-        # beginning matches
-        self.assertEqual(result[:oe_pos], text[:oe_pos])
-        # end matches
-        self.assertEqual(result[len(text)-oe_pos*-1:], text[len(text)-oe_pos:])
+        ue_pos = text.index('ü')
+        # text in front is unchanged
+        self.assertEqual(result[:ue_pos], text[:ue_pos])
+        # find b character, which is the start of the remaining string
+        b_pos = result[ue_pos:].find('b') + ue_pos
+        # check that text after umlaut matches
+        self.assertEqual(result[b_pos:], text[ue_pos+1:])
 
         text = 'But yeah but no' * 20 + ', oh my god!ø'
         o_strok_pos = text.index('ø')
@@ -156,3 +157,6 @@ class test_escape_unicode_in_formulas(unittest.TestCase):
         with self.assertRaises(document.DocumentSerializationException):
             document.escape_unicode_in_formulas(santa)
 
+    def test_that_two_text_environments_preserve_all_characters(self):
+        text = r'a\cdot b \text{equals} b\cdot c} \mbox{ is not equal } u^{v\cdot k}'
+        self.assertEqual(document.escape_unicode_in_formulas(text), text)

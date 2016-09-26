@@ -48,6 +48,8 @@ def escape_unicode_in_formulas(formula, replace_alphabeticals=True):
             # add text-mode stuff
             chunks.append(formula[opening_brace:closing_brace + 1])
             start = closing_brace + 1
+        # add last chunk
+        chunks.append(formula[start:])
 
     is_math = True
     for index, chunk in enumerate(chunks):
@@ -77,11 +79,11 @@ def replace_unicode_characters(characters, is_math, replace_alphabeticals=True):
     the unknown unicode character has been encountered."""
     result = []
     for character in characters:
-        if ord(character) < 161: # ignore normal ascii character and unicode control sequences
+        if ord(character) < 168: # ignore normal ascii character and unicode control sequences
             result.append(character)
-        # tread alphanumerical characters differntly when in text mode, see doc
+        # tread alphanumerical characters differently when in text mode, see doc
         # string; don't replace alphabeticals if specified
-        elif characters.isalpha() and not is_math and not replace_alphabeticals:
+        elif character.isalpha() and not is_math and not replace_alphabeticals:
             result.append(character)
         else:
             mode = (unicode.LaTeXMode.mathmode if is_math else
