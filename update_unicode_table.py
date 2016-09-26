@@ -11,7 +11,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 # URL to XML file, which is used to generate the python source file
-UNICODE_TABLE_URL = "http://www.w3.org/Math/characters/unicode.xml"
+UNICODE_TABLE_URL = "https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml"
 
 class LaTeXMode(enum.Enum):
     """Represent either math or text mode. Math mode in LaTeX is e.g.
@@ -32,7 +32,7 @@ def create_unicode_latex_table(root):
     Certain unicode points are ignored, to prevent replacing normal or control
     characters."""
     unicode_table = {}
-    for character in root.iterfind('character'):
+    for character in root.find('charlist').iterfind('character'):
         childtags = set(node.tag for node in character.getchildren())
         # skip characters without LaTeX alternative
         if 'latex' not in childtags and 'AMS' not in childtags and \
