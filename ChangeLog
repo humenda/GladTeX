@@ -1,6 +1,7 @@
 2.1 add support for unicode math with translation table
     -   handle subprocess stdin and stdout encoding properly
     -   set UTF-8 as encoding for all LaTeX documents
+    -   add -R option (replace non ascii characters)
     -   handle encoding better and more strictly for LaTeX 2E
 
 2.0.1 Bug Fix Release
