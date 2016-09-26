@@ -81,7 +81,7 @@ Pandoc.
     this option is unset, GladTeX will simply fail when the cache is unreadable.
 
 **-m**
-:     Print error output in machine-readable format (less concise, more parseable).
+:     Print error output in machine-readable format (less concise, better parseable).
 
     Each line will start with a key, followed by a colon, followed by the value,
     i.e. `line: 5`.
@@ -96,6 +96,20 @@ Pandoc.
 
 **-r** _DPI_
 :   Set resolution (size of images) to 'dpi' (100 by default).
+
+**-R**
+:   Replace non-ascii (unicode) characters by LaTeX commands.
+
+    GladTeX can automatically detect non-ascii characters in formulas and
+    replace them through their appropriate LaTeX commands. In the alt attribute
+    of the resulting image, alphabetical characters won't be replaced. That
+    means that the alt text from the image is not exactly the same than the
+    code used for generating the image, but it is far more readable.
+
+    For instance, the formula \$\\text{für alle} a\$, would be compiled as
+    \$\\text{f\\ddot{u}r alle} a\$ and displayed as "\\text{für alle} a" in the alt
+    attribute.
+
 
 **-u** _URL_
 :   Base URL to image files (relative links are default).
