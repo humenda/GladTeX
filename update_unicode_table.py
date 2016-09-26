@@ -22,7 +22,7 @@ class LaTeXMode(enum.Enum):
 
 def get_unicode_table_xml():
     with urllib.request.urlopen(UNICODE_TABLE_URL) as u:
-        return ET.fromstring(urllib.request.urlopen(UNICODE_TABLE_URL).read())
+        return ET.fromstring(u.read())
 
 def create_unicode_latex_table(root):
     """This function iterates over the XML tree and extracts all characters for
@@ -56,11 +56,17 @@ def create_unicode_latex_table(root):
                     next(character.iterfind('latex')).text
         if 'AMS' in childtags:
             commands[LaTeXMode.mathmode] = next(character.iterfind('AMS')).text
-        if 'mathlatex' in childtags and not LaTeXMode.mathmode in commands:
-            commands[LaTeXMode.mathmode] = next(character.iterfind('mathlatex')).text
+        # only take LaTeX command from <mathlatex/>, if no AMS tag present and
+        # no set was specified. A `set` is a attempt to specify the LaTeX
+        # package which needs to be loaded.
+        if 'mathlatex' in childtags and LaTeXMode.mathmode not in commands:
+            mathnode = next(character.iterfind('mathlatex'))
+            if 'set' not in mathnode.attrib:
+                commands[LaTeXMode.mathmode] = mathnode.text
 
-        for item in ids:
-            unicode_table[item] = commands
+        if commands: # if a usable textmode and a mathmode without unicode-math found:
+            for item in ids:
+                unicode_table[item] = commands
     return unicode_table
 
 def serialize_table(table):
@@ -71,19 +77,27 @@ def serialize_table(table):
     for key in sorted(table.keys()):
         ordered_table[key] = table[key]
     python_string = ['unicode_table = {']
+    reprmode = lambda m, v: 'LaTeXMode.%s: %s' % (m.name, repr(v[m]))
     for code_point, replacements in ordered_table.items():
-        replacements = ', '.join(('LaTeXMode.%s: %s' % (k.name, repr(v)))
-                for k,v in replacements.items())
-        python_string.append('%s: {%s},' % (code_point, replacements))
+        # serialize by hand to have a fixed order of items; helpful for a
+        # minimal git diff
+        commands = ''
+        if LaTeXMode.textmode in replacements:
+            commands = reprmode(LaTeXMode.textmode, replacements)
+        if LaTeXMode.mathmode in replacements:
+            if commands:
+                commands += ', '
+            commands += reprmode(LaTeXMode.mathmode, replacements)
+        python_string.append('%s: {%s},' % (code_point, commands))
     return '\n    '.join(python_string) + '\n    }\n'
 
 def generate_python_src_file(table, python_table):
     """Generate a fully importable python source file, by dumping the enum
     declarations, python imports, doc strings and the given python string with
     the unicode table into the source and returning it as a whole string."""
-    enum = 'class LaTeXMode(enum.Enum):\n    """%s"""\n    ' % LaTeXMode.__doc__
+    enum_def = 'class LaTeXMode(enum.Enum):\n    """%s"""\n    ' % LaTeXMode.__doc__
     enum_values = tuple(e for e in dir(LaTeXMode)  if not e.startswith('_'))
-    enum += '\n    '.join('%s = %s' % (name, getattr(LaTeXMode, name).value)
+    enum_def += '\n    '.join('%s = %s' % (name, getattr(LaTeXMode, name).value)
             for name in enum_values)
     return """\"\"\"
 DO NOT ALTER THIS FILE IN ANY WAY, IT IS GENERATED AUTOMATICALLY. SEE THE SCRIPT
@@ -94,13 +108,17 @@ has %s entries and was derived from
 <%s>.\"\"\"
 #pylint: disable=too-many-lines,missing-docstring\n\n
 import enum\n
-%s\n\n%s\n""" % (len(table), UNICODE_TABLE_URL, enum, python_table)
+%s\n\n%s\n""" % (len(table), UNICODE_TABLE_URL, enum_def, python_table)
 
 
-if __name__ == '__main__':
+def main():
     if not os.path.exists('gleetex'):
         print("Error: Generator script must be run from GladTeX source root.")
     table = create_unicode_latex_table(get_unicode_table_xml())
     python_table = serialize_table(table)
     with open('gleetex/unicode.py', 'w', encoding='utf-8') as f:
         f.write(generate_python_src_file(table, python_table))
+
+if __name__ == '__main__':
+    main()
+

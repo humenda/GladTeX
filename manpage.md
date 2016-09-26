@@ -63,6 +63,14 @@ Pandoc.
 **-i** _CLASS_
 :   CSS class to assign to inline math (default: 'inlinemath').
 
+**-K**
+:   keep LaTeX file(s) when converting formulas
+
+    By default, the generated LaTeX document, containing the formula to be
+    converted, are removed after the conversion (no matter whether it was
+    successful or not). If it wasn't successful, it is sometimes helpful to look
+    at the complete document. This option will keep the file.
+
 **-l** _CLASS_
 :   CSS class to assign to block-level math (default: 'displaymath').
 
