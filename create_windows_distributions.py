@@ -36,7 +36,7 @@ def get_python_version():
 
 def get_executable_name(label):
     """Construct the name of an executable"""
-    return 'gladtex-%s-py_%s-%s.zip' % (gleetex.VERSION, get_python_version(),
+    return 'gladtex-win64-%s-py_%s-%s.zip' % (gleetex.VERSION, get_python_version(),
             label)
 
 def bundle_files(src, output_name):
