@@ -1,6 +1,6 @@
 % GLADTEX(1)
 % Sebastian Humenda
-% 20th of July 2016
+% 28th of September 2016
 
 # NAME
 
@@ -26,7 +26,7 @@ The LaTeX formulas are preserved in the alt attribute of the embedded images.
 Hence screen reader users benefit from an accessible HTML version of the
 document.
 
-Furthermore it can be used with Pandoc to convert MarkDown documents with LaTeX
+Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX
 formulas to HTML.
 
 See [FILE FORMAT('file-format) for an explanation of the file format and
@@ -130,7 +130,7 @@ setting the env attribute to displaymath, i.e. `<eq env="displaymath">...</eq>`.
 A sample HTEX document could look like this:
 
 ~~~~
-<html><head><!-- meta information --></head>
+<html><head><!-- meta information like charset --></head>
 <body>
 <h1>Some text</h1>
 <p>Circumference of a circle: <eq>u = \pi\cdot d</eq><p>
@@ -149,10 +149,10 @@ This can be converted using
 and the result will be a HTML document called `file.html` along with two files
 `eqn0000.png` and `eqn0001.png` in the same directory.
 
-## MarkDown to HTML
+## Markdown to HTML
 
 GladTeX can be used together with Pandoc. That can be handy to create an online
-version of a scientific paper written in MarkDown. The MarkDown document would
+version of a scientific paper written in Markdown. The MarkDown document would
 look like this:
 
 ~~~~
@@ -173,10 +173,17 @@ The conversion is as easy as:
 
 # KNOWN LIMITATIONS
 
-LaTeX is ***NOT*** unicode aware. If you have any unicode (more precisely,
-non-ascii characters) signs in your documents, please look up the amsmath
-documentation (or similar) to find a LaTeX command replacing the unicode
-character.
+LaTeX2e is ***NOT*** unicode aware. If you have any unicode (more precisely,
+non-ascii characters) signs in your documents, you have the choice to do one of
+the following:
+
+1.  Look up the symbol in one of the many LaTeX formula listings and replace the
+    symbol with the appropriate command.
+2.  Use the `-R` switch to let GladTeX replace the Umlauts for you.
+
+Please note that it is not possible to use LuaLaTeX. At the time of writing,
+dvipng does not support the extended font features of the LuaLaTeX engine.
+
 
 # PROJECT HOME
 
