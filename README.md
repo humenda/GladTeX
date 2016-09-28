@@ -48,7 +48,8 @@ Installation
 
 ### Debian/Ubuntu
 
-On all derivatives of Debian, installing GladTeX is as easy as
+On all derivatives of Debian (as Ubuntu/Mint, etc.), installing GladTeX is as
+easy as
 
     # apt-get install gladtex
 
