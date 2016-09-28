@@ -5,25 +5,25 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Sebastian Humenda" />
-  <title>GladTeX - Generator For HTML With Embedded LaTeX Formulas - GLADTEX(1)</title>
+  <title>GladTeX - Generator For HTML With Embedded LaTeX Formulas – GLADTEX(1)</title>
   <style type="text/css">code{white-space: pre;}</style>
 </head>
 <body>
 <div id="header">
 <h1 class="title">GLADTEX(1)</h1>
 <h2 class="author">Sebastian Humenda</h2>
-<h3 class="date">27th December 2015</h3>
+<h3 class="date">28th of September 2016</h3>
 </div>
 <h1 id="name">NAME</h1>
-<p>GladTeX – generate HTML with LaTeX formulas embedded as images</p>
+<p><strong>GladTeX</strong> - generate HTML with LaTeX formulas embedded as images</p>
 <h1 id="synopsis">SYNOPSIS</h1>
 <p><strong>gladtex</strong> [OPTIONS] [INPUT FILE NAME]</p>
 <h1 id="description">DESCRIPTION</h1>
 <p><strong>GladTeX</strong> is a formula preprocessor for HTML files. It recognizes a special tag (<code>&lt;eq&gt;...&lt;/eq&gt;</code>) and will convert the contained LaTeX formulas into images. The resulting images will be linked into the resulting HTML document. This eases the process of creating HTML documents (or web sites) containing formulas.<br />
 The generated images are saved in a cache to not render the same image over and over again. This speeds up the process when formulas occur multiple times or when a document is extended gradually.</p>
 <p>The LaTeX formulas are preserved in the alt attribute of the embedded images. Hence screen reader users benefit from an accessible HTML version of the document.</p>
-<p>Furthermore it can be used with Pandoc to convert MarkDown documents with LaTeX formulas to HTML.</p>
-<p>See [FILE FORMAT('file-format) for an explanation of the file format and <a href="#examples">EXAMPLES</a> for examples on how to use GladTeX on its own or with Pandoc.</p>
+<p>Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX formulas to HTML.</p>
+<p>See <a href="file-format">FILE FORMAT</a> for an explanation of the file format and <a href="#examples">EXAMPLES</a> for examples on how to use GladTeX on its own or with Pandoc.</p>
 <h1 id="options">OPTIONS</h1>
 <dl>
 <dt><strong>INPUT FILE NAME</strong></dt>
@@ -53,21 +53,34 @@ The generated images are saved in a cache to not render the same image over and 
 <dt><strong>-i</strong> <em>CLASS</em></dt>
 <dd>CSS class to assign to inline math (default: 'inlinemath').
 </dd>
+<dt><strong>-K</strong></dt>
+<dd><p>keep LaTeX file(s) when converting formulas</p>
+<p>By default, the generated LaTeX document, containing the formula to be converted, are removed after the conversion (no matter whether it was successful or not). If it wasn't successful, it is sometimes helpful to look at the complete document. This option will keep the file.</p>
+</dd>
 <dt><strong>-l</strong> <em>CLASS</em></dt>
 <dd>CSS class to assign to block-level math (default: 'displaymath').
 </dd>
+<dt><strong>-n</strong></dt>
+<dd><p>Purge unreadable caches along with all eqn*.png files.</p>
+<p>Caches can be unreadable if the used GladTeX version is incompatible. If this option is unset, GladTeX will simply fail when the cache is unreadable.</p>
+</dd>
 <dt><strong>-m</strong></dt>
-<dd><p>Print error output in machine-readable format (less concise).</p>
+<dd><p>Print error output in machine-readable format (less concise, better parseable).</p>
 <p>Each line will start with a key, followed by a colon, followed by the value, i.e. <code>line: 5</code>.</p>
 </dd>
 <dt><strong>-o</strong> <em>FILENAME</em></dt>
-<dd>Set output file name. '-' will print text to stdout. Bydefault, input file name is used and .htex extension is replaced by .html.
+<dd>Set output file name. '-' will print text to stdout. Bydefault, input file name is used and the <code>.htex</code> extension is replaced by <code>.html</code>.
 </dd>
 <dt><strong>-p</strong> <em><code>LATEX_STATEMENT</code></em></dt>
 <dd>Add given LaTeX code to preamble of document. That'll affect the conversion of every image.
 </dd>
 <dt><strong>-r</strong> <em>DPI</em></dt>
 <dd>Set resolution (size of images) to 'dpi' (100 by default).
+</dd>
+<dt><strong>-R</strong></dt>
+<dd><p>Replace non-ascii (unicode) characters by LaTeX commands.</p>
+<p>GladTeX can automatically detect non-ascii characters in formulas and replace them through their appropriate LaTeX commands. In the alt attribute of the resulting image, alphabetical characters won't be replaced. That means that the alt text from the image is not exactly the same than the code used for generating the image, but it is far more readable.</p>
+<p>For instance, the formula $\text{für alle} a$, would be compiled as $\text{f\ddot{u}r alle} a$ and displayed as &quot;\text{für alle} a&quot; in the alt attribute.</p>
 </dd>
 <dt><strong>-u</strong> <em>URL</em></dt>
 <dd>Base URL to image files (relative links are default).
@@ -79,7 +92,7 @@ The generated images are saved in a cache to not render the same image over and 
 <h1 id="examples">EXAMPLES</h1>
 <h2 id="sample-htex-document">Sample HTEX document</h2>
 <p>A sample HTEX document could look like this:</p>
-<pre><code>&lt;html&gt;&lt;head&gt;&lt;!-- meta information --&gt;&lt;/head&gt;
+<pre><code>&lt;html&gt;&lt;head&gt;&lt;!-- meta information like charset --&gt;&lt;/head&gt;
 &lt;body&gt;
 &lt;h1&gt;Some text&lt;/h1&gt;
 &lt;p&gt;Circumference of a circle: &lt;eq&gt;u = \pi\cdot d&lt;/eq&gt;&lt;p&gt;
@@ -92,8 +105,8 @@ The generated images are saved in a cache to not render the same image over and 
 <p>This can be converted using</p>
 <pre><code>gladtex file.htex</code></pre>
 <p>and the result will be a HTML document called <code>file.html</code> along with two files <code>eqn0000.png</code> and <code>eqn0001.png</code> in the same directory.</p>
-<h2 id="markdown-to-html">MarkDown to HTML</h2>
-<p>GladTeX can be used together with Pandoc. That can be handy to create an online version of a scientific paper written in MarkDown. The MarkDown document would look like this:</p>
+<h2 id="markdown-to-html">Markdown to HTML</h2>
+<p>GladTeX can be used together with Pandoc. That can be handy to create an online version of a scientific paper written in Markdown. The MarkDown document would look like this:</p>
 <pre><code>Some text
 =========
 
@@ -106,7 +119,12 @@ A useful matrix: $$\begin{pmatrix}
 <p>The conversion is as easy as:</p>
 <pre><code>pandoc -s -t html --gladtex file.md | gladtex -o file.html</code></pre>
 <h1 id="known-limitations">KNOWN LIMITATIONS</h1>
-<p>LaTeX is *****NOT***** unicode aware. If you have any unicode signs in your documents, please look up the amsmath documentation (or similar) to find a LaTeX command replacing the unicode character.</p>
+<p>LaTeX2e is <strong><em>NOT</em></strong> unicode aware. If you have any unicode (more precisely, non-ascii characters) signs in your documents, you have the choice to do one of the following:</p>
+<ol style="list-style-type: decimal">
+<li>Look up the symbol in one of the many LaTeX formula listings and replace the symbol with the appropriate command.</li>
+<li>Use the <code>-R</code> switch to let GladTeX replace the Umlauts for you.</li>
+</ol>
+<p>Please note that it is not possible to use LuaLaTeX. At the time of writing, dvipng does not support the extended font features of the LuaLaTeX engine.</p>
 <h1 id="project-home">PROJECT HOME</h1>
 <p>The project home is at <a href="http://humenda.github.io/GladTeX" class="uri">http://humenda.github.io/GladTeX</a>. The source can be found at <a href="https://github.com/humenda/gladtex" class="uri">https://github.com/humenda/gladtex</a>.</p>
 </body>

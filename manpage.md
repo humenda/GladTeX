@@ -1,10 +1,10 @@
 % GLADTEX(1)
 % Sebastian Humenda
-% 27th December 2015
+% 28th of September 2016
 
 # NAME
 
-GladTeX – generate HTML with LaTeX formulas embedded as images
+**GladTeX** - generate HTML with LaTeX formulas embedded as images
 
 # SYNOPSIS
 
@@ -26,10 +26,10 @@ The LaTeX formulas are preserved in the alt attribute of the embedded images.
 Hence screen reader users benefit from an accessible HTML version of the
 document.
 
-Furthermore it can be used with Pandoc to convert MarkDown documents with LaTeX
+Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX
 formulas to HTML.
 
-See [FILE FORMAT('file-format) for an explanation of the file format and
+See [FILE FORMAT](#file-format) for an explanation of the file format and
 [EXAMPLES](#examples) for examples on how to use GladTeX on its own or with
 Pandoc.
 
@@ -63,18 +63,32 @@ Pandoc.
 **-i** _CLASS_
 :   CSS class to assign to inline math (default: 'inlinemath').
 
+**-K**
+:   keep LaTeX file(s) when converting formulas
+
+    By default, the generated LaTeX document, containing the formula to be
+    converted, are removed after the conversion (no matter whether it was
+    successful or not). If it wasn't successful, it is sometimes helpful to look
+    at the complete document. This option will keep the file.
+
 **-l** _CLASS_
 :   CSS class to assign to block-level math (default: 'displaymath').
 
+**-n**
+:   Purge unreadable caches along with all eqn*.png files.
+
+    Caches can be unreadable if the used GladTeX version is incompatible. If
+    this option is unset, GladTeX will simply fail when the cache is unreadable.
+
 **-m**
-:     Print error output in machine-readable format (less concise).
+:     Print error output in machine-readable format (less concise, better parseable).
 
     Each line will start with a key, followed by a colon, followed by the value,
     i.e. `line: 5`.
 
 **-o** _FILENAME_
 :   Set output file name. '-' will print text to stdout. Bydefault, input file
-    name is used and .htex extension is replaced by .html.
+    name is used and the `.htex` extension is replaced by `.html`.
 
 **-p** _`LATEX_STATEMENT`_
 :   Add given LaTeX code to preamble of document. That'll affect the conversion
@@ -82,6 +96,20 @@ Pandoc.
 
 **-r** _DPI_
 :   Set resolution (size of images) to 'dpi' (100 by default).
+
+**-R**
+:   Replace non-ascii (unicode) characters by LaTeX commands.
+
+    GladTeX can automatically detect non-ascii characters in formulas and
+    replace them through their appropriate LaTeX commands. In the alt attribute
+    of the resulting image, alphabetical characters won't be replaced. That
+    means that the alt text from the image is not exactly the same than the
+    code used for generating the image, but it is far more readable.
+
+    For instance, the formula \$\\text{für alle} a\$, would be compiled as
+    \$\\text{f\\ddot{u}r alle} a\$ and displayed as "\\text{für alle} a" in the alt
+    attribute.
+
 
 **-u** _URL_
 :   Base URL to image files (relative links are default).
@@ -102,7 +130,7 @@ setting the env attribute to displaymath, i.e. `<eq env="displaymath">...</eq>`.
 A sample HTEX document could look like this:
 
 ~~~~
-<html><head><!-- meta information --></head>
+<html><head><!-- meta information like charset --></head>
 <body>
 <h1>Some text</h1>
 <p>Circumference of a circle: <eq>u = \pi\cdot d</eq><p>
@@ -121,10 +149,10 @@ This can be converted using
 and the result will be a HTML document called `file.html` along with two files
 `eqn0000.png` and `eqn0001.png` in the same directory.
 
-## MarkDown to HTML
+## Markdown to HTML
 
 GladTeX can be used together with Pandoc. That can be handy to create an online
-version of a scientific paper written in MarkDown. The MarkDown document would
+version of a scientific paper written in Markdown. The MarkDown document would
 look like this:
 
 ~~~~
@@ -145,9 +173,17 @@ The conversion is as easy as:
 
 # KNOWN LIMITATIONS
 
-LaTeX is *****NOT***** unicode aware. If you have any unicode signs in your
-documents, please look up the amsmath documentation (or similar) to find a LaTeX
-command replacing the unicode character.
+LaTeX2e is ***NOT*** unicode aware. If you have any unicode (more precisely,
+non-ascii characters) signs in your documents, you have the choice to do one of
+the following:
+
+1.  Look up the symbol in one of the many LaTeX formula listings and replace the
+    symbol with the appropriate command.
+2.  Use the `-R` switch to let GladTeX replace the Umlauts for you.
+
+Please note that it is not possible to use LuaLaTeX. At the time of writing,
+dvipng does not support the extended font features of the LuaLaTeX engine.
+
 
 # PROJECT HOME
 
