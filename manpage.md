@@ -29,7 +29,7 @@ document.
 Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX
 formulas to HTML.
 
-See [FILE FORMAT('file-format) for an explanation of the file format and
+See [FILE FORMAT](#file-format) for an explanation of the file format and
 [EXAMPLES](#examples) for examples on how to use GladTeX on its own or with
 Pandoc.
 
