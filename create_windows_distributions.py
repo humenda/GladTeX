@@ -53,6 +53,7 @@ def bundle_files(src, output_name):
     # copy README and other files
     for file in ['README.md', 'COPYING', 'ChangeLog']:
         dest = os.path.join(output_name, file)
+        # check whether file ending exists
         if not '.' in dest[-5:]:
             dest += '.txt'
         shutil.copy(file, dest)
