@@ -1,6 +1,10 @@
 <nav><ul><li class="active">[Home](index.html)</li>
   <li>[Documentation](documentation.html)</li>
   <li>[Downloads](downloads.html)</li>
+<<<<<<< Updated upstream
+=======
+  <li>[GitHub page](https://github.com/humenda/GladTeX)</li>
+>>>>>>> Stashed changes
 </ul></nav>
 
 GladTeX
@@ -31,22 +35,6 @@ Features
 -   It is cross-platform, written in Python and comes with Windows executables.
 -   Its source code is documented and tested.
 
-Downloads, Source Code And Installation Hints
----------------------------------------------
-
-Each release ships Windows binary builds. Please have a look at the
-[releases page](https://github.com/humenda/GladTeX/releases)
-for the latest version.
-
-The source code can be obtained using git:
-
-    $ git clone https://github.com/humenda/gladtex.git
-
-On Debian and its derivatives (Ubuntu, Mint, etc.), installing GladTeX is as
-easy as
-
-    apt-get install gladtex
-
 Contact
 -------
 
@@ -54,6 +42,4 @@ Please feel free to send patches, comments, feature requests or even simply
 thanks to `shumenda //at\\ gmx __dot__ de`. Issues can be reported at the
 [GitHub issue page](https://github.com/humenda/gladtex/issues) as well.
 
-
-&copy; Copyright 1999-2010 Martin Gulbrandsen, 2013-2016 Sebastian Humenda
 

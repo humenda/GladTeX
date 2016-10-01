@@ -10,6 +10,6 @@ do
         pandoc -T 'GladTeX - Generator For HTML With Embedded LaTeX Formulas' -s -f markdown -t html -o $output $input
     else
         echo "Converting $input"
-        pandoc -c style.css -s -f markdown -t html -o $output $input
+        pandoc -A footer -c style.css -s -f markdown -t html -o $output $input
     fi
 done

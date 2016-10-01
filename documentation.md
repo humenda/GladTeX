@@ -1,6 +1,7 @@
 <nav><ul><li class="active">[Home](index.html)</li>
   <li>[Documentation](documentation.html)</li>
   <li>[Downloads](downloads.html)</li>
+  <li>[GitHub page](https://github.com/humenda/GladTeX)</li>
 </ul></nav>
 
 
