@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<nav>
+<ul>
+<li class="active">
+<a href="index.html">Home</a>
+</li>
+<li>
+<a href="documentation.html">Documentation</a>
+</li>
+<li>
+<a href="downloads.html">Downloads</a>
+</li>
+<li>
+<a href="https://github.com/humenda/GladTeX">GitHub page</a>
+</li>
+</ul>
+<p></nav></p>
+<h2 id="downloads">Downloads</h2>
+<p><small>For source code, see section below</small></p>
+<h2 id="binary-distributions">Binary Distributions</h2>
+<p>The latest release is <a href="https://github.com/humenda/GladTeX/tree/v2.1">version 2.1</a>. Its new features are:</p>
+<dl>
+<dt>Add support for unicode math with translation table</dt>
+<dd>LaTeX formulas may now contain non-ascii characters. It is possible to translate these non-ascii characters with an internal look-up table, so that the formula can be converted using LaTeX2e.
+</dd>
+<dt>Handle subprocess stdin and stdout encoding properly</dt>
+<dd>Sometimes the encoding of stdin or stdout is not set, fall back to the systems default in this case. This is only applied when using the new <code>-R</code> switch.
+</dd>
+<dt>Set UTF-8 as encoding for all LaTeX documents</dt>
+<dd>By setting UTF-8 as default encoding for LaTeX documents, it is easiest to convert the documents in a cross-platform manner.
+</dd>
+</dl>
+<h3 id="windows">Windows</h3>
+<p>At the <a href="https://github.com/humenda/GladTeX/tree/v2.1">release page</a>, you can see two zip files. The file labelled with <code>stand-alone</code> is the one to pick, if GladTeX should be run as a stand-alone binary or within a non-python project. The file containing <code>embeddable</code> in its name, is meant for python applications, build with py2exe and python3.4, so that they can share the DLL files.</p>
+<h3 id="debianubuntu-and-other-derivatives">Debian/Ubuntu And Other Derivatives</h3>
+<p>On one of the mentioned systems, just type</p>
+<pre><code>apt-get install gladtex</code></pre>
+<p>and proceed with <code>man gladtex</code>.</p>
+<h2 id="source-code-and-source-install">Source Code And Source Install</h2>
+<p>A source code archive for the latest stable release can be found at the <a href="https://github.com/humenda/GladTeX/releases">releases page</a>. The latest source code can be obtained using Git:</p>
+<pre><code>$ git clone https://github.com/humenda/gladtex.git</code></pre>
+
+&copy; Copyright 1999-2010 Martin Gulbrandsen, 2013-2016 Sebastian Humenda
+</body>
+</html>

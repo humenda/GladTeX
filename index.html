@@ -6,23 +6,41 @@
   <meta name="generator" content="pandoc" />
   <title></title>
   <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
 <body>
+<nav>
+<ul>
+<li class="active">
+<a href="index.html">Home</a>
+</li>
+<li>
+<a href="documentation.html">Documentation</a>
+</li>
+<li>
+<a href="downloads.html">Downloads</a>
+</li>
+<li>
+<a href="https://github.com/humenda/GladTeX">GitHub page</a>
+</li>
+</ul>
+<p></nav></p>
 <h1 id="gladtex">GladTeX</h1>
 <h2 id="about">About</h2>
 <p>GladTeX is a preprocessor that enables the use of LaTeX maths within HTML files. The maths, embedded in <code>&lt;EQ&gt;...&lt;/EQ&gt;</code> tags, as if within <code>\(..\)</code> in LaTeX (or <code>$...$</code> in TeX), is fed through latex and replaced by images.</p>
 <p>Additionally all images get an alt-tag for alternative texts that contains the LaTeX-equivalent of the image. This is handy for text-mode browsers or blind people.</p>
-<p>GladTeX also supports caching of formulas in order to enable incremental document editing or simply to share formulas across web pages.</p>
-<p>GladTeX can be used with <a href="http://pandoc.org">Pandoc</a> in order to convert MarkDown to HTML with LaTeX formulas.</p>
-<p>It also contains a library GleeTeX to custom tailor the generation and conversion process to your needs and to embedd it into your (web) application.</p>
-<h2 id="source-code">Source Code</h2>
-<p>The source code can be obtained using git:</p>
-<pre><code>$ git clone https://github.com/humenda/gladtex.git</code></pre>
-<h2 id="documentation">Documentation</h2>
-<p>You can obtain documentation on the command line by executing <code>gladtex -h</code>. Furthermore there's a man page available with <code>man gladtex</code>.</p>
-<p>The documentation can be viewed <a href="manpage.html">online</a> as well. It contains the program usage, as well as the description of the <a href="manpage.html#file-format">file format</a> and <a href="manpage.html#examples">examples</a>.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>GladTeX supports caching of formulas in order to enable incremental document editing or simply to share formulas across web pages.</li>
+<li>GladTeX can be used with <a href="http://pandoc.org">Pandoc</a> in order to convert MarkDown to HTML with LaTeX formulas.</li>
+<li>It also contains a library GleeTeX to custom tailor the generation and conversion process to your needs and to embedd it into your (web) application.</li>
+<li>It allows the usage of umlauts and other non-ASCII characters within formulas, by replacing these characters through LaTeX sequences.</li>
+<li>It is cross-platform, written in Python and comes with Windows executables.</li>
+<li>Its source code is documented and tested.</li>
+</ul>
 <h2 id="contact">Contact</h2>
-<p>Please feel free to send patches, comments, feature requests or even simply thanks to <code>shumenda //at\\ gmx __dot__ de</code>.</p>
-<p>© Copyright 1999-2010 Martin Gulbrandsen, 2013-2015 Sebastian Humenda</p>
+<p>Please feel free to send patches, comments, feature requests or even simply thanks to <code>shumenda //at\\ gmx __dot__ de</code>. Issues can be reported at the <a href="https://github.com/humenda/gladtex/issues">GitHub issue page</a> as well.</p>
+
+&copy; Copyright 1999-2010 Martin Gulbrandsen, 2013-2016 Sebastian Humenda
 </body>
 </html>
