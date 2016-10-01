@@ -1,3 +1,8 @@
+<nav><ul><li class="active">[Home](index.html)</li>
+  <li>[Documentation](documentation.html)</li>
+  <li>[Downloads](downloads.html)</li>
+</ul></nav>
+
 GladTeX
 =======
 
@@ -41,16 +46,6 @@ On Debian and its derivatives (Ubuntu, Mint, etc.), installing GladTeX is as
 easy as
 
     apt-get install gladtex
-
-Documentation
--------------
-
-You can obtain documentation on the command line by executing `gladtex -h`.
-There is also a [manual page](manpage.html) available, which explains the usage
-of GladTeX, the [file format](manpage.html#file-format) and gives some
-[examples](manpage.html#examples) too.
-
-
 
 Contact
 -------
