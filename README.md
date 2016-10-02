@@ -21,7 +21,7 @@ License
 
 _Copyright:_
 
-About the old perl version (located in `attic/`):
+About the old perl version:
 
 - (C) 1999-2010 Martin G. Gulbrandsen
 - (C) 2011-2013 Jonathan Daugherty (especially release 1.3)
