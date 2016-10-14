@@ -1,5 +1,5 @@
-import distutils.command.install_scripts, distutils.command.build
-from distutils.core import setup, Command
+import distutils.command.install_scripts, distutils.command.build, distutils.command.clean
+from distutils.core import setup
 import os
 import shutil
 import sys
@@ -22,7 +22,7 @@ class ScriptInstaller(distutils.command.install_scripts.install_scripts):
                 shutil.move(script, script[:-3])
 
 #pylint: disable=attribute-defined-outside-init
-class CleanCommand(Command):
+class CleanCommand(distutils.command.clean.clean):
     description = "clean all build files, including __pycache__ and others"
     user_options = []
     def initialize_options(self):
