@@ -38,8 +38,8 @@ About the rewritten (new) version:
 -   (c) 2015-2016 Sebastian Humenda
     -   credits go to Martin G. Gulbrandsen who had the idea in the first place
 
-This program is distributed under the LGPL-3; for details
-see the accompanying file COPYING.
+This program is distributed under the LGPL-3, or at your option, any later
+version of the license; for details see the accompanying file COPYING.
 
 The official project homepage is at <http://humenda.github.io/GladTeX>
 
