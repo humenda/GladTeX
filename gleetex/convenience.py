@@ -131,7 +131,7 @@ class CachedConverter:
         thread_count = int(multiprocessing.cpu_count() * 2.5)
         # convert missing formulas
         with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
-            # start conversion and mark each thread with it's formula, position
+            # start conversion and mark each thread with its formula, position
             # in the source file and formula_count (index into a global list of
             # formulas)
             jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, pos, count)
