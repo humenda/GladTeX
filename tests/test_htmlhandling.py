@@ -1,3 +1,4 @@
+#pylint: disable=too-many-public-methods
 from functools import reduce
 import os, re, shutil, tempfile
 import unittest
@@ -77,6 +78,8 @@ class HtmlparserTest(unittest.TestCase):
     def test_nested_formulas_trigger_exception(self):
         self.assertRaises(htmlhandling.ParseException, self.p.feed,
                 "<eq>\\pi<eq></eq></eq>")
+        self.assertRaises(htmlhandling.ParseException, self.p.feed,
+                "<eq>\\pi<eq></p></eq>")
 
     def test_formulas_without_displaymath_attribute_are_detected(self):
         self.p.feed('<p><eq>\frac12</eq><br /><eq env="inline">bar</eq></p>')
@@ -84,6 +87,30 @@ class HtmlparserTest(unittest.TestCase):
         self.assertEqual(len(formulas), 2) # there should be _2_ formulas
         self.assertEqual(formulas[0][1], False) # no displaymath
         self.assertEqual(formulas[1][1], False) # no displaymath
+
+    def test_that_unclosed_formulas_detected(self):
+            self.assertRaises(htmlhandling.ParseException, self.p.feed,
+                "<eq>\\pi<eq></p>")
+            self.assertRaises(htmlhandling.ParseException, self.p.feed,
+                "<eq>\\pi")
+
+
+    def test_formula_contains_only_formula(self):
+        p = htmlhandling.EqnParser()
+        p.feed("<p><eq>1<i<9</eq></p>")
+        formula = next(e for e in p.get_data() if isinstance(e, (list, tuple)))
+        self.assertEqual(formula[-1], "1<i<9")
+
+        p = htmlhandling.EqnParser()
+        p.feed('<p><eq env="displaymath">test</eq></p>')
+        formula = next(e for e in p.get_data() if isinstance(e, (list, tuple)))
+        self.assertEqual(formula[-1], "test")
+
+        p = htmlhandling.EqnParser()
+        p.feed("<p><eq>1<i<9</eq></p>")
+        formula = next(e for e in p.get_data() if isinstance(e, (list, tuple)))
+        self.assertEqual(formula[-1], "1<i<9")
+    
 
     def test_formula_with_html_sequences_are_unescaped(self):
         self.p.feed('<eq>a&gt;b</eq>')
@@ -102,6 +129,21 @@ class HtmlparserTest(unittest.TestCase):
     def test_strings_can_be_passed_tO_parser_as_well(self):
         # no exception - everything is working as expected
         self.p.feed(HTML_SKELETON.format('utf-8', 'æø'))
+
+class GetPositionTest(unittest.TestCase):
+    def test_that_line_number_is_correct(self):
+        self.assertEqual(htmlhandling.get_position('jojo', 0)[0], 0)
+        self.assertEqual(htmlhandling.get_position('jojo', 3)[0], 0)
+        self.assertEqual(htmlhandling.get_position('a\njojo', 3)[0], 1)
+        self.assertEqual(htmlhandling.get_position('a\n\njojo', 3)[0], 2)
+
+    def test_that_position_on_line_is_correct(self):
+        self.assertEqual(htmlhandling.get_position('jojo', 0)[1], 0)
+        self.assertEqual(htmlhandling.get_position('jojo', 3)[1], 3)
+        self.assertEqual(htmlhandling.get_position('a\njojo', 3)[1], 2)
+        self.assertEqual(htmlhandling.get_position('a\n\njojo', 3)[1], 1)
+        
+
 
 
 class HtmlImageTest(unittest.TestCase):
@@ -183,7 +225,6 @@ class HtmlImageTest(unittest.TestCase):
         with htmlhandling.HtmlImageFormatter('basepath') as img:
             formatted_img = img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
             expected_id = htmlhandling.gen_id('\\tau\\tau')
-        external_file = read(os.path.join('basepath', excl_filename), 'r')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
         self.assertTrue(href != None)

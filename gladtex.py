@@ -159,7 +159,7 @@ class Main:
         self.validate_options(options)
         self.__encoding = options.encoding
         doc, base_path, output = self.get_input_output(options)
-        docparser = gleetex.htmlhandling.EqnParser(doc)
+        docparser = gleetex.htmlhandling.EqnParser()
         try:
             docparser.feed(doc)
             self.__encoding = docparser.get_encoding()
@@ -211,7 +211,8 @@ class Main:
             self.exit(e.args[0], 78)
 
         self.set_options(conv, options)
-        formulas = [c for c in parsed_htex_document if isinstance(c, list)]
+        formulas = [c for c in parsed_htex_document if isinstance(c, (tuple,
+            list))]
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.convenience.ConversionException as e:
@@ -221,7 +222,7 @@ class Main:
         for chunk in parsed_htex_document:
             # chunk == an entity parsed by EqnParser; type 'str' will be taken
             # literally, 'list' will be treated as formula
-            if isinstance(chunk, list):
+            if isinstance(chunk, (tuple, list)):
                 _p, displaymath, formula = chunk
                 try:
                     data = conv.get_data_for(formula, displaymath)

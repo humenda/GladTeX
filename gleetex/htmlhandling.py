@@ -23,9 +23,12 @@ def get_position(document, index):
     """This returns the line number and position on line for the given String.
     Note: lines and positions are counted from 0."""
     line = document[:index+1].count('\n')
-    pos = (0 if document[index] == '\n' or line == 0
-            else len(document[document[:index].rfind('\n'):index]))
-    return (line, pos)
+    if document[index] == '\n':
+        return (line, 0)
+    newline = document[:index+1].rfind('\n')
+    newline = (newline if newline >= 0 else 0)
+    return (line, len(document[newline:index]))
+
 
 def find_anycase(where, what):
     """Find with both lower or upper case."""
@@ -143,7 +146,7 @@ class EqnParser:
             entity = EqnParser.HTML_ENTITY.search(formula)
         displaymath = (True if attrs and 'env' in attrs and 'displaymath' in attrs
                 else False)
-        self.__data.append(((lnum-1, pos), # let line number count from 0 as well
+        self.__data.append(((lnum, pos), # let line number count from 0 as well
                 displaymath, formula))
         return end
 
