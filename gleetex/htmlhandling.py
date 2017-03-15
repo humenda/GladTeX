@@ -47,6 +47,8 @@ class EqnParser:
         Equation = re.compile(r'<\s*(?:eq|EQ)\s*(.*?)?>([\s\S.]+?)<\s*/\s*(?:eq|EQ)>',
                 re.MULTILINE)
 
+    HTML_ENTITY = re.compile(r'(&(:?#\d+|[a-zA-Z]+);)')
+
     def __init__(self):
         self.__document = None
         self.__data = []
@@ -132,6 +134,13 @@ class EqnParser:
         if '<eq>' in formula or '<EQ' in formula:
             raise ParseException("Invalid nesting of formulas detected.", (lnum,
                 pos))
+
+        # replace HTML entities
+        entity = EqnParser.HTML_ENTITY.search(formula)
+        while entity:
+            formula = re.sub(EqnParser.HTML_ENTITY,
+                    html.unescape(entity.groups()[0]), formula)
+            entity = EqnParser.HTML_ENTITY.search(formula)
         displaymath = (True if attrs and 'env' in attrs and 'displaymath' in attrs
                 else False)
         self.__data.append(((lnum-1, pos), # let line number count from 0 as well

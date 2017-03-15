@@ -85,6 +85,12 @@ class HtmlparserTest(unittest.TestCase):
         self.assertEqual(formulas[0][1], False) # no displaymath
         self.assertEqual(formulas[1][1], False) # no displaymath
 
+    def test_formula_with_html_sequences_are_unescaped(self):
+        self.p.feed('<eq>a&gt;b</eq>')
+        formula = self.p.get_data()[0]
+        self.assertEqual(formula[-1], "a>b")
+        
+
     def test_displaymath_is_recognized(self):
         self.p.feed('<eq env="displaymath">\\sum\limits_{n=1}^{e^i} a^nl^n</eq>')
         self.assertEqual(self.p.get_data()[0][1], True) # displaymath flag set
