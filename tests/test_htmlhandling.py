@@ -24,10 +24,9 @@ class HtmlparserTest(unittest.TestCase):
         self.assertEqual(self.p.get_data()[0], "<p   i='o'>",
                 "The HTML parser should copy start tags literally.")
 
-    def test_that_end_tags_are_copied_mostly_literally(self):
+    def test_that_end_tags_are_copied_literally(self):
         self.p.feed("</ p></P>")
-        self.assertEqual(self.p.get_data()[0], "</p>")
-        self.assertEqual(self.p.get_data()[1], "</p>")
+        self.assertEqual(''.join(self.p.get_data()), "</ p></P>")
 
     def test_entities_are_unchanged(self):
         self.p.feed("&#xa;")
@@ -35,8 +34,7 @@ class HtmlparserTest(unittest.TestCase):
 
     def test_charsets_are_copied(self):
         self.p.feed('&gt;&rarr;')
-        self.assertEqual(self.p.get_data()[0], '&gt;')
-        self.assertEqual(self.p.get_data()[1], '&rarr;')
+        self.assertEqual(''.join(self.p.get_data()[0]), '&gt;&rarr;')
 
     def test_without_eqn_all_blocks_are_strings(self):
         self.p.feed("<html>\n<head/><body><p>42</p><h1>blah</h1></body></html>")
@@ -45,7 +43,7 @@ class HtmlparserTest(unittest.TestCase):
 
     def test_equation_is_detected(self):
         self.p.feed('<eq>foo \\pi</eq>')
-        self.assertTrue(isinstance(self.p.get_data()[0], list))
+        self.assertTrue(isinstance(self.p.get_data()[0], (tuple, list)))
         self.assertEqual(self.p.get_data()[0][2], 'foo \\pi')
 
     def test_tag_followed_by_eqn_is_correctly_recognized(self):
@@ -60,12 +58,12 @@ class HtmlparserTest(unittest.TestCase):
         # it
         data = self.p.get_data()
         for chunk in data:
-            if isinstance(chunk, list):
+            if isinstance(chunk, (tuple, list)):
                 eqn = chunk
                 break
         self.assertTrue(isinstance(data[0], str))
-        self.assertTrue(isinstance(eqn, list),
-                "equation chunk must be a list, otherwise it doesn't exist")
+        self.assertTrue(eqn is not None,
+                "No equation found, must be tuple/list object.")
         self.assertTrue(isinstance(data[-1], str))
 
     def test_equation_is_copied_literally(self):
@@ -82,7 +80,7 @@ class HtmlparserTest(unittest.TestCase):
 
     def test_formulas_without_displaymath_attribute_are_detected(self):
         self.p.feed('<p><eq>\frac12</eq><br /><eq env="inline">bar</eq></p>')
-        formulas = [c for c in self.p.get_data() if isinstance(c, list)]
+        formulas = [c for c in self.p.get_data() if isinstance(c, (tuple, list))]
         self.assertEqual(len(formulas), 2) # there should be _2_ formulas
         self.assertEqual(formulas[0][1], False) # no displaymath
         self.assertEqual(formulas[1][1], False) # no displaymath

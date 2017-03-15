@@ -1,14 +1,16 @@
 """Everything regarding parsing, generating and writing HTML belongs in here."""
 
 import collections
+import enum
 import html.parser
 import os
 import posixpath
+import re
 
 
 
 class ParseException(Exception):
-    """Exception to propagate an parsing error."""
+    """Exception to propagate a parsing error."""
     def __init__(self, msg, pos):
         self.msg = msg
         self.pos = pos
@@ -17,30 +19,43 @@ class ParseException(Exception):
     def __str__(self):
         return 'line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
 
+def get_position(document, index):
+    """This returns the line number and position on line for the given String.
+    Note: lines and positions are counted from 0."""
+    line = document[:index+1].count('\n')
+    pos = (0 if document[index] == '\n' or line == 0
+            else len(document[document[:index].rfind('\n'):index]))
+    return (line, pos)
 
-class EqnParser(html.parser.HTMLParser):
-    """This HTML parser parses a given document and tries to preserve the
-    original document as much as possible. It is saved in chunks which
-    reconstruct the whole document, when joined. An exception are formulas from
-    the <eq /> equation tag. Instead of saving those into a chunk too, a list is
-    added, where the first element is the position the formula was encountered,
-    the second is whether is displaymath 8set to True in this case) and the
-    third is the actual text chunk. so for getting all equations, one would do:
+def find_anycase(where, what):
+    """Find with both lower or upper case."""
+    lower = where.find(what.lower())
+    upper = where.find(what.upper())
+    if lower >= 0:
+        return lower
+    else:
+        return upper
 
-            eqns = [e for e in parser.get_data()   if isinstance(e, list)]
+class EqnParser:
+    """This parser parses <eq>...</eq> our of a document. It's not an HTML
+    parser, because the content within <eq>.*<eq> is parsed verbatim.
+    It also parses comments, to not consider formulas within comments. All other
+    cases are unhandled. Especially CData is problematic, although it seems like
+    a rare use case."""
+    class State(enum.Enum): # ([\s\S]*?) also matches newlines
+        Comment = re.compile(r'<!--([\s\S]*?)-->', re.MULTILINE)
+        Equation = re.compile(r'<\s*(?:eq|EQ)\s*(.*?)?>([\s\S.]+?)<\s*/\s*(?:eq|EQ)>',
+                re.MULTILINE)
 
-    NOTE: The document is slightly altered. Tags will be lower case and some
-    spacing can be lost. The parser tries to preserve as much as possible, but
-    e.g. stand-alone tags like `<br />` would loose the space."""
     def __init__(self):
-        super().__init__(convert_charrefs=False)
+        self.__document = None
         self.__data = []
-        self.__lastchunk = []
         self.__encoding = None
-        self.in_eqn = False
 
     def feed(self, document):
-        """Overwrite to run a final step after parsing was completed."""
+        """Feed a string or a bytes instance. If a bytes instance is fed, an
+        encoding header has to be present, so that the encoding can be
+        extracted."""
         if isinstance(document, bytes): # try to guess encoding
             encoding = "UTF-8"
             if b'charset=' in document:
@@ -50,96 +65,106 @@ class EqnParser(html.parser.HTMLParser):
                     encoding = document[start:start+end].decode("utf-8")
             document = document.decode(encoding)
             self.__encoding = encoding
-        super().feed(document)
-        if self.in_eqn:
-            if isinstance(self.__data[-1], list):
-                start_pos = self.__data[-1][0]
-                raise ParseException("Unclosed equation environment.", start_pos)
-        self.__data += self.__lastchunk
-        self.__lastchunk = []
+        self.__document = document[:]
+        self._parse()
+
+    def find_with_offset(self, doc, start, what):
+        """This find method searches in the document for a given string, staking
+        the offset into account. REturned is the absolute position (so offset +
+        relative match position) or -1 for no hit."""
+        if isinstance(what, str):
+            pos = doc[start:].find(what)
+        else:
+            match = what.search(doc[start:])
+            pos = (-1 if not match else match.span()[0])
+        return (pos if pos == -1 else pos + start)
+
+
+    def _parse(self):
+        """This function parses the document, while maintaining state using the
+        State enum."""
+        in_document = lambda x: (False if x == -1 else True)
+        # maintain a lower-case copy, which eases searching, but doesn't affect
+        # the handler methods
+        doc = self.__document[:].lower()
+
+        end = len(self.__document) - 1
+        eq_start = re.compile(r'<\s*eq\s*(.*?)>')
+
+        start_pos = 0
+        while start_pos < end:
+            comment = self.find_with_offset(doc, start_pos, '<!--')
+            formula = self.find_with_offset(doc, start_pos, eq_start)
+            if in_document(comment) and in_document(formula): # both present, take closest
+                if comment < formula:
+                    self.__data.append(self.__document[start_pos:comment])
+                    start_pos = self.handle_comment(comment)
+                else:
+                    self.__data.append(self.__document[start_pos:formula])
+                    start_pos = self.handle_equation(formula)
+            elif in_document(formula):
+                self.__data.append(self.__document[start_pos:formula])
+                start_pos = self.handle_equation(formula)
+            elif in_document(comment):
+                self.__data.append(self.__document[start_pos:comment])
+                start_pos = self.handle_comment(comment)
+            else: # only data left
+                self.__data.append(self.__document[start_pos:])
+                start_pos = end
+
+
+    def handle_equation(self, start_pos):
+        """Parse an equation. The given offset should mark the beginning of this
+        equation."""
+        # get line and column of `start_pos`
+        lnum, pos = get_position(self.__document, start_pos)
+
+        match = EqnParser.State.Equation.value.search(self.__document[start_pos:])
+        if not match:
+            next_eq = find_anycase(self.__document[start_pos+1:], '<eq')
+            closing = find_anycase(self.__document[start_pos:], '</eq>')
+            if next_eq > -1 and closing > -1 and next_eq < closing:
+                raise ParseException("Unclosed tag found", (lnum, pos))
+            else:
+                raise ParseException("Malformed equation tag found", (lnum, pos))
+        end = start_pos + match.span()[1]
+        attrs, formula = match.groups()
+        if '<eq>' in formula or '<EQ' in formula:
+            raise ParseException("Invalid nesting of formulas detected.", (lnum,
+                pos))
+        displaymath = (True if attrs and 'env' in attrs and 'displaymath' in attrs
+                else False)
+        self.__data.append(((lnum-1, pos), # let line number count from 0 as well
+                displaymath, formula))
+        return end
+
+
+    def handle_comment(self, start_pos):
+        match = EqnParser.State.Comment.value.search(self.__document[start_pos:])
+        if not match:
+            lnum, pos = get_position(self.__document, start_pos)
+            # this could be a parser issue, too
+            raise ParseException("Improperly formatted comment found", (lnum,
+                pos))
+        self.__data.append('<!--%s-->' % match.groups()[0])
+        return match.spawn()[1] # return end of match
 
     def get_encoding(self):
-        """Return encoding (if parsed) or none if no encoding was used (i.e. a
-        string was passed in."""
+        """Return the parsed encoding from the HTML meta data. If none was set,
+        UTF-8 is assumed."""
         return self.__encoding
 
-    def handle_starttag(self, tag, attrs):
-        if not tag == 'eq':
-            self.__lastchunk.append(self.get_starttag_text())
-        else:
-            if self.in_eqn:
-                raise ParseException(("Opening eq tag encountered while the "
-                    "last one wasn't yet closed."), self.getpos())
-            attrs = dict((k.lower(), v.lower()) for k,v in attrs)
-            displaymath = (True if 'env' in attrs and attrs['env'] == 'displaymath'
-                    else False)
-            # add already parsed elements:
-            self.__data += self.__lastchunk
-            self.__lastchunk = []
-            # initialize list item in self.__data for equation
-            lnum, pos = self.getpos() # position in document
-            self.__data.append([(lnum-1, pos), # let line number count from 0 as well
-                displaymath, None])
-            self.in_eqn = True
-
-    def handle_startendtag(self, tag, attrs):
-        if attrs:
-            self.__lastchunk.append('<{} {} />'.format(tag,
-                ' '.join(['%s="%s"' % (x[0], x[1]) for x in attrs])))
-        else:
-            self.__lastchunk.append('<%s />' % tag)
-
-    def handle_endtag(self, tag):
-        if self.in_eqn:
-            self.in_eqn = False
-            # add last chunk(s) to already saved eqn position in self.__data
-            if isinstance(self.__lastchunk, list):
-                self.__data[-1][2] = ''.join(self.__lastchunk)
-            else:
-                self.__data[-1][2] = self.__lastchunk
-            self.__lastchunk = [] # clear last chunk  for further processing
-        else:
-            self.__lastchunk.append('</%s>' % tag)
-
-    def handle_data(self, data):
-        if '\r' in data:
-            data = data.replace('\r', '')
-        self.__lastchunk.append(data)
-
-    def handle_entityref(self, name):
-        self.__lastchunk.append('&%s;' % name)
-
-    def handle_charref(self, name):
-        self.__lastchunk.append('&#%s;' % name)
-
-    def handle_comment(self, blah):
-        self.__lastchunk.append('<!--%s-->' % blah)
-
-    def handle_pi(self, instruction):
-        """Handle processing instruction."""
-        self.__lastchunk.append('<? %s>' % instruction)
-
-    def handle_unknown_decl(self, declaration):
-        self.__lastchunk.append('<!%s>' % declaration)
-
     def get_data(self):
-        """Return the chunks parsed from the HTML file. Everything which is not
-        a formula, formulas are lists. A formula looks like this:
-            (pos, display_math, formula)
-        pos: tuple of line number, position in line (both counting from 0)
-        display_math: boolean indicating whether formula is in display math
-        formula: the formula as a string.
-        """
-        return self.__data[:]
-
-    def error(self, message):
-        raise ParseException(message, ('unknown', 'unknown'))
+        """Return parsed chunks. These are either strings or tuples with formula
+        information, see class documentation."""
+        return list(x for x in self.__data if x) # filter empty bits
 
 
 def gen_id(formula):
-    """Generate an id for identifying a formula.
-    It will be valid to be used within a HTML attribute and it won't be too
-    long. If you happen to have a lot of formulas > 150 characters with exactly
+    """Generate an id for identifying a formula as an anchor in a document.
+    The generated ID is guaranteed to be valid in an XML attribute and it won't
+    exceed a certain length.
+    If you happen to have a lot of formulas > 150 characters with exactly
     the same content in the document, that'll cause a clash of id's."""
     # for some characters we just use a simple replacement (otherwise the
     # would be lost)

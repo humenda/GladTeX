@@ -159,7 +159,7 @@ class Main:
         self.validate_options(options)
         self.__encoding = options.encoding
         doc, base_path, output = self.get_input_output(options)
-        docparser = gleetex.htmlhandling.EqnParser()
+        docparser = gleetex.htmlhandling.EqnParser(doc)
         try:
             docparser.feed(doc)
             self.__encoding = docparser.get_encoding()
