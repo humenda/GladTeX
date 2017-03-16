@@ -190,12 +190,14 @@ class LaTeXDocument:
             # try to guess language and hence character set (fontenc)
             import locale
             language = locale.getdefaultlocale()
-            if language: # extract just the language code
+            if language and language[0]: # extract just the language code
                 language = language[0].split('_')[0]
+            if not language or not language[0]:
+                language = 'en'
             # check whether language on computer is within T1 and hence whether
             # it should be loaded; I know that this can be a misleading
             # assumption, but there's no better way that I know of
-            if language in ['fr', 'es', 'it', 'de', 'nl', 'ro']:
+            if language in ['fr', 'es', 'it', 'de', 'nl', 'ro', 'en']:
                 encoding_preamble += '\n\\usepackage[T1]{fontenc}'
             else:
                 raise ValueError(("Language not supported by T1 fontenc "
