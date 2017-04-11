@@ -159,7 +159,7 @@ class EqnParser:
             raise ParseException("Improperly formatted comment found", (lnum,
                 pos))
         self.__data.append('<!--%s-->' % match.groups()[0])
-        return match.spawn()[1] # return end of match
+        return start_pos + match.span()[1] # return end of match
 
     def get_encoding(self):
         """Return the parsed encoding from the HTML meta data. If none was set,
