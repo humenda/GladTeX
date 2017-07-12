@@ -144,6 +144,7 @@ class EqnParser:
             formula = re.sub(EqnParser.HTML_ENTITY,
                     html.unescape(entity.groups()[0]), formula)
             entity = EqnParser.HTML_ENTITY.search(formula)
+        attrs = attrs.lower()
         displaymath = (True if attrs and 'env' in attrs and 'displaymath' in attrs
                 else False)
         self.__data.append(((lnum, pos), # let line number count from 0 as well
@@ -169,6 +170,7 @@ class EqnParser:
     def get_data(self):
         """Return parsed chunks. These are either strings or tuples with formula
         information, see class documentation."""
+        print('data', list(x for x in self.__data if x))
         return list(x for x in self.__data if x) # filter empty bits
 
 

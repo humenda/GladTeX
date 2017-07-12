@@ -1,3 +1,9 @@
+2.2 - make alternative text of formulas more readable
+
+    -   replace formatting commands from alt attribute; this shortens the
+        formula and makes it mor readable
+    -   recognize upper-case `ENV` attribute of `EQ` tag
+
 2.1.1 Bug Fix Release
 
     -   treat eq element content as verbatim
