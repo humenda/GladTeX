@@ -8,6 +8,8 @@ import posixpath
 import re
 
 
+from . import document
+
 
 class ParseException(Exception):
     """Exception to propagate a parsing error."""
@@ -170,7 +172,6 @@ class EqnParser:
     def get_data(self):
         """Return parsed chunks. These are either strings or tuples with formula
         information, see class documentation."""
-        print('data', list(x for x in self.__data if x))
         return list(x for x in self.__data if x) # filter empty bits
 
 
@@ -310,6 +311,8 @@ class HtmlImageFormatter: # ToDo: localisation
     nothing will be excluded."""
 
     EXCLUSION_FILE_NAME = 'outsourced-descriptions.html'
+    FORMATTING_COMMANDS = ['\\ ', '\\,', '\\;', '\\big', '\\Big', '\\left',
+            '\\right', '\\limits']
     HTML_TEMPLATE_HEAD = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"' +
         '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n' +
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
@@ -400,6 +403,33 @@ class HtmlImageFormatter: # ToDo: localisation
                     for formula in self.__cached_formula_pars.values()]))
             f.write('\n</body>\n</html>\n')
 
+    def postprocess_formula(self, formula):
+        """Formulas should not contain unicode characters or formatting
+        instructions, if they are part of the alt attribute. This distracts the
+        reader and stretches the formula. This method replaces non-ascii
+        characters, if requested and strips a few formatting commands."""
+        if self.__replace_nonascii:
+            formula = document.escape_unicode_in_formulas(formula)
+        # replace formatting-only symbols which distract the reader
+        formula_changed = True
+        while formula_changed:
+            formula_changed = False
+            for command in HtmlImageFormatter.FORMATTING_COMMANDS:
+                idx = formula.find(command)
+                # only replace if it's not after a \\ and not part of a longer command
+                if (idx > 0 and formula[idx-1] != '\\') or idx == 0:
+                    end = idx + len(command)
+                    # following conditions for replacement must be met:
+                    # command doesn't end on alphabet. char. and is followed by
+                    # same category; end of string reached or command does not
+                    # end on alphabet. char. at all
+                    if end >= len(formula) or not command[-1].isalpha() \
+                            or not formula[end].isalpha():
+                        formula = formula[:idx] + ' ' + formula[idx + len(command):]
+                        formula = formula.replace('  ', ' ')
+                        formula_changed = True
+        return formula
+
     def get_html_img(self, pos, formula, img_path, displaymath=False):
         """:param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
@@ -449,6 +479,7 @@ class HtmlImageFormatter: # ToDo: localisation
         :param displaymath whether or not formula is in display math (default: no)
         :returns string with formatted HTML image which also links to excluded
         formula"""
+        formula = self.postprocess_formula(formula)
         if self.__exclude_descriptions and \
                 len(formula) > self.__inline_maxlength:
             return self.format_excluded(pos, formula, img_path, displaymath)

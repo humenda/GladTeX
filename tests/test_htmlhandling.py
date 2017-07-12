@@ -305,8 +305,32 @@ class HtmlImageTest(unittest.TestCase):
             data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png',
                     False)
             self.assertTrue('="no2' in data)
+
+    def test_that_unicode_is_replaced_if_requested(self):
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            img.set_replace_nonascii(True)
+            data = img.format(self.pos, '←', 'foo.png')
+            self.assertTrue('\\leftarrow' in data,
+                    'expected: "\\leftarrow" to be in "%s"' % data)
         
+    def test_that_unicode_is_kept_if_not_requested_to_replace(self):
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            img.set_replace_nonascii(False)
+            data = img.format(self.pos, '←', 'foo.png')
+            self.assertTrue('←' in data)
  
+    def test_formatting_commands_are_stripped(self):
+        with htmlhandling.HtmlImageFormatter('foo.html') as img:
+            data = img.format(self.pos, 'a\,b\,c\,d', 'foo.png')
+            self.assertTrue('a b c d' in data)
+            data = img.format(self.pos, 'a\,b\;c\ d', 'foo.png')
+            self.assertTrue('a b c d' in data)
+
+            data = img.format(self.pos, '\Big\{foo\Big\}', 'foo.png')
+            self.assertTrue('\{foo' in data and '\}' in data)
+            data = img.format(self.pos, r'\left\{foo\right\}', 'foo.png')
+            self.assertTrue('\{' in data and 'foo' in data and '\}' in data)
+         
 
 def htmleqn(formula, hr=True):
     """Format a formula to appear as if it would have been outsourced into an
