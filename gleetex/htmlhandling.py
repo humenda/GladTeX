@@ -409,7 +409,8 @@ class HtmlImageFormatter: # ToDo: localisation
         reader and stretches the formula. This method replaces non-ascii
         characters, if requested and strips a few formatting commands."""
         if self.__replace_nonascii:
-            formula = document.escape_unicode_in_formulas(formula)
+            formula = document.escape_unicode_in_formulas(formula,
+                    replace_alphabeticals=False)
         # replace formatting-only symbols which distract the reader
         formula_changed = True
         while formula_changed:

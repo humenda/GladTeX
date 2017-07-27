@@ -40,7 +40,7 @@ def create_unicode_latex_table(root):
             continue # skip this character
         attr = character.attrib
         # if no mode (text or math) was specified, ignore character
-        if not attr.get('mode') or not attr['mode'] in ('text', 'math', 'mixed'):
+        if attr.get('mode') not in ('text', 'math', 'mixed', 'other'):
             continue
 
         # a defined character may have multiple codepoints (called ids); add

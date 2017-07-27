@@ -86,9 +86,9 @@ def replace_unicode_characters(characters, is_math, replace_alphabeticals=True):
     for character in characters:
         if ord(character) < 168: # ignore normal ascii character and unicode control sequences
             result.append(character)
-        # tread alphanumerical characters differently when in text mode, see doc
+        # treat alphanumerical characters differently when in text mode, see doc
         # string; don't replace alphabeticals if specified
-        elif character.isalpha() and not is_math and not replace_alphabeticals:
+        elif character.isalpha() and not replace_alphabeticals:
             result.append(character)
         else:
             mode = (unicode.LaTeXMode.mathmode if is_math else
