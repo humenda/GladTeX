@@ -1,3 +1,8 @@
+2.2.1 - fix handling of non-ascii alphabetical characters
+
+    -   replace characters with diacritics in the LaTeX source, but keep the
+    unmodified character in image alt attribute (for better readibility)
+
 2.2 - make alternative text of formulas more readable
 
     -   replace formatting commands in alt attribute; this shortens the
