@@ -15,7 +15,6 @@ new version is purely implemented in Python, gets rid of the Ghostscript
 dependency and additionally offers the GladTeX functionality in a Python module
 called gleetex.  to be embedded in other applications.
 
-
 License
 -------
 
@@ -33,7 +32,7 @@ Credits go to
 
 
 
-About the rewritten (new) version:
+About the rewritten (current) version:
 
 -   (c) 2015-2016 Sebastian Humenda
     -   credits go to Martin G. Gulbrandsen who had the idea in the first place
@@ -53,22 +52,26 @@ easy as
 
     # apt-get install gladtex
 
+### Windows
+
+If you want to use the program without the Python library, you should download a
+pre-compiled binary from <https://github.com/humenda/GladTeX/releases>.
+
+Just unzip the archive and move the files to a directory within `%PATH%`.
+
+
 ### From Source
 
 The following is required for installing GladTeX:
 
--   Python >= 3.5
+-   Python >= 3.4
 -   LaTeX (2e), dvipng
 -   the LaTeX package preview.sty
 
-On Debian systems the following commands will satisfy the dependencies:
+On Debian/Ubuntu systems the following commands will satisfy the dependencies:
 
-    # apt-get install python3.4 texlive-latex-base preview-latex-style dvipng
+    # apt-get install python3-all texlive-fonts-recommended texlive-latex-recommended preview-latex-style dvipng
     
-If you plan to use lualatex, use:
-
-    sudo apt-get install texlive-maths-extra texlive-luatex texlive-xetex texlive-fonts-extra
-
 The package can then be installed using
 
     # python3 setup.py install

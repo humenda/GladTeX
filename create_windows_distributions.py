@@ -14,12 +14,15 @@ def exec_setup_py(arg_string):
     if sys.platform.startswith('win'):
         ret = os.system('python setup.py ' + arg_string)
     else:
+        if not shutil.which('wine'):
+            print("Error: Wine is not installed, aborting…")
+            sys.exit(5)
         ret = os.system('wine python setup.py ' + arg_string)
     if ret:
         if sys.platform.startswith('win'):
-            print("abborting at command `python setup.py %s`." % arg_string)
+            print("Aborting at command `python setup.py %s`." % arg_string)
         else:
-            print("abborting at command `wine python setup.py %s`." % arg_string)
+            print("Aborting at command `wine python setup.py %s`." % arg_string)
         sys.exit(7)
 
 def get_python_version():
