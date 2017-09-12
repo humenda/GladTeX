@@ -1,3 +1,10 @@
+2.3 Fix formula displacement
+
+    - It seems as if 16px / 12pt were the default font size these days for
+        browsers. Therefore, the default resolution has been set to 115 DPI.
+        Furthermore, the DPI switch now accepts pt values for fontsizes and will
+        calculate the corresponding DPI itself.
+
 2.2.1 - fix handling of non-ascii alphabetical characters
 
     -   replace characters with diacritics in the LaTeX source, but keep the

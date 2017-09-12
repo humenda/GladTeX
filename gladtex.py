@@ -18,6 +18,14 @@ class HelpfulCmdParser(argparse.ArgumentParser):
 
 
 
+def get_dpi(dpi):
+    """Try to parse a DPI value or a fontize in pt and return the DPI as
+    float."""
+    if dpi.endswith('pt'):
+        return gleetex.image.fontsize2dpi(float(dpi[:-2]))
+    else:
+        return float(dpi)
+
 def format_ordinal(number):
     endings = ['th', 'st', 'nd', 'rd'] + ['th'] * 6
     return '%d%s' % (number, endings[number%10])
@@ -71,9 +79,10 @@ class Main:
         parser.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
                 help="Add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
-        parser.add_argument('-r', metavar='DPI', dest='dpi', default=100, type=int,
-                help="Set resolution (size of images) to 'dpi' (100 by " + \
-                    "default)")
+        parser.add_argument('-r', metavar='DPI', dest='dpi', default=115,
+                help=("Set resolution (size of images) to 'dpi' (115 for a "
+                    "fontsize of 12pt); if the suffix 'pt' is added, the "
+                    "resolution wil be calculated from the given font size."))
         parser.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
@@ -240,14 +249,16 @@ class Main:
     def set_options(self, conv, options):
         """Apply options from command line parser to the converter."""
         # set options
-        options_to_query = ['dpi', 'preamble', 'latex_maths_env',
+        options_to_query = ['preamble', 'latex_maths_env',
                 'keep_latex_source']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:
-                if option in ('True', 'False'):
+                if option in ('True', 'False', 'false', 'true'):
                     option = option == 'True'
                 conv.set_option(option_str, option)
+        dpi = get_dpi(options.dpi)
+        conv.set_option("dpi", dpi)
         # colors need special handling
         for option_str in ['foreground_color', 'background_color']:
             option = getattr(options, option_str)

@@ -164,3 +164,8 @@ class test_imagecreation(unittest.TestCase):
         self.assertTrue(os.path.exists("bilder/farce.png"))
 
 
+class TestImageResolutionCorrectlyCalculated(unittest.TestCase):
+    def test_sizes_are_correctly_calculated(self):
+        self.assertEqual(int(image.fontsize2dpi(12)), 115)
+        self.assertEqual(int(image.fontsize2dpi(10)), 96)
+

@@ -81,9 +81,9 @@ class Tex2img:
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images."""
-        if not isinstance(dpi, int):
-            raise TypeError("Dpi must be an integer")
-        self.__dpi = dpi
+        if not isinstance(dpi, (int, float)):
+            raise TypeError("Dpi must be an integer or floating point number")
+        self.__dpi = int(dpi)
 
     def set_transparency(self, flag):
         """Set whether or not the background of an image is transparent."""
@@ -228,4 +228,12 @@ class Tex2img:
             if lineno:
                 line = line[:lineno.span()[0]] + line[lineno.span()[1]:]
             return line
+
+def fontsize2dpi(size_pt):
+    """This function calculates the DPI for the resulting image. Depending on
+    the font size, a different resolution needs to be used. According to the
+    dvipng manual page, the formula is:
+    <dpi> = <font_px> * 72.27 / 10 [px * TeXpt/in / TeXpt]"""
+    size_px = size_pt * 1.3333333 # and more 3s!
+    return size_px * 72.27 / 10
 
