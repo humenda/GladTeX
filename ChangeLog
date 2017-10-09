@@ -1,3 +1,8 @@
+2.3.1 Fix unicode error handling
+
+    - When the environment variable `DEBUG=1` is set, the full backtrac ewill be
+      printed.
+
 2.3 Fix formula displacement
 
     - It seems as if 16px / 12pt were the default font size these days for

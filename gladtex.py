@@ -18,14 +18,6 @@ class HelpfulCmdParser(argparse.ArgumentParser):
 
 
 
-def get_dpi(dpi):
-    """Try to parse a DPI value or a fontize in pt and return the DPI as
-    float."""
-    if dpi.endswith('pt'):
-        return gleetex.image.fontsize2dpi(float(dpi[:-2]))
-    else:
-        return float(dpi)
-
 def format_ordinal(number):
     endings = ['th', 'st', 'nd', 'rd'] + ['th'] * 6
     return '%d%s' % (number, endings[number%10])
@@ -42,7 +34,9 @@ class Main:
         description = ("GladTeX is a preprocessor that enables the use of LaTeX"
             " maths within HTML files. The maths, embedded in <EQ>...</EQ> "
             "tags, as if within \\(..\\) in LaTeX (or $...$ in TeX), is fed "
-            "through latex and replaced by images.")
+            "through latex and replaced by images.\n\nIf the environment "
+            "variable `DEBUG=1`is set, a full Python traceback, instead of a "
+            "short, user-friendly message, will be shown.")
         parser = HelpfulCmdParser(epilog=epilog, description=description)
         parser.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
                 "for images which are too long for the alt attribute into a " +
@@ -79,7 +73,7 @@ class Main:
         parser.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
                 help="Add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
-        parser.add_argument('-r', metavar='DPI', dest='dpi', default=115,
+        parser.add_argument('-r', metavar='DPI', dest='dpi', default='115',
                 help=("Set resolution (size of images) to 'dpi' (115 for a "
                     "fontsize of 12pt); if the suffix 'pt' is added, the "
                     "resolution wil be calculated from the given font size."))
@@ -225,7 +219,7 @@ class Main:
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.convenience.ConversionException as e:
-            self.format_latex_error(e, options.machinereadable)
+            self.emit_latex_error(e, options.machinereadable)
 
         # iterate over chunks of eqnparser
         for chunk in parsed_htex_document:
@@ -257,7 +251,11 @@ class Main:
                 if option in ('True', 'False', 'false', 'true'):
                     option = option == 'True'
                 conv.set_option(option_str, option)
-        dpi = get_dpi(options.dpi)
+        dpi = None
+        if options.dpi.endswith('pt'):
+            dpi = gleetex.image.fontsize2dpi(float(dpi[:-2]))
+        else:
+            dpi = float(options.dpi)
         conv.set_option("dpi", dpi)
         # colors need special handling
         for option_str in ['foreground_color', 'background_color']:
@@ -267,7 +265,9 @@ class Main:
         if options.replace_nonascii:
             conv.set_replace_nonascii(True)
 
-    def format_latex_error(self, err, machine_readable):
+    def emit_latex_error(self, err, machine_readable):
+        if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
+            raise err
         if machine_readable:
             msg = 'Line: {}, {}\nNumber: {}\nFormula: {}\nMessage: {}'.format(
                     err.src_line_number, err.src_pos_on_line, err.formula_count,
