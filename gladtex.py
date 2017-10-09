@@ -219,7 +219,8 @@ class Main:
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.convenience.ConversionException as e:
-            self.emit_latex_error(e, options.machinereadable)
+            self.emit_latex_error(e, options.machinereadable,
+                    options.replace_nonascii)
 
         # iterate over chunks of eqnparser
         for chunk in parsed_htex_document:
@@ -253,7 +254,7 @@ class Main:
                 conv.set_option(option_str, option)
         dpi = None
         if options.dpi.endswith('pt'):
-            dpi = gleetex.image.fontsize2dpi(float(dpi[:-2]))
+            dpi = gleetex.image.fontsize2dpi(float(options.dpi[:-2]))
         else:
             dpi = float(options.dpi)
         conv.set_option("dpi", dpi)
@@ -265,18 +266,40 @@ class Main:
         if options.replace_nonascii:
             conv.set_replace_nonascii(True)
 
-    def emit_latex_error(self, err, machine_readable):
+    def emit_latex_error(self, err, machine_readable, escape):
+        """Format a LaTeX error in a meaningful way. The argument escape
+        speicifies, whether the -R switch had been passed."""
         if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
             raise err
+        escaped = err.formula
+        if escape:
+            escaped = gleetex.document.escape_unicode_in_formulas(err.formula)
+        msg = None
+        additional = ''
+        if 'Package inputenc' in err.args[0]:
+            additional += ('Add the switch `-R` to automatically replace unicode '
+                'characters with LaTeX command sequences.')
         if machine_readable:
-            msg = 'Line: {}, {}\nNumber: {}\nFormula: {}\nMessage: {}'.format(
+            msg = 'Line: {}, {}\nNumber: {}\nFormula: {}{}\nMessage: {}'.format(
                     err.src_line_number, err.src_pos_on_line, err.formula_count,
-                    err.formula, err.cause)
+                    err.formula,
+                    ('' if escaped == err.formula
+                        else '\nLaTeXified formula: %s' % escaped),
+                    err.cause)
+            if additional:
+                msg += '; ' + additional
         else:
-            msg = ("Error while converting the %s formula at line %d, %d:"
-                   "\n    %s\n\n%s") % (format_ordinal(err.formula_count),
-                           err.src_line_number, err.src_pos_on_line,
-                           err.formula, err.cause)
+            formula = '    ' + err.formula.replace('\n', '\n    ')
+            escaped = ('    ' + escaped.replace('\n', '\n    ') if escaped !=
+                    err.formula else '')
+            msg = "Error while converting formula %d at line %d, %d:\n" %\
+                           (err.formula_count, err.src_line_number, err.src_pos_on_line,)
+            msg += '%s%s\n%s' % (formula, ('' if escaped == err.formula
+                else '\nFormula without unicode symbols:\n%s' % escaped),
+                   err.cause)
+            if additional:
+                import textwrap
+                msg += ' undefined.\n' + '\n'.join(textwrap.wrap(additional, 80))
         self.exit(msg, 91)
 
 

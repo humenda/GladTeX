@@ -83,7 +83,7 @@ def replace_unicode_characters(characters, is_math, replace_alphabeticals=True):
     The first argument of the ValueError is the index within the string, where
     the unknown unicode character has been encountered."""
     result = []
-    for character in characters:
+    for idx, character in enumerate(characters):
         if ord(character) < 168: # ignore normal ascii character and unicode control sequences
             result.append(character)
         # treat alphanumerical characters differently when in text mode, see doc
@@ -103,6 +103,9 @@ def replace_unicode_characters(characters, is_math, replace_alphabeticals=True):
                 result.append('\\text{%s}' % commands[unicode.LaTeXMode.textmode])
             else:
                 result.append(commands[mode])
+                # if the next character is alphabetical, add space
+                if (idx+1) < len(characters) and characters[idx+1].isalpha():
+                    result.append(' ')
     return ''.join(result)
 
 def get_matching_brace(string, pos_of_opening_brace):
@@ -224,9 +227,10 @@ class LaTeXDocument:
         formula = self.__equation.lstrip().rstrip()
         if self.__replace_nonascii:
             formula = escape_unicode_in_formulas(formula, replace_alphabeticals=True)
-        return ("\\documentclass[fontsize=12pt]{scrartcl}\n\n%s\n"
+        return ("\\documentclass[fontsize=12pt, fleqn]{scrartcl}\n\n%s\n"
             "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
-            "%% must be last one, see doc\n\n\\begin{document}\n%s%s%s\n"
+            "%% must be last one, see doc\n\n\\begin{document}\n"
+            "\\noindent%%\n%s%s%s\n"
             "\\end{document}\n") % (preamble, opening, formula, closing)
 
 

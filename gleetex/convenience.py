@@ -145,6 +145,8 @@ class CachedConverter:
                 try:
                     data = future.result()
                 except subprocess.SubprocessError as e:
+                    if 'inputenc Error' in e.args[0]:
+                        print("piep")
                     # retrieve the position (line, pos on line) in the source
                     # document from original formula list
                     pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1

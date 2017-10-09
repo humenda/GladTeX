@@ -1,14 +1,11 @@
-2.3.1 Fix unicode error handling
-
-    - When the environment variable `DEBUG=1` is set, the full backtrac ewill be
-      printed.
-
 2.3 Fix formula displacement
 
-    - It seems as if 16px / 12pt were the default font size these days for
+    -   It seems as if 16px / 12pt were the default font size these days for
         browsers. Therefore, the default resolution has been set to 115 DPI.
         Furthermore, the DPI switch now accepts pt values for fontsizes and will
         calculate the corresponding DPI itself.
+    -   When the environment variable `DEBUG=1` is set, the full backtrac ewill be
+        printed.
 
 2.2.1 - fix handling of non-ascii alphabetical characters
 
