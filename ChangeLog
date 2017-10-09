@@ -4,8 +4,10 @@
         browsers. Therefore, the default resolution has been set to 115 DPI.
         Furthermore, the DPI switch now accepts pt values for fontsizes and will
         calculate the corresponding DPI itself.
-    -   When the environment variable `DEBUG=1` is set, the full backtrac ewill be
+    -   When the environment variable `DEBUG=1` is set, the full backtrace will be
         printed.
+    -   Extend unicode table creation script to allow blacklisting of certain
+        commands.
 
 2.2.1 - fix handling of non-ascii alphabetical characters
 
