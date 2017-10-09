@@ -12,6 +12,8 @@ import xml.etree.ElementTree as ET
 
 # URL to XML file, which is used to generate the python source file
 UNICODE_TABLE_URL = "https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml"
+# a list of commands to replace, if found
+BAD_COMMANDS = {'\\minus': '-'}
 
 class LaTeXMode(enum.Enum):
     """Represent either math or text mode. Math mode in LaTeX is e.g.
@@ -65,6 +67,10 @@ def create_unicode_latex_table(root):
                 commands[LaTeXMode.mathmode] = mathnode.text
 
         if commands: # if a usable textmode and a mathmode without unicode-math found:
+            # replace bad commands
+            for mode in commands:
+                if commands[mode] in BAD_COMMANDS:
+                    commands[mode] = BAD_COMMANDS[commands[mode]]
             for item in ids:
                 unicode_table[item] = commands
     return unicode_table

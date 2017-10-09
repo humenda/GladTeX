@@ -760,7 +760,7 @@ unicode_table = {
     8719: {LaTeXMode.textmode: '\\prod ', LaTeXMode.mathmode: '\\prod'},
     8720: {LaTeXMode.textmode: '\\coprod ', LaTeXMode.mathmode: '\\coprod'},
     8721: {LaTeXMode.textmode: '\\sum ', LaTeXMode.mathmode: '\\sum'},
-    8722: {LaTeXMode.textmode: '-', LaTeXMode.mathmode: '\\minus'},
+    8722: {LaTeXMode.textmode: '-', LaTeXMode.mathmode: '-'},
     8723: {LaTeXMode.textmode: '\\mp ', LaTeXMode.mathmode: '\\mp'},
     8724: {LaTeXMode.textmode: '\\dotplus ', LaTeXMode.mathmode: '\\dotplus'},
     8726: {LaTeXMode.textmode: '\\setminus ', LaTeXMode.mathmode: '\\setminus'},
