@@ -34,7 +34,7 @@ Credits go to
 
 About the rewritten (current) version:
 
--   (c) 2015-2016 Sebastian Humenda
+-   (c) 2015-2017 Sebastian Humenda
     -   credits go to Martin G. Gulbrandsen who had the idea in the first place
 
 This program is distributed under the LGPL-3, or at your option, any later
