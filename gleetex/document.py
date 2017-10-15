@@ -104,7 +104,8 @@ def replace_unicode_characters(characters, is_math, replace_alphabeticals=True):
             else:
                 result.append(commands[mode])
                 # if the next character is alphabetical, add space
-                if (idx+1) < len(characters) and characters[idx+1].isalpha():
+                if (idx+1) < len(characters) and characters[idx+1].isalpha() \
+                        and commands[mode][-1].isalpha():
                     result.append(' ')
     return ''.join(result)
 
