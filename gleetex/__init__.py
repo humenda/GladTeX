@@ -4,7 +4,7 @@ from . import document
 from . import htmlhandling
 from . import image
 
-VERSION = '2.3'
+VERSION = '2.3.1'
 
 __all__ = ['caching', 'convenience', 'document', 'htmlhandling', 'image',
         'unicode', 'VERSION']

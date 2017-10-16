@@ -1,4 +1,10 @@
-2.3 Fix formula displacement
+2.3.1 Avoid useless spaces
+
+    -   When formula replacement with `-R` is requested, it could happen that
+        additional spaces were inserted, even if not necessary. "für" would for
+        instance become "f\"{u} r". Fixed.
+
+2.3 Fix formula sizing
 
     -   It seems as if 16px / 12pt were the default font size these days for
         browsers. Therefore, the default resolution has been set to 115 DPI.
