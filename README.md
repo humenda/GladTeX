@@ -59,6 +59,25 @@ pre-compiled binary from <https://github.com/humenda/GladTeX/releases>.
 
 Just unzip the archive and move the files to a directory within `%PATH%`.
 
+### OS X
+
+If you want to use GladTex you have to install LaTeX on your system. 
+The installation of GladTex was tested with ![MacTex](http://www.tug.org/mactex/).
+Afterwards you can installed GladTex from github.
+The following steps require Python >= 3.4
+
+The commands are:
+
+'''
+$ git clone https://github.com/humenda/GladTeX.git
+
+$ cd GladTex
+
+$ python setup.py install
+
+'''
+
+Now you can use GladTex on your Mac.
 
 ### From Source
 
