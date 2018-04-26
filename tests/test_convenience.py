@@ -1,5 +1,4 @@
 #pylint: disable=too-many-public-methods,import-error,too-few-public-methods,missing-docstring,unused-variable
-import distutils
 import os
 import shutil
 import tempfile
@@ -33,7 +32,7 @@ class Tex2imgMock():
         self.output_name = output_fn
         base_name = os.path.split(output_fn)[0]
         if base_name and not os.path.exists(base_name):
-            distutils.dir_util.mkpath(base_name)
+            os.makedirs(base_name)
         self.set_dpi = self.set_transparency = self.set_foreground_color \
                 = self.set_background_color = lambda x: None # do nothing
 

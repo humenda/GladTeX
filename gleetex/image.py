@@ -1,7 +1,6 @@
 """
 This module takes care of the actual image creation process.
 """
-import distutils.dir_util
 import os
 import re
 import shutil
@@ -76,7 +75,7 @@ class Tex2img:
         # create directory for image if that doesn't exist
         base_name = os.path.split(output_fn)[0]
         if base_name and not os.path.exists(base_name):
-            distutils.dir_util.mkpath(base_name)
+            os.makedirs(base_name)
 
 
     def set_dpi(self, dpi):
