@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# (c) 2013-2018 Sebastian Humenda
+# This code is licenced under the terms of the LGPL-3+, see the file COPYING for
+# more details.
 import argparse
 import multiprocessing
 import os
@@ -6,6 +9,7 @@ import posixpath
 import re
 import sys
 import gleetex
+from gleetex import formulaparser
 
 
 class HelpfulCmdParser(argparse.ArgumentParser):
@@ -73,6 +77,10 @@ class Main:
         parser.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
                 help="Add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
+        parser.add_argument('-P', dest="pandocfilter",
+                help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
+                    "from stdin, convert the images, change math blocks to "
+                    "images and write JSON to stdout")
         parser.add_argument('-r', metavar='DPI', dest='dpi', default='115',
                 help=("Set resolution (size of images) to 'dpi' (115 for a "
                     "fontsize of 12pt); if the suffix 'pt' is added, the "
@@ -112,8 +120,9 @@ class Main:
     def get_input_output(self, options):
         """Determine whether GladTeX is reading from stdin/file, writing to
         stdout/file and determine base_directory if files are in another
-        directory. If no output file name is given and there is a input file to
-        read from, output is written to a file ending on .html instead of .htex.
+        directory.
+        If no output file name is given and there is a input file to read
+        from, output is written to a file ending on .html instead of .htex.
         The returned document is either string or byte, the latter if encoding
         is unknown."""
         data = None
@@ -123,7 +132,9 @@ class Main:
             data = sys.stdin.read()
         else:
             try:
-                if options.encoding:
+                # if encoding was supplied or if a pandoc filter is supplied,
+                # read document with default encoding
+                if options.encoding or options.pandocfilter:
                     with open(options.input) as f:
                         data = f.read()
                 else: # read as binary and guess from HTML meta charset
@@ -154,24 +165,23 @@ class Main:
             base_path = posixpath.join(*(options.directory.split('\\')))
         # strip base_path from output, if there's one
         output = os.path.basename(output)
-        return (data, base_path, output)
+        return (data, base_path, 
+                ('pandocfilter' if options.pandocfilter else 'html'),
+                output)
 
 
     def run(self, args):
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        doc, base_path, output = self.get_input_output(options)
-        docparser = gleetex.htmlhandling.EqnParser()
+        doc, base_path, format, output = self.get_input_output(options)
         try:
-            docparser.feed(doc)
-            self.__encoding = docparser.get_encoding()
-            self.__encoding = (self.__encoding if self.__encoding else 'utf-8')
-        except gleetex.htmlhandling.ParseException as e:
+            self.__encoding, doc = formulaparser.extract_formulas(doc, format)
+        except gleetex.formulaparser.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
-        doc = docparser.get_data()
+
         processed = self.convert_images(doc, base_path, options)
         with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
                 link_path=options.url)  as img_fmt:
@@ -303,8 +313,12 @@ class Main:
         self.exit(msg, 91)
 
 
-if __name__ == '__main__':
+def main():
+    """Entry point for setuptools."""
     # enable multiprocessing on Windows, see python docs
     multiprocessing.freeze_support()
     m = Main()
     m.run(sys.argv)
+
+if __name__ == '__main__':
+    main()
