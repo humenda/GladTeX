@@ -1,11 +1,17 @@
-"""
-This module wraps a formula in a LaTeX document. With this module, a formula can
-be turned into a convertable document. It also offers methods to escape
-non-ascii characters, so that formulas with unicode math or umlauts, etc. can be
-converted.
-"""
+# (c) 2013-2018 Sebastian Humenda
+# This code is licenced under the terms of the LGPL-3+, see the file COPYING for
+# more details.
+"""This module contains functionality to typeset formuas for the usage in a
+LaTeX document (e.g. creating the preamble, replacing non-ascii letters) and to
+typeset LaTeX formulas in a more readable way as alternate description of the
+resulting image. """
 
 from . import unicode
+
+FORMATTING_COMMANDS = ['\\ ', '\\,', '\\;', '\\big', '\\Big', '\\left',
+        '\\right', '\\limits']
+
+
 
 class DocumentSerializationException(Exception):
     """This error is raised whenever a non-ascii character contained in a
@@ -26,11 +32,13 @@ class DocumentSerializationException(Exception):
                     self.index, self.formula)
 
 
-def escape_unicode_in_formulas(formula, replace_alphabeticals=True):
+def escape_unicode_maths(formula, replace_alphabeticals=True):
     """This function uses the unicode table to replace any non-ascii character
     (identified with its unicode code point)  with a LaTeX command.
     It also parses the formula for commands as e.g. \\\text or \\mbox and
-    applies text-mode commands within them."""
+    applies text-mode commands within them.
+    This allows the conversion of formulas with unicode maths with old-style
+    LaTeX2e, which gleetex depends on."""
     if not any(ord(ch) > 160 for ch in formula):
         return formula # no umlauts, no replacement
 
@@ -227,11 +235,39 @@ class LaTeXDocument:
             closing = '\\]' if self.__displaymath else '\\)'
         formula = self.__equation.lstrip().rstrip()
         if self.__replace_nonascii:
-            formula = escape_unicode_in_formulas(formula, replace_alphabeticals=True)
+            formula = escape_unicode_maths(formula, replace_alphabeticals=True)
         return ("\\documentclass[fontsize=12pt, fleqn]{scrartcl}\n\n%s\n"
             "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
             "%% must be last one, see doc\n\n\\begin{document}\n"
             "\\noindent%%\n%s%s%s\n"
             "\\end{document}\n") % (preamble, opening, formula, closing)
+
+
+def increase_readability(formula, replace_nonascii=False):
+    """In alternate texts for non-image users or those using a screen reader,
+    the LaTeX code should be as readable as possible. Therefore the formula
+    should not contain unicode characters or formatting instructions."""
+    if replace_nonascii:
+        # keep umlauts, etc; makes the alt more readable, yet wouldn't compile
+        formula = escape_unicode_maths(formula, replace_alphabeticals=False)
+    # replace formatting-only symbols which distract the reader
+    formula_changed = True
+    while formula_changed:
+        formula_changed = False
+        for command in FORMATTING_COMMANDS:
+            idx = formula.find(command)
+            # only replace if it's not after a \\ and not part of a longer command
+            if (idx > 0 and formula[idx-1] != '\\') or idx == 0:
+                end = idx + len(command)
+                # following conditions for replacement must be met:
+                # command doesn't end on alphabet. char. and is followed by same
+                # category OR end of string reached OR command does not # end on
+                # alphabetical char. at all
+                if end >= len(formula) or not command[-1].isalpha() \
+                        or not formula[end].isalpha():
+                    formula = formula[:idx] + ' ' + formula[idx + len(command):]
+                    formula = formula.replace('  ', ' ')
+                    formula_changed = True
+    return formula
 
 

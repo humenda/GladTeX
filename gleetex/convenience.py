@@ -7,7 +7,7 @@ import multiprocessing
 import os
 import subprocess
 
-from . import caching, document, image
+from . import caching, image, typesetting
 from .caching import normalize_formula
 
 class ConversionException(Exception):
@@ -83,7 +83,7 @@ class CachedConverter:
 
     def set_replace_nonascii(self, flag):
         """If set, GladTeX will convert all non-ascii character to LaTeX
-        commands. This setting is passed through to document.LaTeXDocument."""
+        commands. This setting is passed through to typesetting.LaTeXDocument."""
         self.__replace_nonascii = flag
 
 
@@ -176,7 +176,7 @@ class CachedConverter:
             style (displaymath, boolean) as a dictionary with the keys in
             parenthesis
         """
-        latex = document.LaTeXDocument(formula)
+        latex = typesetting.LaTeXDocument(formula)
         latex.set_displaymath(displaymath)
         if self.__options['preamble']: # add preamble to LaTeX document
             latex.set_preamble_string(self.__options['preamble'])

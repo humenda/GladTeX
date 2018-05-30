@@ -9,7 +9,7 @@ import posixpath
 import re
 import sys
 import gleetex
-from gleetex import formulaparser
+from gleetex import parser
 
 
 class HelpfulCmdParser(argparse.ArgumentParser):
@@ -41,58 +41,58 @@ class Main:
             "through latex and replaced by images.\n\nIf the environment "
             "variable `DEBUG=1`is set, a full Python traceback, instead of a "
             "short, user-friendly message, will be shown.")
-        parser = HelpfulCmdParser(epilog=epilog, description=description)
-        parser.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
+        cmd = HelpfulCmdParser(epilog=epilog, description=description)
+        cmd.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
                 "for images which are too long for the alt attribute into a " +
                 "single separate file and link images to it")
-        parser.add_argument('-b', dest='background_color',
+        cmd.add_argument('-b', dest='background_color',
                 help="Set background color for resulting images (default transparent)")
-        parser.add_argument('-c', dest='foreground_color',
+        cmd.add_argument('-c', dest='foreground_color',
                 help="Set foreground color for resulting images (default 0,0,0)")
-        parser.add_argument('-d', dest='directory', help="Directory in which to" +
+        cmd.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in (relative path)")
-        parser.add_argument('-e', dest='latex_maths_env',
+        cmd.add_argument('-e', dest='latex_maths_env',
                 help="Set custom maths environment to surround the formula" + \
                         " (e.g. flalign)")
-        parser.add_argument('-E', dest='encoding', default=None,
+        cmd.add_argument('-E', dest='encoding', default=None,
                 help="Overwrite encoding to use (default UTF-8)")
-        parser.add_argument('-i', metavar='CLASS', dest='inlinemath',
+        cmd.add_argument('-i', metavar='CLASS', dest='inlinemath',
                 help="CSS class to assign to inline math (default: 'inlinemath')")
-        parser.add_argument('-l', metavar='CLASS', dest='displaymath',
+        cmd.add_argument('-l', metavar='CLASS', dest='displaymath',
                 help="CSS class to assign to block-level math (default: 'displaymath')")
-        parser.add_argument('-K', dest='keep_latex_source', action="store_true",
+        cmd.add_argument('-K', dest='keep_latex_source', action="store_true",
                 default=False, help="keep LaTeX file(s) when converting formulas (useful for debugging)")
-        parser.add_argument('-m', dest='machinereadable', action="store_true",
+        cmd.add_argument('-m', dest='machinereadable', action="store_true",
                 default=False,
                 help="Print output in machine-readable format (less concise, better parseable)")
-        parser.add_argument("-n", action="store_true", dest="notkeepoldcache",
+        cmd.add_argument("-n", action="store_true", dest="notkeepoldcache",
                     help=("Purge unreadable caches along with all eqn*.png files. "
                         "Caches can be unreadable if the used GladTeX version is "
                         "incompatible. If this option is unset, GladTeX will "
                         "simply fail when the cache is unreadable."))
-        parser.add_argument('-o', metavar='FILENAME', dest='output',
+        cmd.add_argument('-o', metavar='FILENAME', dest='output',
                 help=("Set output file name; '-' will print text to stdout (by"
                     "default input file name is used and .htex extension changed "
                     "to .html)"))
-        parser.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
+        cmd.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
                 help="Add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
-        parser.add_argument('-P', dest="pandocfilter",
+        cmd.add_argument('-P', dest="pandocfilter",
                 help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
                     "from stdin, convert the images, change math blocks to "
                     "images and write JSON to stdout")
-        parser.add_argument('-r', metavar='DPI', dest='dpi', default='115',
+        cmd.add_argument('-r', metavar='DPI', dest='dpi', default='115',
                 help=("Set resolution (size of images) to 'dpi' (115 for a "
                     "fontsize of 12pt); if the suffix 'pt' is added, the "
                     "resolution wil be calculated from the given font size."))
-        parser.add_argument('-R', action="store_true", dest='replace_nonascii',
+        cmd.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
-        parser.add_argument("-u", metavar="URL", dest='url',
+        cmd.add_argument("-u", metavar="URL", dest='url',
                 help="URL to image files (relative links are default)")
-        parser.add_argument('input', help="Input .htex file with LaTeX " +
+        cmd.add_argument('input', help="Input .htex file with LaTeX " +
                 "formulas (if omitted or -, stdin will be read)")
-        return parser.parse_args(args)
+        return cmd.parse_args(args)
 
     def exit(self, text, status):
         """Exit function. Could be used to register any clean up action."""
@@ -165,7 +165,7 @@ class Main:
             base_path = posixpath.join(*(options.directory.split('\\')))
         # strip base_path from output, if there's one
         output = os.path.basename(output)
-        return (data, base_path, 
+        return (data, base_path,
                 ('pandocfilter' if options.pandocfilter else 'html'),
                 output)
 
@@ -176,8 +176,8 @@ class Main:
         self.__encoding = options.encoding
         doc, base_path, format, output = self.get_input_output(options)
         try:
-            self.__encoding, doc = formulaparser.extract_formulas(doc, format)
-        except gleetex.formulaparser.ParseException as e:
+            self.__encoding, doc = parser.extract_formulas(doc, format)
+        except gleetex.parser.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
@@ -283,7 +283,7 @@ class Main:
             raise err
         escaped = err.formula
         if escape:
-            escaped = gleetex.document.escape_unicode_in_formulas(err.formula)
+            escaped = gleetex.formula.escape_unicode_maths(err.formula)
         msg = None
         additional = ''
         if 'Package inputenc' in err.args[0]:

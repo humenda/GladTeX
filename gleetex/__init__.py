@@ -1,8 +1,8 @@
 from . import caching
 from . import convenience
-from . import document
 from . import htmlhandling
 from . import image
+from . import typesetting
 
 VERSION = '2.3.1'
 
