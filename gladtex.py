@@ -197,22 +197,9 @@ class Main:
             if options.displaymath:
                 img_fmt.set_display_math_css_class(options.displaymath)
 
-            if output == '-':
-                self.write_html(sys.stdout, processed, img_fmt)
-            else:
-                with open(output, 'w', encoding=self.__encoding) as file:
-                    self.write_html(file, processed, img_fmt)
-
-    def write_html(self, file, processed, formatter):
-        """Write back altered HTML file with given formatter."""
-        # write data back
-        for chunk in processed:
-            if isinstance(chunk, dict):
-                is_displaymath = chunk['displaymath']
-                file.write(formatter.format(chunk['pos'], chunk['formula'],
-                    chunk['path'], is_displaymath))
-            else:
-                file.write(chunk)
+            with (sys.stdout if output == '-'
+                    else open(output, 'w', encoding=self.__encoding)) as file:
+                gleetex.htmlhandling.write_html(file, processed, img_fmt)
 
     def convert_images(self, parsed_htex_document, base_path, options):
         """Convert all formulas to images and store file path and equation in a
@@ -220,7 +207,7 @@ class Main:
         base_path = ('' if not base_path or base_path == '.' else base_path)
         result = []
         try:
-            conv = gleetex.convenience.CachedConverter(base_path,
+            conv = gleetex.cachedconverter.CachedConverter(base_path,
                     not options.notkeepoldcache, encoding=self.__encoding)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
@@ -230,7 +217,7 @@ class Main:
             list))]
         try:
             conv.convert_all(base_path, formulas)
-        except gleetex.convenience.ConversionException as e:
+        except gleetex.cachedconverter.ConversionException as e:
             self.emit_latex_error(e, options.machinereadable,
                     options.replace_nonascii)
 
@@ -285,7 +272,7 @@ class Main:
             raise err
         escaped = err.formula
         if escape:
-            escaped = gleetex.formula.escape_unicode_maths(err.formula)
+            escaped = gleetex.typesetting.escape_unicode_maths(err.formula)
         msg = None
         additional = ''
         if 'Package inputenc' in err.args[0]:

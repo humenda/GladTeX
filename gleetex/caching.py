@@ -1,6 +1,10 @@
-"""This module contains the ImageCache, which caches formulas which have already
-been converted. Only with this mechanism, a formula which occurs multiple times
-can be reused, even across several runs of GladTeX.
+# (c) 2013-2018 Sebastian Humenda
+# This code is licenced under the terms of the LGPL-3+, see the file COPYING for
+# more details.
+"""This module contains the ImageCache, caching formulas which have already been
+converted. This allows to re-use images for formulas which occur multiple timesd
+within a document. Furthermore, it can significantly speed up incremental
+document creation, because the cache is remembered across GladTeX runs.
 
 Cache format:
 

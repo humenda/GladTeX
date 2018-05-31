@@ -1,7 +1,13 @@
 # (c) 2013-2018 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
-"""Everything regarding parsing, generating and writing HTML belongs in here."""
+"""GleeTeX is designed to allow the re-use of the image creation code
+independently of the HTML conversion code. Therefore, this modules contains the
+code required to parse equations from HTML, to write converted HTML documents
+back and to handle the outsourcing of formulas too long for an HTML alt tag to
+an external file.
+The pandoc module contains similar functions for using GleeTeX as a pandoc
+filter."""
 
 import collections
 import enum
@@ -457,5 +463,19 @@ class HtmlImageFormatter: # ToDo: localisation
             return self.format_excluded(pos, formula, img_path, displaymath)
         else:
             return self.get_html_img(pos, formula, img_path, displaymath)
+
+def write_html(file, document, formatter):
+    """Processed HTML documents are made up of raw HTML chunks which are written
+    back unaltered and of processed image. An processed image is a former
+    formula converted to an image with additional meta data. This is passed to
+    the format function of the supplied formatter and the result is written to
+    the given (open) file handle."""
+    for chunk in document:
+        if isinstance(chunk, dict):
+            is_displaymath = chunk['displaymath']
+            file.write(formatter.format(chunk['pos'], chunk['formula'],
+                    chunk['path'], is_displaymath))
+        else:
+            file.write(chunk)
 
 

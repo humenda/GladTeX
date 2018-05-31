@@ -1,10 +1,10 @@
 from . import caching
-from . import convenience
+from . import cachedconverter
 from . import htmlhandling
 from . import image
 from . import typesetting
 
 VERSION = '2.3.1'
 
-__all__ = ['caching', 'convenience', 'document', 'htmlhandling', 'image',
+__all__ = ['caching', 'cachedconverter', 'document', 'htmlhandling', 'image',
         'unicode', 'VERSION']

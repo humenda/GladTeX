@@ -1,3 +1,6 @@
+# (c) 2013-2018 Sebastian Humenda
+# This code is licenced under the terms of the LGPL-3+, see the file COPYING for
+# more details.
 """In order to convert images only if they are not already cached, the cached
 converter sacrifices customizability for convenience and provides a class
 converting a formula directly to a png file."""
