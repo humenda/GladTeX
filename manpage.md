@@ -1,6 +1,6 @@
 % GLADTEX(1)
 % Sebastian Humenda
-% 28th of September 2016
+% 1st of June 2018
 
 # NAME
 
@@ -27,7 +27,8 @@ Hence screen reader users benefit from an accessible HTML version of the
 document.
 
 Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX
-formulas to HTML.
+formulas to HTML, EPUB and in fact to any HTML-based format, see the option
+`-P`.
 
 See [FILE FORMAT](#file-format) for an explanation of the file format and
 [EXAMPLES](#examples) for examples on how to use GladTeX on its own or with
@@ -94,6 +95,12 @@ Pandoc.
 :   Add given LaTeX code to preamble of document. That'll affect the conversion
     of every image.
 
+**-P**
+:   Act as a pandoc filter. In this mode, input is expected to be a Pandoc JSON
+    AST  and the output will be a modified AST, with all formulas replaced
+    through HTML image tags. It makes sense to use `-` as the input file for
+    this option.
+
 **-r** _DPI_
 :   Set resolution (size of images) to 'dpi' (100 by default).
 
@@ -149,7 +156,7 @@ This can be converted using
 and the result will be a HTML document called `file.html` along with two files
 `eqn0000.png` and `eqn0001.png` in the same directory.
 
-## Markdown to HTML
+## Markdown To HTML
 
 GladTeX can be used together with Pandoc. That can be handy to create an online
 version of a scientific paper written in Markdown. The MarkDown document would
@@ -171,18 +178,31 @@ The conversion is as easy as:
 
     pandoc -s -t html --gladtex file.md | gladtex -o file.html
 
+## Output as EPUB
+
+It is beyond of the scope of this document to introduce Pandoc, but with any
+input format, converting to EPUB with GladTeX replacing the images is as easy
+as:
+
+    pandoc -f INPUT_FMT -t json FILE.EXT | GLADTEX -P - | PANDOC -F JSON \
+        -T EPUB -O BOOK.EPUB
+
+Capitalised parameters should be replaced. This can be used with Markdown as
+input format, see previous section.
+
+
 # KNOWN LIMITATIONS
 
-LaTeX2e is ***NOT*** unicode aware. If you have any unicode (more precisely,
+LaTeX2E is ***not*** unicode aware. if you have any unicode (more precisely,
 non-ascii characters) signs in your documents, you have the choice to do one of
 the following:
 
 1.  Look up the symbol in one of the many LaTeX formula listings and replace the
     symbol with the appropriate command.
-2.  Use the `-R` switch to let GladTeX replace the Umlauts for you.
+2.  Use the `-r` switch to let GladTeX replace the umlauts for you.
 
-Please note that it is not possible to use LuaLaTeX. At the time of writing,
-dvipng does not support the extended font features of the LuaLaTeX engine.
+PLEASE NOTE: It is impossible to use GladTeX with LuaLaTeX. At the time of writing, dvipng
+does not support the extended font features of the lualatex engine.
 
 
 # PROJECT HOME

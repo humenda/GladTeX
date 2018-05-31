@@ -7,7 +7,7 @@ is fed through latex and replaced by images.
 
 Additionally all images get an alt-tag for alternative texts that contains the
 LaTeX-equivalent of the image. This is handy for text-mode browsers or blind
-people.
+screen reader users.
 
 This is a complete rewrite of the old GladTeX which was implemented in Perl and
 in C. The old version was not easily portable across platforms. The
@@ -15,27 +15,22 @@ new version is purely implemented in Python, gets rid of the Ghostscript
 dependency and additionally offers the GladTeX functionality in a Python module
 called gleetex.  to be embedded in other applications.
 
+Features
+--------
+
+-   both program and library: GladTeX and GleeTeX (both Python)
+-   easy-to-adjust font size of formulas through command-line switch
+-   customisation of commands using a custom LaTeX preamble
+-   automated replacement of non-ascii characters through LaTeX control
+    sequences
+-   usage as Pandoc filter for export in HTML-based formats as for instance Epub
+
 License
 -------
 
-_Copyright:_
-
-About the old perl version:
-
 - (C) 1999-2010 Martin G. Gulbrandsen
 - (C) 2011-2013 Jonathan Daugherty (especially release 1.3)
-- (C) 2013-2015 Sebastian Humenda
-
-Credits go to
-
-- 2013 Patrick Spendrin (patches for cmake and eqn2img to build it on Windows)
-
-
-
-About the rewritten (current) version:
-
--   (c) 2015-2017 Sebastian Humenda
-    -   credits go to Martin G. Gulbrandsen who had the idea in the first place
+- (C) 2013-2018 Sebastian Humenda
 
 This program is distributed under the LGPL-3, or at your option, any later
 version of the license; for details see the accompanying file COPYING.
@@ -125,5 +120,6 @@ to share some python components included in the just-built executable.
 Documentation
 -------------
 
-Please use `man gladtex` for further instructions.
+Please use `man gladtex` for further instructions or have a look at the file
+[manpage.md](manpage.md).
 
