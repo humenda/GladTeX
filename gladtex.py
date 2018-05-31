@@ -176,6 +176,8 @@ class Main:
         self.__encoding = options.encoding
         doc, base_path, format, output = self.get_input_output(options)
         try:
+            # doc is either a list of raw HTML chunks and formulas or a tuple of
+            # (document AST, list of formulas) if options.pandocfilter
             self.__encoding, doc = parser.extract_formulas(doc, format)
         except gleetex.parser.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
