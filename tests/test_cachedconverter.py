@@ -3,8 +3,7 @@ import os
 import shutil
 import tempfile
 import unittest
-from gleetex import convenience, image
-from gleetex.convenience import ConversionException
+from gleetex import cachedconverter, image
 from gleetex.caching import JsonParserException
 
 def get_number_of_files(path):
@@ -66,20 +65,20 @@ class TestCachedConverter(unittest.TestCase):
         self.original_directory = os.getcwd()
         self.tmpdir = tempfile.mkdtemp()
         os.chdir(self.tmpdir)
-        convenience.CachedConverter._converter = Tex2imgMock
+        cachedconverter.CachedConverter._converter = Tex2imgMock
 
 
     #pylint: disable=protected-access
     def tearDown(self):
         # restore static reference to converter
-        convenience.CachedConverter._converter = image.Tex2img
+        cachedconverter.CachedConverter._converter = image.Tex2img
         os.chdir(self.original_directory)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
 
 
     def test_that_subdirectory_is_created(self):
-        c = convenience.CachedConverter(os.getcwd(), 'subdirectory')
+        c = cachedconverter.CachedConverter(os.getcwd(), 'subdirectory')
         formula = '\\textbf{FOO!}'
         c.convert(formula, 'subdirectory/eqn000.png')
         # one directory exists
@@ -91,20 +90,20 @@ class TestCachedConverter(unittest.TestCase):
             " files, found only " + repr(os.listdir('subdirectory')))
 
     def test_that_unknown_options_trigger_exception(self):
-        c = convenience.CachedConverter('subdirectory')
+        c = cachedconverter.CachedConverter('subdirectory')
         self.assertRaises(ValueError, c.set_option, 'cxzbiucxzbiuxzb', 'muh')
 
     def test_that_invalid_caches_trigger_error_by_default(self):
         with open('gladtex.cache', 'w') as f:
             f.write('invalid cache')
         with self.assertRaises(JsonParserException):
-            c = convenience.CachedConverter('')
+            c = cachedconverter.CachedConverter('')
 
     def test_that_invalid_caches_get_removed_if_specified(self):
         formulas = [mk_eqn('tau')]
         with open('gladtex.cache', 'w') as f:
             f.write('invalid cache')
-        c = convenience.CachedConverter('', keep_old_cache=False)
+        c = cachedconverter.CachedConverter('', keep_old_cache=False)
         c._convert_concurrently(formulas)
         # cache got overridden
         with open('gladtex.cache') as f:
@@ -112,7 +111,7 @@ class TestCachedConverter(unittest.TestCase):
 
     def test_that_converted_formulas_are_cached(self):
         formulas = [mk_eqn('tau')]
-        c = convenience.CachedConverter('')
+        c = cachedconverter.CachedConverter('')
         c._convert_concurrently(formulas)
         formulas.append(mk_eqn('\\gamma'))
         formulas = turn_into_orig_formulas(formulas)
@@ -123,14 +122,14 @@ class TestCachedConverter(unittest.TestCase):
         formulas = turn_into_orig_formulas([mk_eqn('\\tau')])
         write('eqn000.png')
         write('eqn001.png')
-        c = convenience.CachedConverter('')
+        c = cachedconverter.CachedConverter('')
         to_convert = c._get_formulas_to_convert('', formulas)
         self.assertTrue(len(to_convert), 1)
         self.assertEqual(to_convert[0][2], 'eqn002.png')
 
     def test_that_all_converted_formulas_are_in_cache_and_meta_info_correct(self):
         formulas = [mk_eqn('a_{%d}' % i, pos=(i,i), count=i) for i in range(100)]
-        c = convenience.CachedConverter('')
+        c = cachedconverter.CachedConverter('')
         c._convert_concurrently(formulas)
         # expect all formulas and a gladtex cache to exist
         self.assertEqual(get_number_of_files('.'), len(formulas)+1)
@@ -143,7 +142,7 @@ class TestCachedConverter(unittest.TestCase):
         # two formulas, second is displaymath
         formula = r'\sum_{i=0}^n x_i'
         formulas = [((1,1), False, formula), ((3,1), True, formula)]
-        c = convenience.CachedConverter('.')
+        c = cachedconverter.CachedConverter('.')
         c.convert_all('.', formulas)
         # expect all formulas and a gladtex cache to exist
         self.assertEqual(get_number_of_files('.'), len(formulas)+1)

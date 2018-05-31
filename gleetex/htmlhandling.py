@@ -457,7 +457,8 @@ class HtmlImageFormatter: # ToDo: localisation
         :param displaymath whether or not formula is in display math (default: no)
         :returns string with formatted HTML image which also links to excluded
         formula"""
-        formula = typesetting.increase_readability(formula)
+        formula = typesetting.increase_readability(formula,
+                self.__replace_nonascii)
         if self.__exclude_descriptions and \
                 len(formula) > self.__inline_maxlength:
             return self.format_excluded(pos, formula, img_path, displaymath)

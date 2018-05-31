@@ -6,7 +6,7 @@ import unittest
 from subprocess import SubprocessError
 
 import gleetex.image as image
-from gleetex.document import LaTeXDocument as doc
+from gleetex.typesetting import LaTeXDocument as doc
 
 LATEX_ERROR_OUTPUT = r"""
 This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=latex)
