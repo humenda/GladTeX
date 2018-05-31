@@ -23,9 +23,10 @@ class ConversionException(Exception):
     assert c.src_pos_on_line == 38 # position of formula in source line, counting from 1
     assert c.formula_count == 5 # fifth formula in document (starting from 1)
     """
-    # mind your own business:
+    # mind your own business mr. pylint:
     #pylint: disable=too-many-arguments
-    def __init__(self, cause, formula, src_line_number, src_pos_on_line, formula_count):
+    def __init__(self, cause, formula, formula_count, src_line_number=None,
+            src_pos_on_line=None):
         # provide a default error message
         super().__init__("LaTeX failed at formula line {}, {}, no. {}: {}".format(
             src_line_number, src_pos_on_line, formula_count, cause))
@@ -152,10 +153,15 @@ class CachedConverter:
                         print("piep")
                     # retrieve the position (line, pos on line) in the source
                     # document from original formula list
-                    pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1
+                    if pos_in_src: # missing for the pandocfilter case
+                        pos_in_src = list(p+1 for p in pos_in_src) # user expects lines/pos_in_src' to count from 1
                     self.__cache.write() # write back cache with valid entries
-                    error_occurred = ConversionException(str(e.args[0]), formula,
-                            pos_in_src[0], pos_in_src[1], formula_count)
+                    if not pos_in_src: # pandocfilter case:
+                        error_occurred = ConversionException(str(e.args[0]),
+                                formula, formula_count)
+                    else:
+                        error_occurred = ConversionException(str(e.args[0]), formula,
+                            formula_count, pos_in_src[0], pos_in_src[1])
                 else:
                     self.__cache.add_formula(formula, data['pos'], data['path'],
                             data['displaymath'])
@@ -204,6 +210,10 @@ class CachedConverter:
             displaymath}
 
     def get_data_for(self, formula, display_math):
-        """Simple wrapper around ImageCache."""
-        return self.__cache.get_data_for(formula, display_math)
+        """Simple wrapper around ImageCache, enriching the returned data with
+        the information provided as arguments to this function. This helps when
+        using a formula without its context."""
+        data = self.__cache.get_data_for(formula, display_math).copy()
+        data.update({'formula': formula, 'displaymath': display_math})
+        return data
 

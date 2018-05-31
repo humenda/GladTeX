@@ -10,6 +10,7 @@ import json
 import sys
 
 from . import htmlhandling
+from . import pandoc
 ParseException = htmlhandling.ParseException # re-export for consistent API from outside
 
 class Format(enum.Enum):
@@ -23,27 +24,37 @@ class Format(enum.Enum):
         string = string.lower()
         if string == 'html':
             return Format.HTML
-        elif format == 'pandocfilter':
+        elif string == 'pandocfilter':
             return Format.PANDOCFILTER
         else:
-            raise ValueError("unrecognised format: %s" % format)
+            raise ValueError("unrecognised format: %s" % string)
 
-def extract_formulas(doc, format):
-    """ToDo that returns chunks or for json ast + formulas"""
-    if isinstance(format, str):
-        format = Format.parse(format)
+def parse_document(doc, fmt):
+    """This function parses an input document (string or bytes) with the given
+    format specifier. For HTML, the returned "parsed" document is a list of
+    chunks, where raw chunks are just plain HTML instructions and ata and
+    formula chunks are parsed from the '<eq/>' tags.
+    If the input document is a pandoc AST, the formulas will be extracted and
+    the document is a tuple of (pandoc AST, formulas).
+
+    :param doc  input of bytes or string to parse
+    :param fmt  either the enum type `Format` or a string understood by Format.parse
+    :return     (encoding, document) (a tuple)"""
+    if isinstance(fmt, str):
+        fmt = Format.parse(fmt)
     encoding = None
-    if format == Format.HTML:
+    if fmt == Format.HTML:
         docparser = htmlhandling.EqnParser()
         docparser.feed(doc)
         encoding = docparser.get_encoding()
         encoding = (encoding if encoding else 'utf-8')
         doc = docparser.get_data()
-    elif format == Format.PANDOCFILTER:
+    elif fmt == Format.PANDOCFILTER:
         if isinstance(doc, bytes):
             doc = doc.decode(sys.getdefaultencoding())
-        doc = json.loads(doc)
-        raise NotImplementedError()
+        ast = json.loads(doc)
+        formulas = pandoc.extract_formulas(ast)
+        doc = (ast, formulas) # ← see doc string
     if not encoding:
         encoding = sys.getdefaultencoding()
     return encoding, doc

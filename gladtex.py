@@ -77,7 +77,7 @@ class Main:
         cmd.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
                 help="Add given LaTeX code to preamble of document; that'll " +\
                     "affect the conversion of every image")
-        cmd.add_argument('-P', dest="pandocfilter",
+        cmd.add_argument('-P', dest="pandocfilter", action='store_true',
                 help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
                     "from stdin, convert the images, change math blocks to "
                     "images and write JSON to stdout")
@@ -174,11 +174,11 @@ class Main:
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        doc, base_path, format, output = self.get_input_output(options)
+        doc, base_path, fmt, output = self.get_input_output(options)
         try:
             # doc is either a list of raw HTML chunks and formulas or a tuple of
             # (document AST, list of formulas) if options.pandocfilter
-            self.__encoding, doc = parser.extract_formulas(doc, format)
+            self.__encoding, doc = parser.parse_document(doc, fmt)
         except gleetex.parser.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
             self.exit('Error while parsing {}: {}'.format(input_fn,
@@ -199,9 +199,12 @@ class Main:
 
             with (sys.stdout if output == '-'
                     else open(output, 'w', encoding=self.__encoding)) as file:
-                gleetex.htmlhandling.write_html(file, processed, img_fmt)
+                if options.pandocfilter:
+                    gleetex.pandoc.write_pandoc_ast(file, processed, img_fmt)
+                else:
+                    gleetex.htmlhandling.write_html(file, processed, img_fmt)
 
-    def convert_images(self, parsed_htex_document, base_path, options):
+    def convert_images(self, parsed_document, base_path, options):
         """Convert all formulas to images and store file path and equation in a
         list to be processed later on."""
         base_path = ('' if not base_path or base_path == '.' else base_path)
@@ -213,31 +216,35 @@ class Main:
             self.exit(e.args[0], 78)
 
         self.set_options(conv, options)
-        formulas = [c for c in parsed_htex_document if isinstance(c, (tuple,
-            list))]
+        if options.pandocfilter:
+            formulas = parsed_document[1]
+        else: # HTML chunks from EqnParser
+            formulas = [c for c in parsed_document if isinstance(c, (tuple,
+                list))]
         try:
             conv.convert_all(base_path, formulas)
         except gleetex.cachedconverter.ConversionException as e:
             self.emit_latex_error(e, options.machinereadable,
                     options.replace_nonascii)
 
-        # iterate over chunks of eqnparser
-        for chunk in parsed_htex_document:
-            # chunk == an entity parsed by EqnParser; type 'str' will be taken
-            # literally, 'list' will be treated as formula
-            if isinstance(chunk, (tuple, list)):
-                _p, displaymath, formula = chunk
-                try:
-                    data = conv.get_data_for(formula, displaymath)
-                except KeyError as e:
-                    raise KeyError(("formula '%s' not found; that means it was "
-                        "not converted which should usually not happen.") % e.args[0])
-                data['formula'] = formula
-                data['displaymath'] = displaymath
-                result.append(data)
-            else:
-                result.append(chunk)
-        return result
+        if options.pandocfilter:
+            # return (ast, formulas), just with formulas being replaced with the
+            # conversion data
+            return (parsed_document[0], [conv.get_data_for(eqn, style)
+                    for _p, style, eqn in formulas])
+        else: # iterate over chunks of eqnparser; insert conversion data
+            for chunk in parsed_document:
+                # output of EqnParser: list-alike is formula, str is raw HTML
+                if isinstance(chunk, (tuple, list)):
+                    _p, displaymath, formula = chunk
+                    try:
+                        result.append(conv.get_data_for(formula, displaymath))
+                    except KeyError as e:
+                        raise KeyError(("formula '%s' not found; that means it was "
+                            "not converted which should usually not happen.") % e.args[0])
+                else:
+                    result.append(chunk)
+            return result
 
 
     def set_options(self, conv, options):
@@ -267,7 +274,9 @@ class Main:
 
     def emit_latex_error(self, err, machine_readable, escape):
         """Format a LaTeX error in a meaningful way. The argument escape
-        speicifies, whether the -R switch had been passed."""
+        specifies, whether the -R switch had been passed. If the pandocfilter
+        mode is active, formula positions will be omitted; this makes the code
+        more complex."""
         if 'DEBUG' in os.environ and os.environ['DEBUG'] == '1':
             raise err
         escaped = err.formula
@@ -279,21 +288,26 @@ class Main:
             additional += ('Add the switch `-R` to automatically replace unicode '
                 'characters with LaTeX command sequences.')
         if machine_readable:
-            msg = 'Line: {}, {}\nNumber: {}\nFormula: {}{}\nMessage: {}'.format(
-                    err.src_line_number, err.src_pos_on_line, err.formula_count,
+            msg = 'Number: {}\nFormula: {}{}\nMessage: {}'.format(err.formula_count,
                     err.formula,
                     ('' if escaped == err.formula
                         else '\nLaTeXified formula: %s' % escaped),
                     err.cause)
+            if err.src_line_number and err.src_pos_on_line:
+                msg = ('Line: {}, {}\n' + msg).format(err.src_line_number,
+                        err.src_pos_on_line)
             if additional:
                 msg += '; ' + additional
         else:
             formula = '    ' + err.formula.replace('\n', '\n    ')
             escaped = ('    ' + escaped.replace('\n', '\n    ') if escaped !=
                     err.formula else '')
-            msg = "Error while converting formula %d at line %d, %d:\n" %\
-                           (err.formula_count, err.src_line_number, err.src_pos_on_line,)
-            msg += '%s%s\n%s' % (formula, ('' if escaped == err.formula
+            msg = "Error while converting formula %d\n" % err.formula_count
+            if err.src_line_number and err.src_pos_on_line:
+                msg += " at line %d, %d:\n" % (err.src_line_number,
+                        err.src_pos_on_line,)
+            msg += '%s%s\n%s' % (formula, (''
+                if not escaped or escaped == err.formula
                 else '\nFormula without unicode symbols:\n%s' % escaped),
                    err.cause)
             if additional:

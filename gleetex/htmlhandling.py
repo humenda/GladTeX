@@ -20,13 +20,16 @@ from . import typesetting
 
 class ParseException(Exception):
     """Exception to propagate a parsing error."""
-    def __init__(self, msg, pos):
+    def __init__(self, msg, pos=None):
         self.msg = msg
         self.pos = pos
         super().__init__(msg, pos)
 
     def __str__(self):
-        return 'line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
+        if self.pos:
+            return 'line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
+        else:
+            return self.msg
 
 def get_position(document, index):
     """This returns the line number and position on line for the given String.
