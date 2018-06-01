@@ -22,8 +22,8 @@ The generated images are saved in a cache to not render the same image over
 and over again. This speeds up the process when formulas occur multiple times or
 when a document is extended gradually.
 
-The LaTeX formulas are preserved in the alt attribute of the embedded images.
-Hence screen reader users benefit from an accessible HTML version of the
+The LaTeX formulas are preserved in the alt attribute of the embedded images,
+hence screen reader users benefit from an accessible HTML version of the
 document.
 
 Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX
@@ -130,6 +130,20 @@ By default, formulas are rendered as inline maths, so they are squeezed to the
 height of the line. It is possible to render a formula as display maths by
 setting the env attribute to displaymath, i.e. `<eq env="displaymath">...</eq>`.
 
+# ENVIRONMENT VARIABLES
+
+GladTeX can be customised by environment variables:
+
+`DEBUG`
+:   If this is set to 1, a full Python traceback, instead of a human-readable
+    error message, will be displayed.
+`GLADTEX_ARGS`:
+:   When this environment variable is set, GladTeX switches into
+    **pandoc filter** mode: input is read from standard input, output written to
+    standard output and the `-P` switch is assumed. The contents of this
+    variable parsed as command-line switches.
+    See an example in [Output As EPUB]#output-asepub).
+
 # EXAMPLES
 
 ## Sample HTEX document
@@ -174,7 +188,7 @@ A useful matrix: $$\begin{pmatrix}
 9 &10&11&12 \end{pmatrix}$$
 ~~~~
 
-The conversion is as easy as:
+The conversion is as easy as typing on the command line:
 
     pandoc -s -t html --gladtex file.md | gladtex -o file.html
 
@@ -184,11 +198,15 @@ It is beyond of the scope of this document to introduce Pandoc, but with any
 input format, converting to EPUB with GladTeX replacing the images is as easy
 as:
 
-    pandoc -f INPUT_FMT -t json FILE.EXT | GLADTEX -P - | PANDOC -F JSON \
-        -T EPUB -O BOOK.EPUB
+    pandoc -t json FILE.ext | gladtex -d img -P - | pandoc -f json -o book.epub
 
 Capitalised parameters should be replaced. This can be used with Markdown as
 input format, see previous section.
+
+If you want to call Pandoc as a filter without the pipes, you can use the
+environment variable `GLADTEX_ARGS`:
+
+    GLADTEX_ARGS='-d img' pandoc -o BOOK.EPUB -F gladtex FILE.ext
 
 
 # KNOWN LIMITATIONS

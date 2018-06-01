@@ -38,9 +38,9 @@ class Main:
         description = ("GladTeX is a preprocessor that enables the use of LaTeX"
             " maths within HTML files. The maths, embedded in <EQ>...</EQ> "
             "tags, as if within \\(..\\) in LaTeX (or $...$ in TeX), is fed "
-            "through latex and replaced by images.\n\nIf the environment "
-            "variable `DEBUG=1`is set, a full Python traceback, instead of a "
-            "short, user-friendly message, will be shown.")
+            "through latex and replaced by images.\n\nPlease also see the "
+            "documentation on the web or from the manual page for more "
+            "information, especially on environment variables.")
         cmd = HelpfulCmdParser(epilog=epilog, description=description)
         cmd.add_argument("-a", action="store_true", dest="exclusionfile", help="save text alternatives " +
                 "for images which are too long for the alt attribute into a " +
@@ -321,7 +321,13 @@ def main():
     # enable multiprocessing on Windows, see python docs
     multiprocessing.freeze_support()
     m = Main()
-    m.run(sys.argv)
+    # run as pandoc filter?
+    args = sys.argv # fallback if no environment variable set
+    if 'GLADTEX_ARGS' in os.environ:
+        args = [sys.argv[0]] + os.environ['GLADTEX_ARGS'].split(' ')
+        if '-P' not in args:
+            args = [args[0]] + ['-P'] + args[1:] + ['-']
+    m.run(args)
 
 if __name__ == '__main__':
     main()
