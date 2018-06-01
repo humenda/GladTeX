@@ -4,7 +4,7 @@ from . import htmlhandling
 from . import image
 from . import typesetting
 
-VERSION = '3.0'
+VERSION = '2.4.0'
 
 __all__ = ['caching', 'cachedconverter', 'document', 'htmlhandling', 'image',
         'unicode', 'VERSION']

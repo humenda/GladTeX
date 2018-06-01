@@ -188,7 +188,7 @@ A useful matrix: $$\begin{pmatrix}
 9 &10&11&12 \end{pmatrix}$$
 ~~~~
 
-The conversion is as easy as typing on the command line:
+The conversion is as easy as typing on the command-line:
 
     pandoc -s -t html --gladtex file.md | gladtex -o file.html
 

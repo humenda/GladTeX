@@ -29,7 +29,7 @@ formulas more easyly.
 import json
 import os
 
-CACHE_VERSION = '3.0'
+CACHE_VERSION = '2.0'
 
 def normalize_formula(formula):
     """This function normalizes a formula. This e.g. means that multiple white
