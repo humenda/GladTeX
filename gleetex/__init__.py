@@ -2,9 +2,11 @@ from . import caching
 from . import cachedconverter
 from . import htmlhandling
 from . import image
+from . import pandoc
+from . import parser
 from . import typesetting
 
 VERSION = '2.4.0'
 
 __all__ = ['caching', 'cachedconverter', 'document', 'htmlhandling', 'image',
-        'pandoc', 'unicode', 'VERSION']
+        'pandoc', 'parser', 'unicode', 'VERSION']
