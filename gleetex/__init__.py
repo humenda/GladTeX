@@ -7,4 +7,4 @@ from . import typesetting
 VERSION = '2.4.0'
 
 __all__ = ['caching', 'cachedconverter', 'document', 'htmlhandling', 'image',
-        'unicode', 'VERSION']
+        'pandoc', 'unicode', 'VERSION']

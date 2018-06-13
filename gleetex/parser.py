@@ -1,9 +1,12 @@
 # (c) 2013-2018 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
-"""
-Wrapper functionality to extract formulas from a given document. At the moment,
-supported formats are HTML and Pandoc's JSON AST."""
+"""Top-level API to parse input documents.
+
+The main point of the parsing is to extract formulas from a given input
+document, while preserving the remaining formatting.
+The returned parsed document structure is highly dependent on the input format
+and hence document in their respective functions."""
 
 import enum
 import json
@@ -32,7 +35,7 @@ class Format(enum.Enum):
 def parse_document(doc, fmt):
     """This function parses an input document (string or bytes) with the given
     format specifier. For HTML, the returned "parsed" document is a list of
-    chunks, where raw chunks are just plain HTML instructions and ata and
+    chunks, where raw chunks are just plain HTML instructions and data and
     formula chunks are parsed from the '<eq/>' tags.
     If the input document is a pandoc AST, the formulas will be extracted and
     the document is a tuple of (pandoc AST, formulas).

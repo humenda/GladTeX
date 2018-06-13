@@ -132,7 +132,7 @@ class Main:
             data = sys.stdin.read()
         else:
             try:
-                # if encoding was supplied or if a pandoc filter is supplied,
+                # if encoding was specified or if a pandoc filter is supplied,
                 # read document with default encoding
                 if options.encoding or options.pandocfilter:
                     with open(options.input) as f:

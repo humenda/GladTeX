@@ -28,8 +28,12 @@ class ConversionException(Exception):
     def __init__(self, cause, formula, formula_count, src_line_number=None,
             src_pos_on_line=None):
         # provide a default error message
-        super().__init__("LaTeX failed at formula line {}, {}, no. {}: {}".format(
-            src_line_number, src_pos_on_line, formula_count, cause))
+        if src_line_number and src_pos_on_line:
+            super().__init__("LaTeX failed at formula line {}, {}, no. {}: {}".format(
+                src_line_number, src_pos_on_line, formula_count, cause))
+        else:
+            super().__init__("LaTeX failed at formula no. {}: {}".format(
+                formula_count, cause))
         # provide attributes for upper level error handling
         self.cause = cause
         self.formula = formula
