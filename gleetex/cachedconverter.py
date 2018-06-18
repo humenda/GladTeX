@@ -66,10 +66,10 @@ class CachedConverter:
     _converter = image.Tex2img # can be statically altered for testing purposes
 
     def __init__(self, base_path, keep_old_cache=True, encoding=None):
-        if base_path and not os.path.exists(base_path):
-            os.makedirs(base_path)
         cache_path = os.path.join(base_path,
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)
+        self.__base_path = base_path
+        self.__base_path_exists = False
         self.__cache = caching.ImageCache(cache_path,
                 keep_old_cache=keep_old_cache)
         self.__options = {'dpi' : None, 'transparency' : None,
@@ -187,8 +187,11 @@ class CachedConverter:
         :param displaymath whether or not to use displaymath during the conversion
         :return dictionary with position (pos), image path (path) and formula
             style (displaymath, boolean) as a dictionary with the keys in
-            parenthesis
-        """
+            parenthesis"""
+        if not self.__base_path_exists: # check whether it exists
+            if not os.path.exists(self.__base_path):
+                os.makedirs(self.__base_path)
+            self.__base_path_exists = True
         latex = typesetting.LaTeXDocument(formula)
         latex.set_displaymath(displaymath)
         if self.__options['preamble']: # add preamble to LaTeX document
