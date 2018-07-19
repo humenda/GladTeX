@@ -425,7 +425,7 @@ class HtmlImageFormatter: # ToDo: localisation
         depth = str(int(pos['depth']) * -1)
         css = (self.__css['display'] if displaymath else self.__css['inline'])
         return ('<img src="{0}" style="vertical-align: {3}px; margin: 0;" '
-                'height="{2[height]}px" width="{2[width]}px" alt="{1}" '
+                'height="{2[height]}" width="{2[width]}" alt="{1}" '
                 'class="{4}" />').format(full_url, formula, pos, depth, css)
 
     def format_excluded(self, pos, formula, img_path, displaymath=False):
