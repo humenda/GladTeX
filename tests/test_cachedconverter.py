@@ -44,13 +44,13 @@ class Tex2imgMock():
         with open(dvi_fn, 'w') as f:
             f.write('dummy')
 
-    def create_png(self, dvi_fn):
+    def create_image(self, dvi_fn):
         if os.path.exists(dvi_fn):
             os.remove(dvi_fn)
         write(self.output_name)
 
     def convert(self):
-        self.create_png(self.output_name)
+        self.create_image(self.output_name)
 
     def get_positioning_info(self):
         return {'depth': 9, 'height': 8, 'width': 7}
@@ -103,7 +103,7 @@ class TestCachedConverter(unittest.TestCase):
         formulas = [mk_eqn('tau')]
         with open('gladtex.cache', 'w') as f:
             f.write('invalid cache')
-        c = cachedconverter.CachedConverter('', keep_old_cache=False)
+        c = cachedconverter.CachedConverter('.', keep_old_cache=False)
         c._convert_concurrently(formulas)
         # cache got overridden
         with open('gladtex.cache') as f:
@@ -111,7 +111,7 @@ class TestCachedConverter(unittest.TestCase):
 
     def test_that_converted_formulas_are_cached(self):
         formulas = [mk_eqn('tau')]
-        c = cachedconverter.CachedConverter('')
+        c = cachedconverter.CachedConverter('.')
         c._convert_concurrently(formulas)
         formulas.append(mk_eqn('\\gamma'))
         formulas = turn_into_orig_formulas(formulas)
@@ -129,7 +129,7 @@ class TestCachedConverter(unittest.TestCase):
 
     def test_that_all_converted_formulas_are_in_cache_and_meta_info_correct(self):
         formulas = [mk_eqn('a_{%d}' % i, pos=(i,i), count=i) for i in range(100)]
-        c = cachedconverter.CachedConverter('')
+        c = cachedconverter.CachedConverter('.')
         c._convert_concurrently(formulas)
         # expect all formulas and a gladtex cache to exist
         self.assertEqual(get_number_of_files('.'), len(formulas)+1)

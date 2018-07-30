@@ -1,11 +1,15 @@
-"""
-This module takes care of the actual image creation process.
+"""This module takes care of the actual image creation process.
+
+Each formula is saved as an image, either as PNG or SVG. SVG is advised, since
+it is a properly scalable format.
 """
 import os
 import re
 import shutil
 import subprocess
 import sys
+
+DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
 
 def remove_all(*files):
     """Guarded remove of files (rm -f); no exception is thrown if a file
@@ -47,26 +51,29 @@ def proc_call(cmd, cwd=None):
             traceback.print_exc(file=sys.stderr)
         if isinstance(data, list):
             return '\n'.join(data)
-        else:
-            return data
+        return data
 
+#pylint: disable=too-few-public-methods
+class Format:
+    """Chose the image output format."""
+    Png = 0
+    Svg = 1
 
 class Tex2img:
-    """
-    Convert a TeX document string into a png file.
+    """Convert a TeX document string into a png file.
     This class interacts with the LaTeX and dvipng sub processes. Upon error
     the methods throw a SubprocessError with all necessary information to fix
     the issue.
     The background of the PNG files will be transparent by default.
     """
     call = proc_call
-    DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
     def __init__(self, tex_document, output_fn, encoding="UTF-8"):
         """tex_document should be either a full TeX document as a string or a
         class which implements the __str__ method."""
         self.tex_document = tex_document
         self.output_name = output_fn
         self.__encoding = encoding
+        self.__format = Format.Png
         self.__parsed_data = None
         self.__dpi = 100
         self.__background = 'transparent'
@@ -77,6 +84,13 @@ class Tex2img:
         if base_name and not os.path.exists(base_name):
             os.makedirs(base_name)
 
+
+    def set_format(self, fmt):
+        """Set output format
+        :param fmt  The output format (enum Format)"""
+        if not isinstance(fmt, Format):
+            raise ValueError("Enumeration of type Format expected.")
+        self.__format = fmt
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images."""
@@ -118,8 +132,7 @@ class Tex2img:
 
 
     def create_dvi(self, dvi_fn):
-        """
-        Call LaTeX to produce a dvi file with the given LaTeX document.
+        """Call LaTeX to produce a dvi file with the given LaTeX document.
         Temporary files will be removed, even in the case of a LaTeX error.
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
@@ -162,48 +175,20 @@ class Tex2img:
             else:
                 remove_all(tex_fn, aux_fn, log_fn)
 
-    def create_png(self, dvi_fn):
-        """Create a PNG file from a given dvi file. The side effect is the PNG
-        file being written to disk.
-        :param dvi_fn   Dvi file name
-        :return dimensions for embedding into an HTML document
-        :raises ValueError raised whenever dvipng output coudln't be parsed
-        """
-        cmd = ['dvipng', '-q*', '-D', str(self.__dpi),
-                # colors
-                '-bg', self.__background, '-fg', self.__foreground,
-                '--height*', '--depth*', '--width*', # print information for embedding
-                '-o', self.output_name, dvi_fn]
-        data = None
-        try:
-            data = Tex2img.call(cmd)
-        except subprocess.SubprocessError:
-            remove_all(self.output_name)
-            raise
-        except FileNotFoundError:
-            # `dvipng` is missing, give suggestions on how to install it
-            text = "Command `%s` not found." % cmd[0]
-            if shutil.which('dpkg'):
-                text += ' Install it using `sudo apt install dvipng`'
-            else:
-                text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
-            raise subprocess.SubprocessError(text)
-        finally:
-            remove_all(dvi_fn)
-        for line in data.split('\n'):
-            found = Tex2img.DVIPNG_REGEX.search(line)
-            if found:
-                return dict(zip(['depth', 'height', 'width'], found.groups()))
-        raise ValueError("Could not parse dvi output: " + repr(data))
+    def create_image(self, dvi_fn):
+        if self.__format == Format.Png:
+            return create_png(dvi_fn, self.output_name, str(self.__dpi),
+                    self.__background, self.__foreground)
 
     def convert(self):
-        """Convert the TeX document into an image.
-        This calls create_dvi and create_png but will not return anything. Thre
+        """Convert the TeX document into an image. The output format is PNG by
+        default, but can be influenced by set_format beforehand.
+        This calls create_dvi and create_image but will not return anything. The
         result should be retrieved using get_positioning_info()."""
         dvi = os.path.join(os.path.splitext(self.output_name)[0] + '.dvi')
         try:
             self.create_dvi(dvi)
-            self.__parsed_data = self.create_png(dvi)
+            self.__parsed_data = self.create_image(dvi)
         except OSError:
             remove_all(self.output_name)
             raise
@@ -227,6 +212,7 @@ class Tex2img:
             if lineno:
                 line = line[:lineno.span()[0]] + line[lineno.span()[1]:]
             return line
+        return None
 
 def fontsize2dpi(size_pt):
     """This function calculates the DPI for the resulting image. Depending on
@@ -235,4 +221,44 @@ def fontsize2dpi(size_pt):
     <dpi> = <font_px> * 72.27 / 10 [px * TeXpt/in / TeXpt]"""
     size_px = size_pt * 1.3333333 # and more 3s!
     return size_px * 72.27 / 10
+
+def create_png(dvi_fn, output_name, dpi, background='transparent',
+        foreground='rgb 0 0 0'):
+    """Create a PNG file from a given dvi file. The side effect is the PNG file
+    being written to disk.
+    :param dvi_fn       Dvi file name
+    :param output_name  Output file name
+    :param dpi          Output resolution
+    :param background   Background colour (default: transparent)
+    :param foreground   Foreground Colour (default black == 'rgb 0 0 0')
+    :return dimensions for embedding into an HTML document
+    :raises ValueError raised whenever dvipng output coudln't be parsed"""
+    if not output_name:
+        raise ValueError("Empty output_name")
+    cmd = ['dvipng', '-q*', '-D', str(dpi),
+            # colors
+            '-bg', background, '-fg', foreground,
+            '--height*', '--depth*', '--width*', # print information for embedding
+            '-o', output_name, dvi_fn]
+    data = None
+    try:
+        data = Tex2img.call(cmd)
+    except subprocess.SubprocessError:
+        remove_all(output_name)
+        raise
+    except FileNotFoundError:
+        # `dvipng` is missing, give suggestions on how to install it
+        text = "Command `%s` not found." % cmd[0]
+        if shutil.which('dpkg'):
+            text += ' Install it using `sudo apt install dvipng`'
+        else:
+            text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
+        raise subprocess.SubprocessError(text)
+    finally:
+        remove_all(dvi_fn)
+    for line in data.split('\n'):
+        found = DVIPNG_REGEX.search(line)
+        if found:
+            return dict(zip(['depth', 'height', 'width'], found.groups()))
+    raise ValueError("Could not parse dvi output: " + repr(data))
 

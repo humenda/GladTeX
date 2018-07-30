@@ -105,7 +105,7 @@ class test_imagecreation(unittest.TestCase):
         i = image.Tex2img(doc("\\sum\\limits_{i=0}^{\\infty} i^ie^i"), 'foo.png')
         i.create_dvi('foo.dvi')
         image.Tex2img.call = dvipng_mock
-        i.create_png('foo.dvi')
+        i.create_image('foo.dvi')
         self.assertTrue(os.path.exists('foo.png'))
     def create_intermediate_files(self, file_name):
         files = ['tex', 'log', 'aux', 'dvi']
@@ -120,7 +120,7 @@ class test_imagecreation(unittest.TestCase):
         self.create_intermediate_files('foo')
         i.create_dvi('foo.dvi')
         image.Tex2img.call = dvipng_mock
-        i.create_png('foo.dvi')
+        i.create_image('foo.dvi')
         for intermediate_file in files:
             self.assertFalse(os.path.exists(intermediate_file))
 
@@ -140,7 +140,7 @@ class test_imagecreation(unittest.TestCase):
             self.assertFalse(os.path.exists('foo.aux'))
 
         try:
-            i.create_png('foo.dvi')
+            i.create_image('foo.dvi')
         except SubprocessError:
             self.assertFalse(os.path.exists('foo.dvi'))
 
@@ -151,7 +151,7 @@ class test_imagecreation(unittest.TestCase):
         # set dvi output call
         image.Tex2img.call = lambda x, y=9: \
                 'This is dvipng 1.14 Copyright 2002-2010 Jan-Ake Larsson\n depth=3 height=9 width=22'
-        posdata = i.create_png('foo.dvi')
+        posdata = i.create_image('foo.dvi')
         self.assertTrue('height' in posdata)
         self.assertTrue('width' in posdata)
 

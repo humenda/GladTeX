@@ -189,7 +189,7 @@ class CachedConverter:
             style (displaymath, boolean) as a dictionary with the keys in
             parenthesis"""
         if not self.__base_path_exists: # check whether it exists
-            if not os.path.exists(self.__base_path):
+            if self.__base_path and not os.path.exists(self.__base_path):
                 os.makedirs(self.__base_path)
             self.__base_path_exists = True
         latex = typesetting.LaTeXDocument(formula)
