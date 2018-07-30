@@ -3,6 +3,7 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 from subprocess import SubprocessError
 
 import gleetex.image as image
@@ -42,7 +43,7 @@ def latex_error_mock(_cmd, cwd=None):
     raise SubprocessError(LATEX_ERROR_OUTPUT)
 
 #pylint: disable=unused-argument
-def dvipng_mock(cmd, cwd=None):
+def dvipng_mock(cmd, **kwargs):
     """Mock an error case."""
     fn = None
     try:
@@ -114,12 +115,10 @@ class test_imagecreation(unittest.TestCase):
                 f.write("blah blah")
 
 
+    @patch('gleetex.image.proc_call', dvipng_mock)
     def test_intermediate_files_are_removed(self):
         files = ['foo.tex', 'foo.log', 'foo.aux', 'foo.dvi']
         i = image.Tex2img(doc('\\hat{x}'), 'foo.png')
-        self.create_intermediate_files('foo')
-        i.create_dvi('foo.dvi')
-        image.Tex2img.call = dvipng_mock
         i.create_image('foo.dvi')
         for intermediate_file in files:
             self.assertFalse(os.path.exists(intermediate_file))

@@ -21,7 +21,7 @@ def remove_all(*files):
         pass
 
 
-def proc_call(cmd, cwd=None):
+def proc_call(cmd, cwd=None, install_recommends=True):
     """Execute cmd (list of arguments) as a subprocess. Returned is a tuple with
     stdout and stderr, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
@@ -49,6 +49,14 @@ def proc_call(cmd, cwd=None):
             sys.stderr.write("\nInterrupted; ")
             import traceback
             traceback.print_exc(file=sys.stderr)
+        except FileNotFoundError:
+            # program missing, try to help
+            text = "Command `%s` not found." % cmd[0]
+            if install_recommends and shutil.which('dpkg'):
+                text += ' Install it using `sudo apt install ' + install_recommends
+            else:
+                text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
+            raise subprocess.SubprocessError(text) from None
         if isinstance(data, list):
             return '\n'.join(data)
         return data
@@ -66,7 +74,6 @@ class Tex2img:
     the issue.
     The background of the PNG files will be transparent by default.
     """
-    call = proc_call
     def __init__(self, tex_document, output_fn, encoding="UTF-8"):
         """tex_document should be either a full TeX document as a string or a
         class which implements the __str__ method."""
@@ -150,7 +157,7 @@ class Tex2img:
         with open(tex_fn, mode='w', encoding=encoding) as tex:
             tex.write(str(self.tex_document))
         try:
-            Tex2img.call(cmd, cwd=path)
+            proc_call(cmd, cwd=path, install_recommends='texlive-recommended')
         except subprocess.SubprocessError as e:
             remove_all(dvi_fn)
             msg = ''
@@ -161,14 +168,6 @@ class Tex2img:
                 else:
                     msg += str(e.args[0])
             raise subprocess.SubprocessError(msg) # propagate subprocess error
-        except FileNotFoundError:
-            # `latex` is missing, give suggestions on how to install it
-            text = "Command `%s` not found." % cmd[0]
-            if shutil.which('dpkg'):
-                text += ' Install it using `sudo apt install texlive-latex-recommended preview-latex-style`'
-            else:
-                text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
-                raise subprocess.SubprocessError(text)
         finally:
             if self.__keep_latex_source:
                 remove_all(aux_fn, log_fn)
@@ -179,6 +178,11 @@ class Tex2img:
         if self.__format == Format.Png:
             return create_png(dvi_fn, self.output_name, str(self.__dpi),
                     self.__background, self.__foreground)
+        elif self.__format == Format.Svg:
+            return create_svg(dvi_fn, self.output_name, self.__background,
+                    self.__foreground)
+        else:
+            raise NotImplementedError("Unknown format %s" % self.__format)
 
     def convert(self):
         """Convert the TeX document into an image. The output format is PNG by
@@ -242,18 +246,39 @@ def create_png(dvi_fn, output_name, dpi, background='transparent',
             '-o', output_name, dvi_fn]
     data = None
     try:
-        data = Tex2img.call(cmd)
+        data = proc_call(cmd, install_recommends='dvipng')
     except subprocess.SubprocessError:
         remove_all(output_name)
         raise
-    except FileNotFoundError:
-        # `dvipng` is missing, give suggestions on how to install it
-        text = "Command `%s` not found." % cmd[0]
-        if shutil.which('dpkg'):
-            text += ' Install it using `sudo apt install dvipng`'
-        else:
-            text += ' Install a TeX distribution of your choice, e.g. MikTeX or TeXlive.'
-        raise subprocess.SubprocessError(text)
+    finally:
+        remove_all(dvi_fn)
+    for line in data.split('\n'):
+        found = DVIPNG_REGEX.search(line)
+        if found:
+            return dict(zip(['depth', 'height', 'width'], found.groups()))
+    raise ValueError("Could not parse dvi output: " + repr(data))
+
+def create_svg(dvi_fn, output_name, background='transparent',
+        foreground='rgb 0 0 0'):
+    """Create a SVG file from a given dvi file. The side effect is the SVG file
+    being written to disk.
+    :param dvi_fn       Dvi file name
+    :param output_name  Output file name
+    :param background   Background colour (default: transparent)
+    :param foreground   Foreground Colour (default black == 'rgb 0 0 0')
+    :return dimensions for embedding into an HTML document
+    :raises ValueError raised whenever dvipng output coudln't be parsed"""
+    if not output_name:
+        raise ValueError("Empty output_name")
+    cmd = ['dvisvgm', '-q*', '-o', output_name, dvi_fn]
+    #ToDo: colour handling
+    #'-bg', background, '-fg', foreground,
+    data = None
+    try:
+        data = proc_call(cmd, install_recommends='texlive-binaries')
+    except subprocess.SubprocessError:
+        remove_all(output_name)
+        raise
     finally:
         remove_all(dvi_fn)
     for line in data.split('\n'):

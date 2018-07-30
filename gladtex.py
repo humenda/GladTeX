@@ -84,7 +84,7 @@ class Main:
         cmd.add_argument('-r', metavar='DPI', dest='dpi', default='115',
                 help=("Set resolution (size of images) to 'dpi' (115 for a "
                     "fontsize of 12pt); if the suffix 'pt' is added, the "
-                    "resolution wil be calculated from the given font size."))
+                    "resolution will be calculated from the given font size."))
         cmd.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
