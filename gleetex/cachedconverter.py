@@ -75,7 +75,7 @@ class CachedConverter:
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None,
-                'keep_latex_source': False}
+                'keep_latex_source': False, 'svg': False}
         self.__encoding = encoding
         self.__replace_nonascii = False
 
@@ -83,7 +83,7 @@ class CachedConverter:
     def set_option(self, option, value):
         """Set one of the options accepted for gleetex.image.Tex2img. `option`
         must be one of dpi, transparency, background_color, foreground_color,
-        preamble, latex_maths_env, keep_latex_source."""
+        preamble, latex_maths_env, keep_latex_source, svg."""
         if not option in self.__options.keys():
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
@@ -211,6 +211,8 @@ class CachedConverter:
         for option, value in self.__options.items():
             if value and hasattr(conv, 'set_' + option):
                 getattr(conv, 'set_' + option)(value)
+        if self.__options['svg']:
+            conv.set_format(image.Format.Svg)
         conv.convert()
         pos = conv.get_positioning_info()
         return {'pos' : pos, 'path' : output_path, 'displaymath' :

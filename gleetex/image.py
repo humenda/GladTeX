@@ -3,6 +3,7 @@
 Each formula is saved as an image, either as PNG or SVG. SVG is advised, since
 it is a properly scalable format.
 """
+import enum
 import os
 import re
 import shutil
@@ -10,15 +11,16 @@ import subprocess
 import sys
 
 DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
+DVISVGM_REGEX = re.compile(r"^\s*width=(.*?)pt, height=(.*?)pt, depth=(.*?)pt")
 
 def remove_all(*files):
     """Guarded remove of files (rm -f); no exception is thrown if a file
     couldn't be removed."""
-    try:
-        for file in files:
+    for file in files:
+        try:
             os.remove(file)
-    except OSError:
-        pass
+        except OSError as e:
+            pass
 
 
 def proc_call(cmd, cwd=None, install_recommends=True):
@@ -62,10 +64,10 @@ def proc_call(cmd, cwd=None, install_recommends=True):
         return data
 
 #pylint: disable=too-few-public-methods
-class Format:
+class Format(enum.Enum):
     """Chose the image output format."""
-    Png = 0
-    Svg = 1
+    Png = 'png'
+    Svg = 'svg'
 
 class Tex2img:
     """Convert a TeX document string into a png file.
@@ -74,11 +76,12 @@ class Tex2img:
     the issue.
     The background of the PNG files will be transparent by default.
     """
-    def __init__(self, tex_document, output_fn, encoding="UTF-8"):
-        """tex_document should be either a full TeX document as a string or a
-        class which implements the __str__ method."""
-        self.tex_document = tex_document
-        self.output_name = output_fn
+    def __init__(self, fmt, encoding="UTF-8"):
+        if not isinstance(fmt, Format):
+            raise ValueError("Enumeration of type Format expected."+str(fmt))
+        self.__format = fmt
+
+
         self.__encoding = encoding
         self.__format = Format.Png
         self.__parsed_data = None
@@ -87,17 +90,6 @@ class Tex2img:
         self.__foreground = 'rgb 0 0 0'
         self.__keep_latex_source = False
         # create directory for image if that doesn't exist
-        base_name = os.path.split(output_fn)[0]
-        if base_name and not os.path.exists(base_name):
-            os.makedirs(base_name)
-
-
-    def set_format(self, fmt):
-        """Set output format
-        :param fmt  The output format (enum Format)"""
-        if not isinstance(fmt, Format):
-            raise ValueError("Enumeration of type Format expected.")
-        self.__format = fmt
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images."""
@@ -112,8 +104,8 @@ class Tex2img:
         self.__background = ('transparent' if flag else 'rgb 1 1 1')
 
     def __check_rgb(self, rgb_list):
-        """Check whether a list of RGB colors is correct. It must contain three
-        broken decimals with 0 <= x <= 1."""
+        """DVIPNG takes RGB colours in the same format as LaTeX, as a
+        space-delimited list of broken decimals."""
         if not isinstance(rgb_list, (list, tuple)) or len(rgb_list) != 3:
             raise ValueError("A list with three broken decimals between 0 and 1 expected.")
         if not all(map((lambda x: x >= 0 and x <= 1), rgb_list)):
@@ -138,12 +130,14 @@ class Tex2img:
         self.__keep_latex_source = flag
 
 
-    def create_dvi(self, dvi_fn):
+    def create_dvi(self, tex_document, dvi_fn):
         """Call LaTeX to produce a dvi file with the given LaTeX document.
         Temporary files will be removed, even in the case of a LaTeX error.
         This method raises a SubprocessError with the helpful part of LaTeX's
         error output."""
         path = os.path.dirname(dvi_fn)
+        if path and not os.path.exists(path):
+            os.makedirs(path)
         if not path:
             path = os.getcwd()
         new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
@@ -155,14 +149,14 @@ class Tex2img:
         cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
         encoding = self.__encoding
         with open(tex_fn, mode='w', encoding=encoding) as tex:
-            tex.write(str(self.tex_document))
+            tex.write(str(tex_document))
         try:
             proc_call(cmd, cwd=path, install_recommends='texlive-recommended')
         except subprocess.SubprocessError as e:
             remove_all(dvi_fn)
             msg = ''
             if e.args:
-                data = self.parse_log(e.args[0])
+                data = self.parse_latex_log(e.args[0])
                 if data:
                     msg += data
                 else:
@@ -175,34 +169,34 @@ class Tex2img:
                 remove_all(tex_fn, aux_fn, log_fn)
 
     def create_image(self, dvi_fn):
-        if self.__format == Format.Png:
-            return create_png(dvi_fn, self.output_name, str(self.__dpi),
-                    self.__background, self.__foreground)
-        elif self.__format == Format.Svg:
-            return create_svg(dvi_fn, self.output_name, self.__background,
-                    self.__foreground)
-        else:
-            raise NotImplementedError("Unknown format %s" % self.__format)
+        """Create the image containing the formula, using either dvisvgm or
+        dvipng."""
+        dirname = os.path.dirname(dvi_fn)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
 
-    def convert(self):
-        """Convert the TeX document into an image. The output format is PNG by
-        default, but can be influenced by set_format beforehand.
-        This calls create_dvi and create_image but will not return anything. The
-        result should be retrieved using get_positioning_info()."""
-        dvi = os.path.join(os.path.splitext(self.output_name)[0] + '.dvi')
+        output_fn = os.path.splitext(dvi_fn)[0] + self.__format.value
+        if self.__format == Format.Png:
+            return create_png(dvi_fn, output_fn, str(self.__dpi),
+                    self.__background, self.__foreground)
+        return create_svg(dvi_fn, output_fn, self.__background,
+                self.__foreground)
+
+    def convert(self, tex_document, base_name):
+        """Convert the given TeX document into an image. The base name is used
+        to create the required intermediate files and the resulting file will be
+        made of the base_name and the format-specific file extension.
+        This function returns the positioning information used in the CSS style
+        attribute."""
+        dvi = '%s.dvi' % base_name
         try:
-            self.create_dvi(dvi)
-            self.__parsed_data = self.create_image(dvi)
+            self.create_dvi(tex_document, dvi)
+            return self.create_image(dvi)
         except OSError:
-            remove_all(self.output_name)
+            remove_all('%s.%s' % (base_name, self.__format.value))
             raise
 
-    def get_positioning_info(self):
-        """Return positioning information to position created image in the HTML
-        page."""
-        return self.__parsed_data
-
-    def parse_log(self, logdata):
+    def parse_latex_log(self, logdata):
         """Parse the LaTeX error output and return the relevant part of it."""
         if not logdata:
             return None
@@ -270,7 +264,7 @@ def create_svg(dvi_fn, output_name, background='transparent',
     :raises ValueError raised whenever dvipng output coudln't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
-    cmd = ['dvisvgm', '-q*', '-o', output_name, dvi_fn]
+    cmd = ['dvisvgm', '-o', output_name, dvi_fn, '--bbox=preview']
     #ToDo: colour handling
     #'-bg', background, '-fg', foreground,
     data = None
@@ -282,8 +276,11 @@ def create_svg(dvi_fn, output_name, background='transparent',
     finally:
         remove_all(dvi_fn)
     for line in data.split('\n'):
-        found = DVIPNG_REGEX.search(line)
+        found = DVISVGM_REGEX.search(line)
         if found:
-            return dict(zip(['depth', 'height', 'width'], found.groups()))
-    raise ValueError("Could not parse dvi output: " + repr(data))
+            pos = dict(zip(['width', 'height', 'depth'],
+                # convert from pt to px
+                (float(v) * 1.3333333 for v in found.groups())))
+            return pos
+    raise ValueError("Could not parse dvisvgm output: " + repr(data))
 

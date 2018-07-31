@@ -88,6 +88,8 @@ class Main:
         cmd.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
+        cmd.add_argument('-s', '--svg', action='store_true', dest='svg',
+                help="Use SVG instead of PNG for images")
         cmd.add_argument("-u", metavar="URL", dest='url',
                 help="URL to image files (relative links are default)")
         cmd.add_argument('input', help="Input .htex file with LaTeX " +
@@ -251,7 +253,7 @@ class Main:
         """Apply options from command line parser to the converter."""
         # set options
         options_to_query = ['preamble', 'latex_maths_env',
-                'keep_latex_source']
+                'svg', 'keep_latex_source']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:
