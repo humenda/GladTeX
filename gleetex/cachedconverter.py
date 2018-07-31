@@ -12,6 +12,7 @@ import subprocess
 
 from . import caching, image, typesetting
 from .caching import normalize_formula
+from .image import Format
 
 class ConversionException(Exception):
     """This exception is raised whenever a problem occurs during conversion.
@@ -63,7 +64,6 @@ class CachedConverter:
     :param encoding The encoding for the LaTeX document, default None
     """
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
-    _converter = image.Tex2img # can be statically altered for testing purposes
 
     def __init__(self, base_path, keep_old_cache=True, encoding=None):
         cache_path = os.path.join(base_path,
@@ -72,6 +72,7 @@ class CachedConverter:
         self.__base_path_exists = False
         self.__cache = caching.ImageCache(cache_path,
                 keep_old_cache=keep_old_cache)
+        self.__converter = None
         self.__options = {'dpi' : None, 'transparency' : None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None,
@@ -95,21 +96,27 @@ class CachedConverter:
         self.__replace_nonascii = flag
 
 
-    def convert_all(self, base_path, formulas):
+    def convert_all(self, formulas):
         """convert_all(formulas)
         Convert all formulas using self.convert concurrently. Each element of
         `formulas` must be a tuple containing (formula, displaymath,
-        Formulas already contained in the cache are not converted.
-        """
-        formulas_to_convert = self._get_formulas_to_convert(base_path, formulas)
-        self._convert_concurrently(formulas_to_convert)
+        Formulas already contained in the cache are not converted."""
+        formulas_to_convert = self._get_formulas_to_convert(formulas)
+        if formulas_to_convert:
+            self.__converter = image.Tex2img(Format.Svg
+                    if self.__options['svg'] else Format.Png)
+            # apply configured image output options
+            for option, value in self.__options.items():
+                if value and hasattr(self.__converter, 'set_' + option):
+                    getattr(self.__converter, 'set_' + option)(value)
+            self._convert_concurrently(formulas_to_convert)
 
-    def _get_formulas_to_convert(self, base_path, formulas):
+    def _get_formulas_to_convert(self, formulas):
         """Return a list of formulas to convert, along with their count in the
         global list of formulas of the document being converted and the file
         name. Function was decomposed for better testability."""
         formulas_to_convert = [] # find as many file names as equations
-        eqn_path = lambda x: os.path.join(base_path, 'eqn%03d.png' % x)
+        eqn_path = lambda x: os.path.join(self.__base_path, 'eqn%03d.png' % x)
 
         # is (formula, display_math) already in the list of formulas to convert;
         # displaymath is important since formulas look different in inline maths
@@ -133,16 +140,13 @@ class CachedConverter:
     def _convert_concurrently(self, formulas_to_convert):
         """The actual concurrent conversion process. Method is intended to be
         called from convert_all()."""
-        # use roughly 2,5 * number of processors as amount of threads (I/O
-        # bound); but don't overdo it with fivetimes like the thread pool does
-        # it (gladtex might be in turn run in parallel on a machine)
         thread_count = int(multiprocessing.cpu_count() * 2.5)
         # convert missing formulas
         with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
             # start conversion and mark each thread with its formula, position
             # in the source file and formula_count (index into a global list of
             # formulas)
-            jobs = {executor.submit(self.convert, eqn, path, dsp): (eqn, pos, count)
+            jobs = {executor.submit(self.__convert, eqn, path, dsp): (eqn, pos, count)
                 for (eqn, pos, path, dsp, count) in formulas_to_convert}
             error_occurred = None
             for future in concurrent.futures.as_completed(jobs):
@@ -153,8 +157,6 @@ class CachedConverter:
                 try:
                     data = future.result()
                 except subprocess.SubprocessError as e:
-                    if 'inputenc Error' in e.args[0]:
-                        print("piep")
                     # retrieve the position (line, pos on line) in the source
                     # document from original formula list
                     if pos_in_src: # missing for the pandocfilter case
@@ -176,12 +178,12 @@ class CachedConverter:
 
 
 
-    def convert(self, formula, output_path, displaymath=False):
+    def __convert(self, formula, output_path, displaymath=False):
         """convert(formula, output_path, displaymath=False)
         Convert given formula with displaymath/inlinemath.
         This method wraps the formula in a tex document, executes all the steps
-        to produce a PNG file and return the positioning information as given by
-        dvipng.
+        to produce a PNG file and return the positioning information for the
+        HTML output. It does not check the cache.
         :param formula formula to convert
         :param output_path image output path
         :param displaymath whether or not to use displaymath during the conversion
@@ -206,15 +208,8 @@ class CachedConverter:
             latex_str = str(latex)
         except ValueError as e: # propagate error
             raise ConversionException(e.args[0], formula, 0, 0, 0)
-        conv = self._converter(latex_str, output_path)
-        # apply configured image output options
-        for option, value in self.__options.items():
-            if value and hasattr(conv, 'set_' + option):
-                getattr(conv, 'set_' + option)(value)
-        if self.__options['svg']:
-            conv.set_format(image.Format.Svg)
-        conv.convert()
-        pos = conv.get_positioning_info()
+        pos = self.__converter.convert(latex_str,
+                os.path.splitext(output_path)[0])
         return {'pos' : pos, 'path' : output_path, 'displaymath' :
             displaymath}
 
@@ -225,4 +220,3 @@ class CachedConverter:
         data = self.__cache.get_data_for(formula, display_math).copy()
         data.update({'formula': formula, 'displaymath': display_math})
         return data
-

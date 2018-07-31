@@ -224,7 +224,7 @@ class Main:
             formulas = [c for c in parsed_document if isinstance(c, (tuple,
                 list))]
         try:
-            conv.convert_all(base_path, formulas)
+            conv.convert_all(formulas)
         except gleetex.cachedconverter.ConversionException as e:
             self.emit_latex_error(e, options.machinereadable,
                     options.replace_nonascii)

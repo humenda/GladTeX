@@ -175,7 +175,7 @@ class Tex2img:
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        output_fn = os.path.splitext(dvi_fn)[0] + self.__format.value
+        output_fn = '%s.%s' % (os.path.splitext(dvi_fn)[0], self.__format.value)
         if self.__format == Format.Png:
             return create_png(dvi_fn, output_fn, str(self.__dpi),
                     self.__background, self.__foreground)

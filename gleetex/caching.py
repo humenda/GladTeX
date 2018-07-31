@@ -70,10 +70,9 @@ class ImageCache:
     improvement. The cache can be written and read from disk.
 
     If the argument keep_old_cache is True, the cache will raise a
-    JsonParserException if
-    that file could not be read (i.e. incompatible GladTeX version). If set to
-    False, it'll discard the cache along with all eqn* files and start with a
-    clean cache.
+    JsonParserException if that file could not be read (i.e. incompatible
+    GladTeX version). If set to False, it'll discard the cache along with all
+    eqn* files and start with a clean cache.
 
     cache = ImageCache()
     c.add_formula('\\tau', # the formulas
@@ -172,15 +171,12 @@ class ImageCache:
         if not isinstance(displaymath, bool):
             raise ValueError("displaymath must be a boolean")
         if os.path.isabs(file_path):
-            raise OSError("The file path to the image may NOT be an absolute path")
+            raise OSError(("The file path to the image may NOT be an absolute "
+                    "path: ") + file_path)
         if '\\' in file_path:
             file_path = file_path.replace('\\', '/')
         if not os.path.exists(file_path):
-            # could be that the current working directory is different
-            test_path = os.path.join(os.path.split(self.__path)[0],
-                    os.path.split(file_path)[1])
-            if not os.path.exists(test_path):
-                raise OSError("cannot add %s to the cache: doesn't exist" %
+            raise OSError("cannot add %s to the cache: doesn't exist" %
                     file_path)
         formula = normalize_formula(formula)
         if not formula in self.__cache:
