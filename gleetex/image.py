@@ -82,9 +82,7 @@ class Tex2img:
         if not isinstance(fmt, Format):
             raise ValueError("Enumeration of type Format expected."+str(fmt))
         self.__format = fmt
-
         self.__encoding = encoding
-        self.__format = Format.Png
         self.__parsed_data = None
         self.__size = (115, None)
         self.__background = 'transparent'
@@ -285,7 +283,7 @@ def create_svg(dvi_fn, output_name, background='transparent',
     :raises ValueError raised whenever dvipng output coudln't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
-    cmd = ['dvisvgm', '-o', output_name, dvi_fn, '--bbox=preview']
+    cmd = ['dvisvgm', '-o', output_name, '--bbox=preview', dvi_fn]
     #ToDo: colour handling
     #'-bg', background, '-fg', foreground,
     data = None

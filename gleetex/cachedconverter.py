@@ -82,9 +82,10 @@ class CachedConverter:
 
 
     def set_option(self, option, value):
-        """Set one of the options accepted for gleetex.image.Tex2img. `option`
-        must be one of dpi, transparency, background_color, foreground_color,
-        preamble, latex_maths_env, keep_latex_source, svg."""
+        """Set one of the options accepted for gleetex.image.Tex2img. It is a
+        proxy function.
+        `option` must be one of dpi, fontsize, transparency, background_color,
+        foreground_color, preamble, latex_maths_env, keep_latex_source, svg."""
         if not option in self.__options.keys():
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
@@ -116,7 +117,10 @@ class CachedConverter:
         global list of formulas of the document being converted and the file
         name. Function was decomposed for better testability."""
         formulas_to_convert = [] # find as many file names as equations
-        eqn_path = lambda x: os.path.join(self.__base_path, 'eqn%03d.png' % x)
+        file_ext = (Format.Svg.value if self.__options['svg']
+                else Format.Png.value)
+        eqn_path = lambda x: os.path.join(self.__base_path, 'eqn%03d.%s' % (x,
+                file_ext))
 
         # is (formula, display_math) already in the list of formulas to convert;
         # displaymath is important since formulas look different in inline maths
@@ -182,7 +186,7 @@ class CachedConverter:
         """convert(formula, output_path, displaymath=False)
         Convert given formula with displaymath/inlinemath.
         This method wraps the formula in a tex document, executes all the steps
-        to produce a PNG file and return the positioning information for the
+        to produce a image and return the positioning information for the
         HTML output. It does not check the cache.
         :param formula formula to convert
         :param output_path image output path
