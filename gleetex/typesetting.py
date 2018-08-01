@@ -137,11 +137,14 @@ def get_matching_brace(string, pos_of_opening_brace):
 class LaTeXDocument:
     """This class represents a LaTeX document. It is intended to contain an
     equation as main content and properties to customize it. Its main purpose is
-    to provide a str method which will serialize it to a full LaTeX document."""
+    to provide a str method which will serialize it to a full LaTeX document.
+    The public member fontsize can be used to specify a font size in pt for the
+    LaTeX document declaration and defaults to 12."""
     def __init__(self, eqn):
         self.__encoding = None
         self.__equation = eqn
         self.__displaymath = False
+        self.fontsize = 12
         self._preamble = ''
         self.__maths_env = None
         self.__replace_nonascii = False
@@ -236,11 +239,12 @@ class LaTeXDocument:
         formula = self.__equation.lstrip().rstrip()
         if self.__replace_nonascii:
             formula = escape_unicode_maths(formula, replace_alphabeticals=True)
-        return ("\\documentclass[fontsize=12pt, fleqn]{scrartcl}\n\n%s\n"
+        fontsize = 'fontsize=%ipt' % self.fontsize
+        return ("\\documentclass[%s, fleqn]{scrartcl}\n\n%s\n"
             "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
             "%% must be last one, see doc\n\n\\begin{document}\n"
             "\\noindent%%\n%s%s%s\n"
-            "\\end{document}\n") % (preamble, opening, formula, closing)
+            "\\end{document}\n") % (fontsize, preamble, opening, formula, closing)
 
 
 def increase_readability(formula, replace_nonascii=False):

@@ -54,6 +54,8 @@ class Main:
         cmd.add_argument('-e', dest='latex_maths_env',
                 help="Set custom maths environment to surround the formula" + \
                         " (e.g. flalign)")
+        cmd.add_argument('-f', metavar='SIZE', dest='fontsize', default=12,
+                help="Set font size in pt (default 12)")
         cmd.add_argument('-E', dest='encoding', default=None,
                 help="Overwrite encoding to use (default UTF-8)")
         cmd.add_argument('-i', metavar='CLASS', dest='inlinemath',
@@ -81,10 +83,9 @@ class Main:
                 help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
                     "from stdin, convert the images, change math blocks to "
                     "images and write JSON to stdout")
-        cmd.add_argument('-r', metavar='DPI', dest='dpi', default='115',
-                help=("Set resolution (size of images) to 'dpi' (115 for a "
-                    "fontsize of 12pt); if the suffix 'pt' is added, the "
-                    "resolution will be calculated from the given font size."))
+        cmd.add_argument('-r', '--resolution', metavar='DPI', dest='dpi',
+                default=None,
+                help="Set resolution in DPI; also see `-f`")
         cmd.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
@@ -118,6 +119,13 @@ class Main:
                         "num,num,num where num is a broken decimal between 0 " +
                         "and 1.")
             sys.exit(13)
+        if opts.fontsize and opts.dpi:
+            print("Options -f and -d can't be used at the same time.")
+            sys.exit(14)
+        if opts.dpi and opts.svg:
+            print(("SVG output format can't be used with a resolution "
+                    "parameter, try to set the font size using `-f`."))
+            sys.exit(14)
 
     def get_input_output(self, options):
         """Determine whether GladTeX is reading from stdin/file, writing to
@@ -260,12 +268,10 @@ class Main:
                 if option in ('True', 'False', 'false', 'true'):
                     option = option == 'True'
                 conv.set_option(option_str, option)
-        dpi = None
-        if options.dpi.endswith('pt'):
-            dpi = gleetex.image.fontsize2dpi(float(options.dpi[:-2]))
-        else:
-            dpi = float(options.dpi)
-        conv.set_option("dpi", dpi)
+        if options.dpi:
+            conv.set_option("dpi", float(dpi))
+        elif options.fontsize:
+            conv.set_option("fontsize", options.fontsize)
         # colors need special handling
         for option_str in ['foreground_color', 'background_color']:
             option = getattr(options, option_str)

@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import sys
 
+from .typesetting import LaTeXDocument
+
 DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
 DVISVGM_REGEX = re.compile(r"^\s*width=(.*?)pt, height=(.*?)pt, depth=(.*?)pt")
 
@@ -19,7 +21,7 @@ def remove_all(*files):
     for file in files:
         try:
             os.remove(file)
-        except OSError as e:
+        except OSError:
             pass
 
 
@@ -81,21 +83,30 @@ class Tex2img:
             raise ValueError("Enumeration of type Format expected."+str(fmt))
         self.__format = fmt
 
-
         self.__encoding = encoding
         self.__format = Format.Png
         self.__parsed_data = None
-        self.__dpi = 100
+        self.__size = (115, None)
         self.__background = 'transparent'
         self.__foreground = 'rgb 0 0 0'
         self.__keep_latex_source = False
         # create directory for image if that doesn't exist
 
     def set_dpi(self, dpi):
-        """Set output resolution for formula images."""
+        """Set output resolution for formula images. This has no effect ifthe
+        output format is SVG. It will automatically overwrite a font size, if
+        set."""
         if not isinstance(dpi, (int, float)):
             raise TypeError("Dpi must be an integer or floating point number")
-        self.__dpi = int(dpi)
+        self.__size = (int(dpi), None)
+
+    def set_fontsize(self, size):
+        """Set font size for formulas. This will be automatically translated
+        into a DPI resolution for PNG images and taken literally for SVG
+        graphics."""
+        if not isinstance(size, (int, float)):
+            raise TypeError("Dpi must be an integer or floating point number")
+        self.__size = (None, float(size))
 
     def set_transparency(self, flag):
         """Set whether or not the background of an image is transparent."""
@@ -108,7 +119,7 @@ class Tex2img:
         space-delimited list of broken decimals."""
         if not isinstance(rgb_list, (list, tuple)) or len(rgb_list) != 3:
             raise ValueError("A list with three broken decimals between 0 and 1 expected.")
-        if not all(map((lambda x: x >= 0 and x <= 1), rgb_list)):
+        if not all(map((lambda x: 0 <= x <= 1), rgb_list)):
             raise ValueError("RGB values must between 0 and 1")
 
     def set_background_color(self, rgb_list):
@@ -142,14 +153,16 @@ class Tex2img:
             path = os.getcwd()
         new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
 
+        if self.__size[1]: # font size in pt
+            tex_document.fontsize = self.__size[1]
         tex_fn = new_extension('tex')
         aux_fn = new_extension('aux')
         log_fn = new_extension('log')
         cmd = None
-        cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
         encoding = self.__encoding
         with open(tex_fn, mode='w', encoding=encoding) as tex:
             tex.write(str(tex_document))
+        cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
         try:
             proc_call(cmd, cwd=path, install_recommends='texlive-recommended')
         except subprocess.SubprocessError as e:
@@ -177,8 +190,12 @@ class Tex2img:
 
         output_fn = '%s.%s' % (os.path.splitext(dvi_fn)[0], self.__format.value)
         if self.__format == Format.Png:
-            return create_png(dvi_fn, output_fn, str(self.__dpi),
+            dpi = (fontsize2dpi(self.__size[1])  if self.__size[1]
+                    else self.__size[0])
+            return create_png(dvi_fn, output_fn,dpi,
                     self.__background, self.__foreground)
+        if not self.__size[1]:
+            self.__size[1] = 12 # 12 pt
         return create_svg(dvi_fn, output_fn, self.__background,
                 self.__foreground)
 
@@ -188,6 +205,9 @@ class Tex2img:
         made of the base_name and the format-specific file extension.
         This function returns the positioning information used in the CSS style
         attribute."""
+        if not isinstance(tex_document, LaTeXDocument):
+            raise TypeError(("expected object of type typesetting.LaTeXDocument,"
+                    " got %s") % type(tex_document))
         dvi = '%s.dvi' % base_name
         try:
             self.create_dvi(tex_document, dvi)
@@ -258,6 +278,7 @@ def create_svg(dvi_fn, output_name, background='transparent',
     being written to disk.
     :param dvi_fn       Dvi file name
     :param output_name  Output file name
+    :param size         font size in pt
     :param background   Background colour (default: transparent)
     :param foreground   Foreground Colour (default black == 'rgb 0 0 0')
     :return dimensions for embedding into an HTML document
@@ -283,4 +304,3 @@ def create_svg(dvi_fn, output_name, background='transparent',
                 (float(v) * 1.3333333 for v in found.groups())))
             return pos
     raise ValueError("Could not parse dvisvgm output: " + repr(data))
-

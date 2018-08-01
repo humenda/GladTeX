@@ -73,7 +73,7 @@ class CachedConverter:
         self.__cache = caching.ImageCache(cache_path,
                 keep_old_cache=keep_old_cache)
         self.__converter = None
-        self.__options = {'dpi' : None, 'transparency' : None,
+        self.__options = {'dpi': None, 'transparency': None, 'fontsize': None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None,
                 'keep_latex_source': False, 'svg': False}
@@ -204,11 +204,7 @@ class CachedConverter:
             latex.set_encoding(self.__encoding)
         if self.__replace_nonascii:
             latex.set_replace_nonascii(True)
-        try:
-            latex_str = str(latex)
-        except ValueError as e: # propagate error
-            raise ConversionException(e.args[0], formula, 0, 0, 0)
-        pos = self.__converter.convert(latex_str,
+        pos = self.__converter.convert(latex,
                 os.path.splitext(output_path)[0])
         return {'pos' : pos, 'path' : output_path, 'displaymath' :
             displaymath}
