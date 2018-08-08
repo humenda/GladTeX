@@ -283,7 +283,7 @@ def create_svg(dvi_fn, output_name, background='transparent',
     :raises ValueError raised whenever dvipng output coudln't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
-    cmd = ['dvisvgm', '--scale=1.2', '--no-fonts', '-o', output_name,
+    cmd = ['dvisvgm', '--exact', '--scale=1.2', '--no-fonts', '-o', output_name,
             '--bbox=preview', dvi_fn]
     #ToDo: colour handling
     #'-bg', background, '-fg', foreground,
