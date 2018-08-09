@@ -268,7 +268,8 @@ def create_png(dvi_fn, output_name, dpi, background='transparent',
     for line in data.split('\n'):
         found = DVIPNG_REGEX.search(line)
         if found:
-            return dict(zip(['depth', 'height', 'width'], found.groups()))
+            return dict(zip(['depth', 'height', 'width'],
+                            (float(v) for v in found.groups())))
     raise ValueError("Could not parse dvi output: " + repr(data))
 
 def create_svg(dvi_fn, output_name, background='transparent',
