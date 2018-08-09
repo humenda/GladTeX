@@ -69,7 +69,6 @@ class CachedConverter:
         cache_path = os.path.join(base_path,
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)
         self.__base_path = base_path
-        self.__base_path_exists = False
         self.__cache = caching.ImageCache(cache_path,
                 keep_old_cache=keep_old_cache)
         self.__converter = None
@@ -144,6 +143,11 @@ class CachedConverter:
     def _convert_concurrently(self, formulas_to_convert):
         """The actual concurrent conversion process. Method is intended to be
         called from convert_all()."""
+        if self.__base_path and not os.path.exists(self.__base_path):
+            # create directory *before* it is required in the concurrent
+            # formulacreation step
+            os.makedirs(self.__base_path)
+
         thread_count = int(multiprocessing.cpu_count() * 2.5)
         # convert missing formulas
         with concurrent.futures.ThreadPoolExecutor(max_workers=thread_count) as executor:
@@ -194,10 +198,6 @@ class CachedConverter:
         :return dictionary with position (pos), image path (path) and formula
             style (displaymath, boolean) as a dictionary with the keys in
             parenthesis"""
-        if not self.__base_path_exists: # check whether it exists
-            if self.__base_path and not os.path.exists(self.__base_path):
-                os.makedirs(self.__base_path)
-            self.__base_path_exists = True
         latex = typesetting.LaTeXDocument(formula)
         latex.set_displaymath(displaymath)
         if self.__options['preamble']: # add preamble to LaTeX document
