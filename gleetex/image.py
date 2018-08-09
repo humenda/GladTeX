@@ -13,7 +13,8 @@ import sys
 from .typesetting import LaTeXDocument
 
 DVIPNG_REGEX = re.compile(r"^ depth=(-?\d+) height=(\d+) width=(\d+)")
-DVISVGM_REGEX = re.compile(r"^\s*width=(.*?)pt, height=(.*?)pt, depth=(.*?)pt")
+DVISVGM_DEPTH_REGEX = re.compile(r"^\s*width=.*?pt, height=.*?pt, depth=(.*?)pt")
+DVISVGM_SIZE_REGEX = re.compile(r"^\s*graphic size: (.*?)pt x (.*?)pt")
 
 def remove_all(*files):
     """Guarded remove of files (rm -f); no exception is thrown if a file
@@ -84,7 +85,7 @@ class Tex2img:
         self.__format = fmt
         self.__encoding = encoding
         self.__parsed_data = None
-        self.__size = (115, None)
+        self.__size = [115, None]
         self.__background = 'transparent'
         self.__foreground = 'rgb 0 0 0'
         self.__keep_latex_source = False
@@ -96,7 +97,7 @@ class Tex2img:
         set."""
         if not isinstance(dpi, (int, float)):
             raise TypeError("Dpi must be an integer or floating point number")
-        self.__size = (int(dpi), None)
+        self.__size = [int(dpi), None]
 
     def set_fontsize(self, size):
         """Set font size for formulas. This will be automatically translated
@@ -104,7 +105,7 @@ class Tex2img:
         graphics."""
         if not isinstance(size, (int, float)):
             raise TypeError("Dpi must be an integer or floating point number")
-        self.__size = (None, float(size))
+        self.__size = [None, float(size)]
 
     def set_transparency(self, flag):
         """Set whether or not the background of an image is transparent."""
@@ -267,7 +268,8 @@ def create_png(dvi_fn, output_name, dpi, background='transparent',
     for line in data.split('\n'):
         found = DVIPNG_REGEX.search(line)
         if found:
-            return dict(zip(['depth', 'height', 'width'], found.groups()))
+            return dict(zip(['depth', 'height', 'width'],
+                            (float(v) for v in found.groups())))
     raise ValueError("Could not parse dvi output: " + repr(data))
 
 def create_svg(dvi_fn, output_name, background='transparent',
@@ -283,7 +285,7 @@ def create_svg(dvi_fn, output_name, background='transparent',
     :raises ValueError raised whenever dvipng output coudln't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
-    cmd = ['dvisvgm', '--exact', '--scale=1.2', '--no-fonts', '-o', output_name,
+    cmd = ['dvisvgm', '--exact', '--no-fonts', '-o', output_name,
             '--bbox=preview', dvi_fn]
     #ToDo: colour handling
     #'-bg', background, '-fg', foreground,
@@ -295,11 +297,18 @@ def create_svg(dvi_fn, output_name, background='transparent',
         raise
     finally:
         remove_all(dvi_fn)
+    pos = {}
     for line in data.split('\n'):
-        found = DVISVGM_REGEX.search(line)
-        if found:
-            pos = dict(zip(['width', 'height', 'depth'],
-                # convert from pt to px
-                (float(v) * 1.3333333 for v in found.groups())))
-            return pos
+        if not pos:
+            found = DVISVGM_DEPTH_REGEX.search(line)
+            if found:
+                # convert from pt to px (assuming 96 dpi)
+                pos['depth'] = float(found.groups()[0]) * 1.3333333
+        else:
+            found = DVISVGM_SIZE_REGEX.search(line)
+            if found:
+                pos.update(dict(zip(['width', 'height'],
+                                    # convert from pt to px (assuming 96 dpi)
+                                    (float(v) * 1.3333333 for v in found.groups()))))
+                return pos
     raise ValueError("Could not parse dvisvgm output: " + repr(data))
