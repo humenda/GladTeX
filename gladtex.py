@@ -85,7 +85,8 @@ class Main:
                     "images and write JSON to stdout")
         cmd.add_argument('-r', '--resolution', metavar='DPI', dest='dpi',
                 default=None,
-                help="Set resolution in DPI; also see `-f`")
+                help=("Set resolution in DPI, not available for SVG output; "
+                    "also see `-f`"))
         cmd.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
