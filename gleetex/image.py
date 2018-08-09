@@ -87,9 +87,7 @@ class Tex2img:
         self.__parsed_data = None
         self.__size = [115, None]
         self.__background = 'transparent'
-        self.__foreground = 'rgb 0 0 0'
         self.__keep_latex_source = False
-        # create directory for image if that doesn't exist
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images. This has no effect ifthe
@@ -108,31 +106,11 @@ class Tex2img:
         self.__size[1] = float(size)
 
     def set_transparency(self, flag):
-        """Set whether or not the background of an image is transparent."""
-        if not isinstance(flag, bool):
-            raise ValueError("Argument must be of type bool!")
-        self.__background = ('transparent' if flag else 'rgb 1 1 1')
-
-    def __check_rgb(self, rgb_list):
-        """DVIPNG takes RGB colours in the same format as LaTeX, as a
-        space-delimited list of broken decimals."""
-        if not isinstance(rgb_list, (list, tuple)) or len(rgb_list) != 3:
-            raise ValueError("A list with three broken decimals between 0 and 1 expected.")
-        if not all(map((lambda x: 0 <= x <= 1), rgb_list)):
-            raise ValueError("RGB values must between 0 and 1")
-
-    def set_background_color(self, rgb_list):
-        """set_background_color(rgb_values)
-        The list rgb_values must contain three broken decimals between 0 and 1."""
-        self.__check_rgb(rgb_list)
-        self.__background = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
-
-    def set_foreground_color(self, rgb_list):
-        """set_background_color(rgb_values)
-        The list rgb_values must contain three broken decimals between 0 and 1."""
-        self.__check_rgb(rgb_list)
-        self.__foreground = 'rgb {0[0]} {0[1]} {0[2]}'.format(rgb_list)
-
+        """Set whether or not to use background colour information from the DVI
+        file. This is only relevant for PNG output and if a background colour
+        other than "transparent" is required, in this case this set'r should be
+        set to false."""
+        self.__background = ('transparent' if flag else 'not transparent')
     def set_keep_latex_source(self, flag):
         """Set whether LaTeX source document should be kept."""
         if not isinstance(flag, bool):
@@ -192,11 +170,10 @@ class Tex2img:
             dpi = (fontsize2dpi(self.__size[1])  if self.__size[1]
                     else self.__size[0])
             return create_png(dvi_fn, output_fn,dpi,
-                    self.__background, self.__foreground)
+                    self.__background)
         if not self.__size[1]:
             self.__size[1] = 12 # 12 pt
-        return create_svg(dvi_fn, output_fn, self.__background,
-                self.__foreground)
+        return create_svg(dvi_fn, output_fn)
 
     def convert(self, tex_document, base_name):
         """Convert the given TeX document into an image. The base name is used
@@ -239,23 +216,23 @@ def fontsize2dpi(size_pt):
     size_px = size_pt * 1.3333333 # and more 3s!
     return size_px * 72.27 / 10
 
-def create_png(dvi_fn, output_name, dpi, background='transparent',
-        foreground='rgb 0 0 0'):
+def create_png(dvi_fn, output_name, dpi, background):
     """Create a PNG file from a given dvi file. The side effect is the PNG file
     being written to disk.
+    By default, the background of the resulting image is transparent, setting
+    any other value will make it use whatever was is set in the DVI file.
     :param dvi_fn       Dvi file name
     :param output_name  Output file name
     :param dpi          Output resolution
     :param background   Background colour (default: transparent)
-    :param foreground   Foreground Colour (default black == 'rgb 0 0 0')
     :return dimensions for embedding into an HTML document
     :raises ValueError raised whenever dvipng output coudln't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
-    cmd = ['dvipng', '-q*', '-D', str(dpi),
-            # colors
-            '-bg', background, '-fg', foreground,
-            '--height*', '--depth*', '--width*', # print information for embedding
+    cmd = ['dvipng', '-q*', '-D', str(dpi)]
+    if background == 'transparent':
+        cmd.append('-bg', background)
+    cmd += ['--height*', '--depth*', '--width*', # print information for embedding
             '-o', output_name, dvi_fn]
     data = None
     try:
@@ -272,23 +249,18 @@ def create_png(dvi_fn, output_name, dpi, background='transparent',
                 map(float, found.groups())))
     raise ValueError("Could not parse dvi output: " + repr(data))
 
-def create_svg(dvi_fn, output_name, background='transparent',
-        foreground='rgb 0 0 0'):
+def create_svg(dvi_fn, output_name):
     """Create a SVG file from a given dvi file. The side effect is the SVG file
     being written to disk.
     :param dvi_fn       Dvi file name
     :param output_name  Output file name
     :param size         font size in pt
-    :param background   Background colour (default: transparent)
-    :param foreground   Foreground Colour (default black == 'rgb 0 0 0')
     :return dimensions for embedding into an HTML document
     :raises ValueError raised whenever dvipng output coudln't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
     cmd = ['dvisvgm', '--exact', '--no-fonts', '-o', output_name,
             '--bbox=preview', dvi_fn]
-    #ToDo: colour handling
-    #'-bg', background, '-fg', foreground,
     data = None
     try:
         data = proc_call(cmd, install_recommends='texlive-binaries')
