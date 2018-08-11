@@ -128,7 +128,7 @@ class test_imagecreation(unittest.TestCase):
         touch(files)
         i = image.Tex2img(Format.Png)
         try:
-            i.convert('\\hat{x}', 'foo')
+            i.convert(doc('\\hat{x}'), 'foo')
         except SubprocessError:
             self.assertFalse(os.path.exists('foo.tex'))
             self.assertFalse(os.path.exists('foo.dvi'))

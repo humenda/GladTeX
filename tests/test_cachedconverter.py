@@ -19,7 +19,7 @@ def mk_eqn(eqn, count=0, pos=(1,1)):
 
 def write(path, content='dummy'):
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
+        f.write(str(content))
 
 class Tex2imgMock():
     """Could use a proper mock, but this one allows a bit more tricking."""

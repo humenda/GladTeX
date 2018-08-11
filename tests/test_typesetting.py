@@ -160,3 +160,50 @@ class test_escape_unicode_maths(unittest.TestCase):
     def test_that_two_text_environments_preserve_all_characters(self):
         text = r'a\cdot b \text{equals} b\cdot c} \mbox{ is not equal } u^{v\cdot k}'
         self.assertEqual(typesetting.escape_unicode_maths(text), text)
+
+    def test_color_names_in_backgroundare_accepted(self):
+        doc = LaTeXDocument(r'A = \pi r^2')
+        doc.set_background_color('cyan')
+        doc = str(doc)
+        self.assertTrue('pagecolor{cyan}' in doc,
+            "Expected \\pagecolor in document, got: %s" % doc)
+        self.assertTrue('textcolor' not in doc)
+        self.assertFalse('definecolor' in doc)
+
+    def test_color_names_in_foregroundare_accepted(self):
+        doc = LaTeXDocument(r'A = \pi r^2')
+        doc.set_foreground_color('cyan')
+        doc = str(doc)
+        self.assertTrue('pagecolor' not in doc,
+            "Expected \\pagecolor in document, got: %s" % doc)
+        self.assertTrue('textcolor{cyan' in doc,
+                "expeccted \\textcolor{cyan, got:\n" + doc)
+        self.assertFalse('definecolor' in doc)
+
+    def test_color_rgb_in_foregroundare_accepted(self):
+        doc = LaTeXDocument(r'A = \pi r^2')
+        doc.set_foreground_color('FFAACC')
+        doc = str(doc)
+        self.assertTrue('pagecolor{}' not in doc,
+            "Expected \\pagecolor in document, got: %s" % doc)
+        self.assertTrue('textcolor{foreground' in doc,
+            "document misses \\textcolor command: %s" % doc)
+        self.assertTrue('definecolor' in doc)
+        self.assertTrue('FFAACC' in doc)
+
+    def test_color_rgb_in_backgroundare_accepted(self):
+        doc = LaTeXDocument(r'A = \pi r^2')
+        doc.set_background_color('FFAACC')
+        doc = str(doc)
+        self.assertTrue('pagecolor{background}' in doc,
+            "Expected \\pagecolor in document, got: %s" % doc)
+        self.assertTrue('textcolor' not in doc)
+        self.assertTrue('definecolor' in doc)
+        self.assertTrue('FFAACC' in doc)
+ 
+    def test_no_colors_no_color_definitions(self):
+        doc = str(LaTeXDocument(r'A = \pi r^2'))
+        self.assertFalse('pagecolor' in doc)
+        self.assertFalse('textcolor' in doc)
+        self.assertFalse('definecolor' in doc)
+

@@ -231,7 +231,7 @@ def create_png(dvi_fn, output_name, dpi, background):
         raise ValueError("Empty output_name")
     cmd = ['dvipng', '-q*', '-D', str(dpi)]
     if background == 'transparent':
-        cmd.append('-bg', background)
+        cmd += ['-bg', background]
     cmd += ['--height*', '--depth*', '--width*', # print information for embedding
             '-o', output_name, dvi_fn]
     data = None

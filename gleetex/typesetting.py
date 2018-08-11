@@ -134,20 +134,44 @@ def get_matching_brace(string, pos_of_opening_brace):
 
 
 
+#pylint: disable=too-many-instance-attributes
 class LaTeXDocument:
     """This class represents a LaTeX document. It is intended to contain an
     equation as main content and properties to customize it. Its main purpose is
     to provide a str method which will serialize it to a full LaTeX document.
-    The public member fontsize can be used to specify a font size in pt for the
-    LaTeX document declaration and defaults to 12."""
+    """
     def __init__(self, eqn):
         self.__encoding = None
         self.__equation = eqn
         self.__displaymath = False
-        self.fontsize = 12
+        self.__fontsize = 12
+        self.__background_color = None
+        self.__foreground_color = None
         self._preamble = ''
         self.__maths_env = None
         self.__replace_nonascii = False
+
+    def _parse_color(self, color):
+        # could be a valid color name
+        if isinstance(color, str) and all(c.isalpha() for c in color):
+            return color # should be fine
+        try: # hex number?
+            return int(color, 16)
+        except ValueError:
+            raise ValueError("color has to be either a dvips compatible name "
+                    "or a HTML-compatible hex specification.")
+
+    def set_background_color(self, color):
+        """Set the background color. The `color` can be either a valid dvips
+        name or a tuple with RGB values between 0 and 1. If unset, the image
+        will be transparent."""
+        self.__background_color = self._parse_color(color)
+
+    def set_foreground_color(self, color):
+        """Set the foreground color. The `color` can be either a valid dvips
+        name or a tuple with RGB values between 0 and 1. If unset, the text
+        will be black."""
+        self.__foreground_color = self._parse_color(color)
 
     def set_replace_nonascii(self, flag):
         """If True, all non-ascii character will be replaced through a LaTeX
@@ -225,6 +249,31 @@ class LaTeXDocument:
                 '\n') + (self._preamble if self._preamble else '')
         return self._format_document(preamble)
 
+    def _format_color_definition(self, which):
+        color = getattr(self, '_%s__%s_color' % (self.__class__.__name__,
+            which))
+        if not color:
+            return ''
+        try:
+            return ('\\definecolor{%s}{html}{%s}' % (which,
+                    hex(int(color, 16))[2:].upper()))
+        except ValueError:
+            return ''
+
+    def _format_colors(self):
+        color_defs = (self._format_color_definition('background'),
+                self._format_color_definition('foreground'),)
+        color_body = ''
+        if self.__background_color:
+            color_body += ('\\pagecolor{%s}' % ('background' if color_defs[0]
+                        else self.__background_color))
+        if self.__foreground_color:
+            # opening brace isn't required here, inserted automatically
+            color_body += ('\\textcolor{%s}' % ('foreground' if color_defs[1]
+                    else self.__foreground_color))
+        return (''.join(color_defs), color_body)
+
+
     def _format_document(self, preamble):
         """Return a formatted LaTeX document with the specified formula
         embedded."""
@@ -239,12 +288,18 @@ class LaTeXDocument:
         formula = self.__equation.lstrip().rstrip()
         if self.__replace_nonascii:
             formula = escape_unicode_maths(formula, replace_alphabeticals=True)
-        fontsize = 'fontsize=%ipt' % self.fontsize
+        fontsize = 'fontsize=%ipt' % self.__fontsize
+        color_preamble, color_body = self._format_colors()
         return ("\\documentclass[%s, fleqn]{scrartcl}\n\n%s\n"
+            "\\usepackage[dvipsnames]{xcolor}\n"
+            "%s\n" # color definitions, if applicable
             "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
             "%% must be last one, see doc\n\n\\begin{document}\n"
-            "\\noindent%%\n%s%s%s\n"
-            "\\end{document}\n") % (fontsize, preamble, opening, formula, closing)
+            "\\noindent%%\n"
+            "\\begin{preview}%s{"
+            "%s%s%s}\\end{preview}\n"
+            "\\end{document}\n") % (fontsize, preamble, color_preamble,
+                    color_body, opening, formula, closing)
 
 
 def increase_readability(formula, replace_nonascii=False):
@@ -273,5 +328,3 @@ def increase_readability(formula, replace_nonascii=False):
                     formula = formula.replace('  ', ' ')
                     formula_changed = True
     return formula
-
-

@@ -148,7 +148,7 @@ class GetPositionTest(unittest.TestCase):
 
 class HtmlImageTest(unittest.TestCase):
     def setUp(self):
-        self.pos = {'depth':'99', 'height' : '88', 'width' : '77'}
+        self.pos = {'depth':99, 'height' : 88, 'width' : 77}
         self.original_directory = os.getcwd()
         self.tmpdir = tempfile.mkdtemp()
         os.chdir(self.tmpdir)
@@ -238,8 +238,8 @@ class HtmlImageTest(unittest.TestCase):
         data = None
         with htmlhandling.HtmlImageFormatter('foo.html') as img:
             data = img.get_html_img(self.pos, '\\tau\\tau', 'foo.png')
-        self.assertTrue('height=' in data and self.pos['height'] in data)
-        self.assertTrue('width=' in data and self.pos['width'] in data)
+        self.assertTrue('height=' in data and str(self.pos['height']) in data)
+        self.assertTrue('width=' in data and str(self.pos['width']) in data)
 
     def test_no_formula_gets_lost_when_reparsing_external_formula_file(self):
         with htmlhandling.HtmlImageFormatter() as img:
