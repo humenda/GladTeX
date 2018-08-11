@@ -243,6 +243,13 @@ class LaTeXDocument:
                     "encoding; please report this to the GladTeX project."))
         return encoding_preamble
 
+    def set_fontsize(self, size_in_pt):
+        """Set fontsize in pt, 12 pt by default."""
+        self.__fontsize = size_in_pt
+
+    def get_fontsize(self, size_in_pt):
+        return self.__fontsize
+
     def __str__(self):
         preamble = self._get_encoding_preamble() + \
                 ('\n\\usepackage[utf8]{inputenc}\n\\usepackage{amsmath, amssymb}'

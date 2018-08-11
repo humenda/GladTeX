@@ -108,6 +108,10 @@ class CachedConverter:
             # apply configured image output options
             for option, value in self.__options.items():
                 if value and hasattr(self.__converter, 'set_' + option):
+                    try: # some values are numbers
+                        value = float(value)
+                    except ValueError:
+                        pass
                     getattr(self.__converter, 'set_' + option)(value)
             self._convert_concurrently(formulas_to_convert)
 

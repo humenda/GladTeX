@@ -131,7 +131,7 @@ class Tex2img:
         new_extension = lambda x: os.path.splitext(dvi_fn)[0] + '.' + x
 
         if self.__size[1]: # font size in pt
-            tex_document.fontsize = self.__size[1]
+            tex_document.set_fontsize(self.__size[1])
         tex_fn = new_extension('tex')
         aux_fn = new_extension('aux')
         log_fn = new_extension('log')
