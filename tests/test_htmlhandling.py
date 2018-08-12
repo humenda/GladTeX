@@ -122,9 +122,20 @@ class HtmlparserTest(unittest.TestCase):
         self.p.feed('<eq env="displaymath">\\sum\limits_{n=1}^{e^i} a^nl^n</eq>')
         self.assertEqual(self.p.get_data()[0][1], True) # displaymath flag set
 
-    def test_encodings_are_parsed_from_file(self):
+    def test_encoding_is_parsed_from_HTML4(self):
         iso8859_1 = HTML_SKELETON.format('iso-8859-15', 'öäüß').encode('iso-8859-1')
         self.p.feed(iso8859_1)
+        self.assertEqual(self.p._EqnParser__encoding, 'iso-8859-15')
+
+    def test_encoding_is_parsed_from_HTML5(self):
+        document = r"""<!DOCTYPE html>
+            <html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+            <head><meta charset="utf-8" />
+              <meta name="generator" content="pandoc" />
+              </head><body><p>hi</p></body></html>"""
+        self.p.feed(document.encode('utf-8'))
+        self.assertEqual(self.p._EqnParser__encoding.lower(), 'utf-8')
+
 
     def test_strings_can_be_passed_tO_parser_as_well(self):
         # no exception - everything is working as expected

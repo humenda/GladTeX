@@ -147,7 +147,6 @@ class test_imagecreation(unittest.TestCase):
 
     @patch('gleetex.image.proc_call', dvipng_mock)
     def test_that_output_file_names_with_paths_are_ok_and_log_is_removed(self):
-        print("-------------")
         fname = lambda f: os.path.join('bilder', 'farce.' + f)
         touch([fname('log'), fname('png')])
         t = image.Tex2img(Format.Png)

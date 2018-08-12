@@ -18,6 +18,10 @@ import re
 
 from . import typesetting
 
+# match HTML 4 and 5
+CHARSET_PATTERN = re.compile(
+        rb'(?:content="text/html; charset=(.*?)"|charset="(.*?)")')
+
 class ParseException(Exception):
     """Exception to propagate a parsing error."""
     def __init__(self, msg, pos=None):
@@ -26,10 +30,8 @@ class ParseException(Exception):
         super().__init__(msg, pos)
 
     def __str__(self):
-        if self.pos:
-            return 'line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
-        else:
-            return self.msg
+        return ('line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
+                if self.pos else self.msg)
 
 def get_position(document, index):
     """This returns the line number and position on line for the given String.
@@ -70,17 +72,16 @@ class EqnParser:
         self.__encoding = None
 
     def feed(self, document):
-        """Feed a string or a bytes instance. If a bytes instance is fed, an
-        encoding header has to be present, so that the encoding can be
-        extracted."""
+        """Feed a string or a bytes instance and start parsing. If a bytes
+        instance is fed, an HTML encoding header has to be present, so that the
+        encoding can be extracted."""
         if isinstance(document, bytes): # try to guess encoding
-            encoding = "UTF-8"
-            if b'charset=' in document:
-                start = document.find(b'charset=') + 8
-                end = document[start:].find(b'"')
-                if end > -1:
-                    encoding = document[start:start+end].decode("utf-8")
-            document = document.decode(encoding)
+            try:
+                encoding = next(filter(bool, CHARSET_PATTERN.search(document)
+                        .groups())).decode('ascii')
+                document = document.decode(encoding)
+            except AttributeError:
+                raise ParseException("Could not determine encoding of document.")
             self.__encoding = encoding
         self.__document = document[:]
         self._parse()
@@ -206,7 +207,7 @@ def gen_id(formula):
         prevchar = c
     # id's must start with an alphabetical character, so prefix the formula with
     # "formula" to make it a valid html id
-    if len(id) and not id[0].isalpha():
+    if id and not id[0].isalpha():
         id = ['f', 'o', 'r', 'm', '_'] + id
     if not id: # is empty
         raise ValueError("For the formula '%s' no referencable id could be generated." \
@@ -403,7 +404,7 @@ class HtmlImageFormatter: # ToDo: localisation
         """Write back file with excluded image descriptions, if any."""
         def formula2paragraph(frml):
             return '<p id="%s"><pre>%s</pre></p>' % (gen_id(frml), frml)
-        if not len(self.__cached_formula_pars):
+        if not self.__cached_formula_pars:
             return
         with open(self.__exclusion_filepath, 'w', encoding='utf-8') as f:
             f.write(self.__file_head)
@@ -465,8 +466,7 @@ class HtmlImageFormatter: # ToDo: localisation
         if self.__exclude_descriptions and \
                 len(formula) > self.__inline_maxlength:
             return self.format_excluded(pos, formula, img_path, displaymath)
-        else:
-            return self.get_html_img(pos, formula, img_path, displaymath)
+        return self.get_html_img(pos, formula, img_path, displaymath)
 
 def write_html(file, document, formatter):
     """Processed HTML documents are made up of raw HTML chunks which are written
@@ -481,5 +481,4 @@ def write_html(file, document, formatter):
                     chunk['path'], is_displaymath))
         else:
             file.write(chunk)
-
 
