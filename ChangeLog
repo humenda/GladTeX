@@ -4,6 +4,9 @@
     -   add `-P` command-line switch to process Pandoc document AST
     -   add environment variable `GLADTEX_ARGS` to pass command-line switches
         when used as pandocfilter where passing additional arguments is impossible
+    -   add SVG support for scalable graphics
+    -   redefine colour handling: use xcolor package, therefore handling text
+    and background colour the same way for both PNG and SVG
 
 2.3.1 Avoid useless spaces
 
