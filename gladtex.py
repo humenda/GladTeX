@@ -171,7 +171,7 @@ class Main:
             if options.output and os.path.dirname(options.output):
                 base_path = os.path.dirname(output)
             elif options.input and os.path.dirname(options.input):
-                base_path = os.path.dirname(input)
+                base_path = os.path.dirname(options.input)
         if base_path: # if finally a basepath found:, strip \\ if on Windows
             base_path = posixpath.join(*(options.directory.split('\\')))
         # strip base_path from output, if there's one
@@ -243,19 +243,18 @@ class Main:
             # conversion data
             return (parsed_document[0], [conv.get_data_for(eqn, style)
                     for _p, style, eqn in formulas])
-        else: # iterate over chunks of eqnparser; insert conversion data
-            for chunk in parsed_document:
-                # output of EqnParser: list-alike is formula, str is raw HTML
-                if isinstance(chunk, (tuple, list)):
-                    _p, displaymath, formula = chunk
-                    try:
-                        result.append(conv.get_data_for(formula, displaymath))
-                    except KeyError as e:
-                        raise KeyError(("formula '%s' not found; that means it was "
-                            "not converted which should usually not happen.") % e.args[0])
-                else:
-                    result.append(chunk)
-            return result
+        for chunk in parsed_document:
+            # output of EqnParser: list-alike is formula, str is raw HTML
+            if isinstance(chunk, (tuple, list)):
+                _p, displaymath, formula = chunk
+                try:
+                    result.append(conv.get_data_for(formula, displaymath))
+                except KeyError as e:
+                    raise KeyError(("formula '%s' not found; that means it was "
+                        "not converted which should usually not happen.") % e.args[0])
+            else:
+                result.append(chunk)
+        return result
 
 
     def set_options(self, conv, options):
@@ -270,7 +269,7 @@ class Main:
                     option = option == 'True'
                 conv.set_option(option_str, option)
         if options.dpi:
-            conv.set_option("dpi", float(dpi))
+            conv.set_option("dpi", float(options.dpi))
         elif options.fontsize:
             conv.set_option("fontsize", options.fontsize)
         # colors need special handling
