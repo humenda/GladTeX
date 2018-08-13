@@ -262,7 +262,7 @@ class LaTeXDocument:
         if not color:
             return ''
         try:
-            return ('\\definecolor{%s}{html}{%s}' % (which,
+            return ('\\definecolor{%s}{HTML}{%s}' % (which,
                     hex(int(color, 16))[2:].upper()))
         except ValueError:
             return ''

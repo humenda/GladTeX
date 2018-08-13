@@ -108,10 +108,11 @@ class CachedConverter:
             # apply configured image output options
             for option, value in self.__options.items():
                 if value and hasattr(self.__converter, 'set_' + option):
-                    try: # some values are numbers
-                        value = float(value)
-                    except ValueError:
-                        pass
+                    if isinstance(value, str): # only try string -> number
+                        try: # some values are numbers
+                            value = float(value)
+                        except ValueError:
+                            pass
                     getattr(self.__converter, 'set_' + option)(value)
             self._convert_concurrently(formulas_to_convert)
 
@@ -204,10 +205,14 @@ class CachedConverter:
             parenthesis"""
         latex = typesetting.LaTeXDocument(formula)
         latex.set_displaymath(displaymath)
-        if self.__options['preamble']: # add preamble to LaTeX document
-            latex.set_preamble_string(self.__options['preamble'])
-        if self.__options['latex_maths_env']:
-            latex.set_latex_environment(self.__options['latex_maths_env'])
+        def set(opt, setter):
+            if self.__options[opt]:
+                getattr(latex, 'set_' + setter)(self.__options[opt])
+        set('preamble', 'preamble_string')
+        set('latex_maths_env', 'latex_environment')
+        set('background_color', 'background_color')
+        set('foreground_color', 'foreground_color')
+
         if self.__encoding:
             latex.set_encoding(self.__encoding)
         if self.__replace_nonascii:

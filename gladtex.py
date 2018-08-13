@@ -110,16 +110,6 @@ class Main:
         get a (hopefully) helpful error message if he/she gave an invalid
         parameter."""
         color_regex = re.compile(r"^\d(?:\.\d+)?,\d(?:\.\d+)?,\d(?:\.\d+)?")
-        if opts.background_color and not color_regex.match(opts.background_color):
-            print("Option -b requires a string in the format " +
-                        "num,num,num where num is a broken decimal between 0 " +
-                        "and 1.")
-            sys.exit(12)
-        if opts.foreground_color and not color_regex.match(opts.foreground_color):
-            print("Option -c requires a string in the format " +
-                        "num,num,num where num is a broken decimal between 0 " +
-                        "and 1.")
-            sys.exit(13)
         if opts.fontsize and opts.dpi:
             print("Options -f and -d can't be used at the same time.")
             sys.exit(14)
@@ -261,22 +251,18 @@ class Main:
         """Apply options from command line parser to the converter."""
         # set options
         options_to_query = ['preamble', 'latex_maths_env',
-                'svg', 'keep_latex_source']
+                'svg', 'keep_latex_source', 'foreground_color',
+                'background_color']
         for option_str in options_to_query:
             option = getattr(options, option_str)
             if option:
                 if option in ('True', 'False', 'false', 'true'):
-                    option = option == 'True'
+                    option = bool(option)
                 conv.set_option(option_str, option)
         if options.dpi:
             conv.set_option("dpi", float(options.dpi))
         elif options.fontsize:
             conv.set_option("fontsize", options.fontsize)
-        # colors need special handling
-        for option_str in ['foreground_color', 'background_color']:
-            option = getattr(options, option_str)
-            if option:
-                conv.set_option(option_str, tuple(map(float, option.split(','))))
         if options.replace_nonascii:
             conv.set_replace_nonascii(True)
 
