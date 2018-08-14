@@ -163,7 +163,7 @@ class Main:
             elif options.input and os.path.dirname(options.input):
                 base_path = os.path.dirname(options.input)
         if base_path: # if finally a basepath found:, strip \\ if on Windows
-            base_path = posixpath.join(*(options.directory.split('\\')))
+            base_path = posixpath.join(*(base_path.split('\\')))
         # strip base_path from output, if there's one
         output = os.path.basename(output)
         return (data, base_path,
