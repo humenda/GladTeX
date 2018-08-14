@@ -1,8 +1,12 @@
+# (c) 2013-2018 Sebastian Humenda
+# This code is licenced under the terms of the LGPL-3+, see the file COPYING for
+# more details.
 """This module takes care of the actual image creation process.
 
 Each formula is saved as an image, either as PNG or SVG. SVG is advised, since
 it is a properly scalable format.
 """
+
 import enum
 import os
 import re
@@ -77,8 +81,10 @@ class Tex2img:
     This class interacts with the LaTeX and dvipng sub processes. Upon error
     the methods throw a SubprocessError with all necessary information to fix
     the issue.
-    The background of the PNG files will be transparent by default.
-    """
+
+    The background of the PNG files will be transparent by default. If you set a
+    background colour within the LaTeX document, you need to turn off
+    transparency in this converter manually."""
     def __init__(self, fmt, encoding="UTF-8"):
         if not isinstance(fmt, Format):
             raise ValueError("Enumeration of type Format expected."+str(fmt))
@@ -109,7 +115,8 @@ class Tex2img:
         """Set whether or not to use background colour information from the DVI
         file. This is only relevant for PNG output and if a background colour
         other than "transparent" is required, in this case this set'r should be
-        set to false."""
+        set to false. It is set to True, resulting in a transparent
+        background."""
         self.__background = ('transparent' if flag else 'not transparent')
     def set_keep_latex_source(self, flag):
         """Set whether LaTeX source document should be kept."""

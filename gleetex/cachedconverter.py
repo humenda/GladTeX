@@ -217,6 +217,10 @@ class CachedConverter:
             latex.set_encoding(self.__encoding)
         if self.__replace_nonascii:
             latex.set_replace_nonascii(True)
+        # dvipng needs the additionalindication of transparency (enabled by
+        # default) when setting a background colour 
+        if self.__options['background_color']:
+            self.__converter.set_transparency(False)
         pos = self.__converter.convert(latex,
                 os.path.splitext(output_path)[0])
         return {'pos' : pos, 'path' : output_path, 'displaymath' :

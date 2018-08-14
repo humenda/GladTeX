@@ -153,13 +153,10 @@ class LaTeXDocument:
 
     def _parse_color(self, color):
         # could be a valid color name
-        if isinstance(color, str) and all(c.isalpha() for c in color):
-            return color # should be fine
         try: # hex number?
             return int(color, 16)
         except ValueError:
-            raise ValueError("color has to be either a dvips compatible name "
-                    "or a HTML-compatible hex specification.")
+            return color # treat as normal dvips compatible colour name
 
     def set_background_color(self, color):
         """Set the background color. The `color` can be either a valid dvips
@@ -259,13 +256,10 @@ class LaTeXDocument:
     def _format_color_definition(self, which):
         color = getattr(self, '_%s__%s_color' % (self.__class__.__name__,
             which))
-        if not color:
+        if not color or isinstance(color, str):
             return ''
-        try:
-            return ('\\definecolor{%s}{HTML}{%s}' % (which,
-                    hex(int(color, 16))[2:].upper()))
-        except ValueError:
-            return ''
+        return ('\\definecolor{%s}{HTML}{%s}' % (which,
+                    hex(color)[2:].upper()))
 
     def _format_colors(self):
         color_defs = (self._format_color_definition('background'),
