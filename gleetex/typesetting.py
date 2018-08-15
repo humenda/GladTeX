@@ -270,7 +270,7 @@ class LaTeXDocument:
                         else self.__background_color))
         if self.__foreground_color:
             # opening brace isn't required here, inserted automatically
-            color_body += ('\\textcolor{%s}' % ('foreground' if color_defs[1]
+            color_body += ('\\color{%s}' % ('foreground' if color_defs[1]
                     else self.__foreground_color))
         return (''.join(color_defs), color_body)
 
@@ -297,7 +297,7 @@ class LaTeXDocument:
             "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
             "%% must be last one, see doc\n\n\\begin{document}\n"
             "\\noindent%%\n"
-            "\\begin{preview}%s{"
+            "\\begin{preview}{%s"
             "%s%s%s}\\end{preview}\n"
             "\\end{document}\n") % (fontsize, preamble, color_preamble,
                     color_body, opening, formula, closing)
