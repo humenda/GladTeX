@@ -167,7 +167,7 @@ class test_escape_unicode_maths(unittest.TestCase):
         doc = str(doc)
         self.assertTrue('pagecolor{cyan}' in doc,
             "Expected \\pagecolor in document, got: %s" % doc)
-        self.assertTrue('textcolor' not in doc)
+        self.assertTrue('\\color' not in doc)
         self.assertFalse('definecolor' in doc)
 
     def test_color_names_in_foregroundare_accepted(self):
@@ -176,9 +176,18 @@ class test_escape_unicode_maths(unittest.TestCase):
         doc = str(doc)
         self.assertTrue('pagecolor' not in doc,
             "Expected \\pagecolor in document, got: %s" % doc)
-        self.assertTrue('textcolor{cyan' in doc,
-                "expeccted \\textcolor{cyan, got:\n" + doc)
+        self.assertTrue('\\color{cyan' in doc,
+                "expeccted \\color{cyan, got:\n" + doc)
         self.assertFalse('definecolor' in doc)
+
+    def test_hex_colours_with_leading_0s_work(self):
+        doc = LaTeXDocument(r'A = \pi r^2')
+        doc.set_background_color('00FFCC')
+        doc = str(doc)
+        self.assertTrue('pagecolor{background}' in doc,
+            "Expected \\pagecolor in document, got: %s" % doc)
+        self.assertTrue('definecolor' in doc)
+        self.assertTrue('00FFCC' in doc)
 
     def test_color_rgb_in_foregroundare_accepted(self):
         doc = LaTeXDocument(r'A = \pi r^2')
@@ -186,8 +195,8 @@ class test_escape_unicode_maths(unittest.TestCase):
         doc = str(doc)
         self.assertTrue('pagecolor{}' not in doc,
             "Expected \\pagecolor in document, got: %s" % doc)
-        self.assertTrue('textcolor{foreground' in doc,
-            "document misses \\textcolor command: %s" % doc)
+        self.assertTrue('\\color{foreground' in doc,
+            "document misses \\color command: %s" % doc)
         self.assertTrue('definecolor' in doc)
         self.assertTrue('FFAACC' in doc)
 
@@ -197,13 +206,13 @@ class test_escape_unicode_maths(unittest.TestCase):
         doc = str(doc)
         self.assertTrue('pagecolor{background}' in doc,
             "Expected \\pagecolor in document, got: %s" % doc)
-        self.assertTrue('textcolor' not in doc)
+        self.assertTrue('\\color' not in doc)
         self.assertTrue('definecolor' in doc)
         self.assertTrue('FFAACC' in doc)
  
     def test_no_colors_no_color_definitions(self):
         doc = str(LaTeXDocument(r'A = \pi r^2'))
         self.assertFalse('pagecolor' in doc)
-        self.assertFalse('textcolor' in doc)
+        self.assertFalse('\\color' in doc)
         self.assertFalse('definecolor' in doc)
 

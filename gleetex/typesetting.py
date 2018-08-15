@@ -259,7 +259,7 @@ class LaTeXDocument:
         if not color or isinstance(color, str):
             return ''
         return ('\\definecolor{%s}{HTML}{%s}' % (which,
-                    hex(color)[2:].upper()))
+                    hex(color)[2:].upper().zfill(6)))
 
     def _format_colors(self):
         color_defs = (self._format_color_definition('background'),
