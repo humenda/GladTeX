@@ -81,7 +81,9 @@ class EqnParser:
                         .groups())).decode('ascii')
                 document = document.decode(encoding)
             except AttributeError:
-                raise ParseException("Could not determine encoding of document.")
+                raise ParseException(("Could not determine encoding of "
+                        "document, no charset information in the HTML header "
+                        "found."))
             self.__encoding = encoding
         self.__document = document[:]
         self._parse()
