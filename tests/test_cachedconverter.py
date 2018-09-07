@@ -111,12 +111,12 @@ class TestCachedConverter(unittest.TestCase):
     @patch('gleetex.image.Tex2img', Tex2imgMock)
     def test_that_file_names_are_correctly_picked(self):
         formulas = [mk_eqn('\\tau')]
-        write('eqn000.png')
-        write('eqn001.png')
+        write('eqn000.svg')
+        write('eqn001.svg')
         c = cachedconverter.CachedConverter('')
         to_convert = c._get_formulas_to_convert(formulas)
         self.assertTrue(len(to_convert), 1)
-        self.assertEqual(to_convert[0][2], 'eqn002.png')
+        self.assertEqual(to_convert[0][2], 'eqn002.svg')
 
     @patch('gleetex.image.Tex2img', Tex2imgMock)
     def test_that_all_converted_formulas_are_in_cache_and_meta_info_correct(self):

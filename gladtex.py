@@ -46,9 +46,11 @@ class Main:
                 "for images which are too long for the alt attribute into a " +
                 "single separate file and link images to it")
         cmd.add_argument('-b', dest='background_color',
-                help="Set background color for resulting images (default transparent)")
+                help=("Set background color for resulting images "
+                    "(default transparent, use hex)"))
         cmd.add_argument('-c', dest='foreground_color',
-                help="Set foreground color for resulting images (default 0,0,0)")
+                help=("Set foreground color for resulting images (default "
+                    "000000, hex)"))
         cmd.add_argument('-d', dest='directory', help="Directory in which to" +
                 " store generated images in (relative path)")
         cmd.add_argument('-e', dest='latex_maths_env',
@@ -83,15 +85,15 @@ class Main:
                 help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
                     "from stdin, convert the images, change math blocks to "
                     "images and write JSON to stdout")
+        cmd.add_argument('--png', action='store_true', dest='png',
+                help="Use PNG instead of SVG for images")
         cmd.add_argument('-r', '--resolution', metavar='DPI', dest='dpi',
                 default=None,
-                help=("Set resolution in DPI, not available for SVG output; "
-                    "also see `-f`"))
+                help=("Set resolution in DPI, only available if PNG output "
+                    "selected; also see `-f`"))
         cmd.add_argument('-R', action="store_true", dest='replace_nonascii',
                 default=False, help="Replace non-ascii characters in formulas "
                     "through their LaTeX commands")
-        cmd.add_argument('-s', '--svg', action='store_true', dest='svg',
-                help="Use SVG instead of PNG for images")
         cmd.add_argument("-u", metavar="URL", dest='url',
                 help="URL to image files (relative links are default)")
         cmd.add_argument('input', help="Input .htex file with LaTeX " +
@@ -113,9 +115,9 @@ class Main:
         if opts.fontsize and opts.dpi:
             print("Options -f and -d can't be used at the same time.")
             sys.exit(14)
-        if opts.dpi and opts.svg:
-            print(("SVG output format can't be used with a resolution "
-                    "parameter, try to set the font size using `-f`."))
+        if opts.dpi and not opts.png:
+            print(("Impossible to set resolution when using SVG as output, "
+                "try -f"))
             sys.exit(14)
 
     def get_input_output(self, options):
@@ -251,7 +253,7 @@ class Main:
         """Apply options from command line parser to the converter."""
         # set options
         options_to_query = ['preamble', 'latex_maths_env',
-                'svg', 'keep_latex_source', 'foreground_color',
+                'png', 'keep_latex_source', 'foreground_color',
                 'background_color']
         for option_str in options_to_query:
             option = getattr(options, option_str)

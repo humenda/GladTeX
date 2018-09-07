@@ -75,7 +75,7 @@ class CachedConverter:
         self.__options = {'dpi': None, 'transparency': None, 'fontsize': None,
                 'background_color' : None, 'foreground_color' : None,
                 'preamble' : None, 'latex_maths_env' : None,
-                'keep_latex_source': False, 'svg': False}
+                'keep_latex_source': False, 'png': False}
         self.__encoding = encoding
         self.__replace_nonascii = False
 
@@ -84,7 +84,7 @@ class CachedConverter:
         """Set one of the options accepted for gleetex.image.Tex2img. It is a
         proxy function.
         `option` must be one of dpi, fontsize, transparency, background_color,
-        foreground_color, preamble, latex_maths_env, keep_latex_source, svg."""
+        foreground_color, preamble, latex_maths_env, keep_latex_source, png."""
         if not option in self.__options.keys():
             raise ValueError("Option must be one of " + \
                     ', '.join(self.__options.keys()))
@@ -103,8 +103,8 @@ class CachedConverter:
         Formulas already contained in the cache are not converted."""
         formulas_to_convert = self._get_formulas_to_convert(formulas)
         if formulas_to_convert:
-            self.__converter = image.Tex2img(Format.Svg
-                    if self.__options['svg'] else Format.Png)
+            self.__converter = image.Tex2img(Format.Png
+                    if self.__options['png'] else Format.Svg)
             # apply configured image output options
             for option, value in self.__options.items():
                 if value and hasattr(self.__converter, 'set_' + option):
@@ -121,8 +121,8 @@ class CachedConverter:
         global list of formulas of the document being converted and the file
         name. Function was decomposed for better testability."""
         formulas_to_convert = [] # find as many file names as equations
-        file_ext = (Format.Svg.value if self.__options['svg']
-                else Format.Png.value)
+        file_ext = (Format.Png.value if self.__options['png']
+                else Format.Svg.value)
         eqn_path = lambda x: os.path.join(self.__base_path, 'eqn%03d.%s' % (x,
                 file_ext))
 
