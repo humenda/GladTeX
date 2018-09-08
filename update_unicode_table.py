@@ -10,17 +10,30 @@ import os
 import urllib.request
 import xml.etree.ElementTree as ET
 
-# URL to XML file, which is used to generate the python source file
-UNICODE_TABLE_URL = "https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml"
-# a list of commands to replace, if found
-BAD_COMMANDS = {'\\minus': '-'}
+################################################################################
+# Constants
 
 class LaTeXMode(enum.Enum):
+    # exception: not a constant, but required for one of the constants
     """Represent either math or text mode. Math mode in LaTeX is e.g.
     everything between $ and $."""
     textmode = 0
     mathmode = 1
 
+# URL to XML file, which is used to generate the python source file
+UNICODE_TABLE_URL = "https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml"
+# a list of commands to replace, if found
+BAD_COMMANDS = {
+    # decimal_codepoint: {LaTeXMode: new version}
+    178:   {LaTeXMode.mathmode: '^2'},
+    179:   {LaTeXMode.mathmode: '^3'},
+    181:   {LaTeXMode.mathmode: '\\mu'},
+    185:   {LaTeXMode.mathmode: '^1'},
+    8211:  {LaTeXMode.mathmode: '\\mathrm{\\textendash}'},
+    8722:  {LaTeXMode.mathmode: '-'}
+}
+
+################################################################################
 
 def get_unicode_table_xml():
     with urllib.request.urlopen(UNICODE_TABLE_URL) as u:
@@ -40,16 +53,16 @@ def create_unicode_latex_table(root):
         if 'latex' not in childtags and 'AMS' not in childtags and \
                 'mathlatex' not in childtags:
             continue # skip this character
-        attr = character.attrib
+        attr = character.attrib.get
         # if no mode (text or math) was specified, ignore character
-        if attr.get('mode') not in ('text', 'math', 'mixed', 'other'):
+        if attr('mode') not in ('text', 'math', 'mixed', 'other'):
             continue
 
         # a defined character may have multiple codepoints (called ids); add
         # each of the ids as a separate entry to the table
-        ids = tuple(map(int, attr['dec'].split('-')))
+        ids = tuple(map(int, attr('dec').split('-')))
         if any(elem for elem in ids if elem < 161):
-            continue # ignore characters from ascii and a few unicode control characters
+            continue # ignore ASCII and a few  control unicode characters
 
         # extract textmode, mathmode and AMS commands:
         commands = {}
@@ -67,12 +80,12 @@ def create_unicode_latex_table(root):
                 commands[LaTeXMode.mathmode] = mathnode.text
 
         if commands: # if a usable textmode and a mathmode without unicode-math found:
-            # replace bad commands
-            for mode in commands:
-                if commands[mode] in BAD_COMMANDS:
-                    commands[mode] = BAD_COMMANDS[commands[mode]]
-            for item in ids:
-                unicode_table[item] = commands
+            for identification in ids:
+                # some code points are not usable for our purposes, so update
+                # the control sequences, if appropriate
+                if identification in BAD_COMMANDS:
+                    commands.update(BAD_COMMANDS[identification])
+                unicode_table[identification] = commands
     return unicode_table
 
 def serialize_table(table):
@@ -127,4 +140,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

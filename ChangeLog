@@ -12,6 +12,8 @@
         -   use SVG output by default
     -   bug fixes:
         -   correctly parse HTML5 file encoding declarations
+        -   add more exceptions to the unicode table for the unicode replacement
+            mode (see -R)
 
 2.3.1 Avoid useless spaces
 
