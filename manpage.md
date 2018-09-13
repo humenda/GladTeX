@@ -57,7 +57,12 @@ Pandoc.
 in-depth explanation.
 
 **-d** _DIRECTORY_
-:   Directory in which to store the generated images in (relative path).
+:   Directory in which to store the generated images in (relative path).\
+    The given path is interpreted relatively to the input file. For instance,:
+
+        gladtex -d img dir/file.htex
+
+    will create a `dir/img` directory and link accordingly in `x/file.htex`.
 
 **-e** _`LATEX_MATHS_ENV`_
 :   Set custom maths environment to surround the formula (e.g. flalign).
