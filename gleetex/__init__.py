@@ -6,7 +6,7 @@ from . import pandoc
 from . import parser
 from . import typesetting
 
-VERSION = '2.4.0'
+VERSION = '3.0.0'
 
 __all__ = ['caching', 'cachedconverter', 'document', 'htmlhandling', 'image',
         'pandoc', 'parser', 'unicode', 'VERSION']
