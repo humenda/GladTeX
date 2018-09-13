@@ -10,10 +10,13 @@
             text and background colour the same way for both PNG and SVG
         -   add SVG support for scalable images
         -   use SVG output by default
+        -   gleetex.htmlhandling.HtmlImageFormatter: rename link_path to
+            link_prefix
     -   bug fixes:
         -   correctly parse HTML5 file encoding declarations
         -   add more exceptions to the unicode table for the unicode replacement
             mode (see -R)
+        -   treat -d as a relative path
 
 2.3.1 Avoid useless spaces
 

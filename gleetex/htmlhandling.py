@@ -329,9 +329,9 @@ class HtmlImageFormatter: # ToDo: localisation
         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
         '\n<title>Outsourced Formulas</title>\n</head>\n<!-- ' +
         'DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n')
-    def __init__(self, base_path='', link_path=None):
+    def __init__(self, base_path='', link_prefix=None):
         self.__exclude_descriptions = False
-        self.__link_path = (link_path if link_path else '')
+        self.__link_prefix = (link_prefix if link_prefix else '')
         self.__base_path = (base_path if base_path else '')
         self.__exclusion_filepath = posixpath.join(self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
         if os.path.exists(self.__exclusion_filepath):
@@ -448,7 +448,7 @@ class HtmlImageFormatter: # ToDo: localisation
         # write formula out to external file
         if identifier not in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
-        exclusion_filelink = posixpath.join(self.__link_path, self.__exclusion_filepath)
+        exclusion_filelink = posixpath.join(self.__link_prefix, self.__exclusion_filepath)
         return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
                 gen_id(formula), img)
 
@@ -483,4 +483,3 @@ def write_html(file, document, formatter):
                     chunk['path'], is_displaymath))
         else:
             file.write(chunk)
-
