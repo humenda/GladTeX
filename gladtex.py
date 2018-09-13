@@ -6,7 +6,6 @@ import argparse
 import multiprocessing
 import os
 import posixpath
-import re
 import sys
 import gleetex
 from gleetex import parser
@@ -52,7 +51,7 @@ class Main:
                 help=("Set foreground color for resulting images (default "
                     "000000, hex)"))
         cmd.add_argument('-d', dest='directory', help="Directory in which to" +
-                " store generated images in (relative path)")
+                " store generated images in (relative to the output file)")
         cmd.add_argument('-e', dest='latex_maths_env',
                 help="Set custom maths environment to surround the formula" + \
                         " (e.g. flalign)")
@@ -111,7 +110,6 @@ class Main:
         """Validate certain arguments suppliedon the command line. The user will
         get a (hopefully) helpful error message if he/she gave an invalid
         parameter."""
-        color_regex = re.compile(r"^\d(?:\.\d+)?,\d(?:\.\d+)?,\d(?:\.\d+)?")
         if opts.fontsize and opts.dpi:
             print("Options -f and -d can't be used at the same time.")
             sys.exit(14)
@@ -129,7 +127,6 @@ class Main:
         The returned document is either string or byte, the latter if encoding
         is unknown."""
         data = None
-        base_path = options.directory
         output = '-'
         if options.input == '-':
             data = sys.stdin.read()
@@ -138,7 +135,8 @@ class Main:
                 # if encoding was specified or if a pandoc filter is supplied,
                 # read document with default encoding
                 if options.encoding or options.pandocfilter:
-                    with open(options.input) as f:
+                    encoding = ('UTF-8' if options.pandoc else options.encoding)
+                    with open(options.input, encoding=encoding) as f:
                         data = f.read()
                 else: # read as binary and guess from HTML meta charset
                     with open(options.input, 'rb') as file:
@@ -158,26 +156,28 @@ class Main:
             output = options.output
         elif options.input != '-':
             output = os.path.splitext(options.input)[0] + '.html'
+
         # else case: output = '-' (see above)
-        if not base_path:
-            if options.output and os.path.dirname(options.output):
-                base_path = os.path.dirname(output)
-            elif options.input and os.path.dirname(options.input):
-                base_path = os.path.dirname(options.input)
+        base_path = ''
+        if options.output and os.path.dirname(options.output):
+            base_path = os.path.dirname(output)
+        elif options.input != '-' and os.path.dirname(options.input):
+            base_path = os.path.dirname(options.input)
         if base_path: # if finally a basepath found:, strip \\ if on Windows
             base_path = posixpath.join(*(base_path.split('\\')))
-        # strip base_path from output, if there's one
-        output = os.path.basename(output)
-        return (data, base_path,
-                ('pandocfilter' if options.pandocfilter else 'html'),
-                output)
+        # the basepath needs to be relative to the output file
+        return (data, base_path, output)
 
 
     def run(self, args):
         options = self._parse_args(args[1:])
         self.validate_options(options)
         self.__encoding = options.encoding
-        doc, base_path, fmt, output = self.get_input_output(options)
+        fmt = ('pandocfilter' if options.pandocfilter else 'html')
+        doc, base_path, output = self.get_input_output(options)
+        old_cwd = os.getcwd()
+        if base_path:
+            os.chdir(base_path)
         try:
             # doc is either a list of raw HTML chunks and formulas or a tuple of
             # (document AST, list of formulas) if options.pandocfilter
@@ -187,8 +187,9 @@ class Main:
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
 
-        processed = self.convert_images(doc, base_path, options)
-        with gleetex.htmlhandling.HtmlImageFormatter(base_path=base_path,
+        link_path = (options.directory if options.directory else '')
+        processed = self.convert_images(doc, link_path, options)
+        with gleetex.htmlhandling.HtmlImageFormatter(base_path=link_path,
                 link_path=options.url)  as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.replace_nonascii:
@@ -200,6 +201,7 @@ class Main:
             if options.displaymath:
                 img_fmt.set_display_math_css_class(options.displaymath)
 
+            os.chdir(old_cwd)
             with (sys.stdout if output == '-'
                     else open(output, 'w', encoding=self.__encoding)) as file:
                 if options.pandocfilter:
