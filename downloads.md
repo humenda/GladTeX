@@ -36,23 +36,24 @@ read the list of changes below.
 Binary Distributions
 --------------------
 
-For Windows and Debian GNU/Linux distributions, it is very easy to install
-GladTeX.
+For Windows and Debian GNU/Linux distributions, there are official binaries that
+you can use.
 
 ### Windows
 
-There are two zip archives At the
-[release page](https://github.com/humenda/GladTeX/tree/v2.1).
-The file labelled with `stand-alone` is the one to pick, if
-GladTeX should be run as a stand-alone binary or within a non-python project.
-The file containing `embeddable` in its name, is meant for python applications,
-build with py2exe and python3.4, so that they can share the DLL files.
+Version 3.0.0 can be downloaded
+[here](/humenda/GladTeX/releases/download/v3.0.0/gladtex-3.0.0_win32.zip). The
+zip-Archive contains all files to run GladTeX, no installation required.
+
+Please note that this is a command-line utility, you need to launch it from a
+console window such as _cmd_ or from the PowerShell.
 
 ### Debian/Ubuntu And Other Derivatives
 
-On one of the mentioned systems, just type
+GladTeX is officially part of Debian and all its derivatives (such as Ubuntu or
+Mint). Just type
 
-    apt-get install gladtex
+    sudo apt install gladtex
 
 and proceed with `man gladtex`.
 
