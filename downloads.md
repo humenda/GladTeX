@@ -42,7 +42,7 @@ you can use.
 ### Windows
 
 Version 3.0.0 can be downloaded
-[here](/humenda/GladTeX/releases/download/v3.0.0/gladtex-3.0.0_win32.zip). The
+[here](https://github.com/humenda/GladTeX/releases/download/v3.0.0/gladtex-3.0.0_win32.zip). The
 zip-Archive contains all files to run GladTeX, no installation required.
 
 Please note that this is a command-line utility, you need to launch it from a
