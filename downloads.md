@@ -9,28 +9,35 @@ Downloads
 
 <small>For source code, see section below</small>
 
+The latest version is [version 3.0](https://github.com/humenda/GladTeX/tree/v3.0).
+If you are upgrading from a previous version, please make sure that you have
+read the list of changes below.
+
+**New Features And Incompatible Changes:**
+
+-   add SVG support for scalable images
+    -   use SVG output by default
+    -   `gleetex.htmlhandling.HtmlImageFormatter`: rename link_path to link_prefix
+-   add `-P` command-line switch to be used as a Pandoc document filter, see
+    <https://pandoc.org/filters.html>
+-   add environment variable `GLADTEX_ARGS` to pass command-line switches when
+    used as pandocfilter where passing additional arguments is impossible
+-   redefine colour handling: use xcolor package, therefore handling text and
+    background colour the same way for both PNG and SVG (use hexadecimal colours
+    now)
+
+**Bug fixes:**
+
+-   correctly parse HTML5 file encoding declarations
+-   add more exceptions to the unicode table for the unicode replacement mode
+    (see `-R`)
+-   treat `-d` as a relative path
+
 Binary Distributions
 --------------------
 
-The latest release is
-[version 2.1](https://github.com/humenda/GladTeX/tree/v2.1). Its new features
-are:
-
-Add support for unicode math with translation table
-:   LaTeX formulas may now contain non-ascii characters. It is possible to
-    translate these non-ascii characters with an internal look-up table, so that
-    the formula can be converted using LaTeX2e.
-
-Handle subprocess stdin and stdout encoding properly
-:   Sometimes the encoding of stdin or stdout is not set, fall back to the
-    systems default in this case. This is only applied when using the new `-R`
-    switch.
-
-Set UTF-8 as encoding for all LaTeX documents
-:   By setting UTF-8 as default encoding for LaTeX documents, it is easiest to
-    convert the documents in a cross-platform manner.
-
-
+For Windows and Debian GNU/Linux distributions, it is very easy to install
+GladTeX.
 
 ### Windows
 

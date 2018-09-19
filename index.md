@@ -10,27 +10,24 @@ GladTeX
 About
 -----
 
-GladTeX is a preprocessor that enables the use of LaTeX maths within HTML
-files. The maths, embedded in `<EQ>...</EQ>` tags, as if within `\(..\)` in LaTeX (or `$...$` in TeX),
-is fed through latex and replaced by images.
-
-Additionally all images get an alt-tag for alternative texts that contains the
-LaTeX-equivalent of the image. This is handy for text-mode browsers or blind
-people.
+GladTeX is a utility and library to display mathematics on the Web (and in
+offline formats, too). Formulas are embedded within `<eq>…</eq>` tags and
+converted automatically to a scalable SVG image using LaTeX. The images
+integrate seamlessly into the output documents, work with any browser and are
+accessible for visually impaired and blind users as well.
 
 Features
 --------
 
--   GladTeX supports caching of formulas in order to enable incremental document
-    editing or simply to share formulas across web pages.
--   GladTeX can be used with [Pandoc](http://pandoc.org) in order to convert
-    MarkDown to HTML with LaTeX formulas.
--   It also contains a library GleeTeX to custom tailor the generation and
-    conversion process to your needs and to embedd it into your (web) application.
--   It allows the usage of umlauts and other non-ASCII characters within
-    formulas, by replacing these characters through LaTeX sequences.
--   It is cross-platform, written in Python and comes with Windows executables.
--   Its source code is documented and tested.
+-   LaTeX-quality formulas with partial unicode maths support
+-   [Pandoc](http://pandoc.org) support to convert from any format with
+    LaTeX-formulas (MarkDown, …) to any HTML-based format, e.g. EPUB
+-   Cache formulas to speed up subsequent document conversion
+-   Python library GleeTeX to embed into other applications or to tailor to a
+    specific workflow
+-   cross-platform, written in Python, comes with Windows executables.
+-   tested and documented source code
+
 
 Contact
 -------

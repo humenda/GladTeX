@@ -1,6 +1,6 @@
 % GLADTEX(1)
 % Sebastian Humenda
-% 28th of September 2016
+% 8th of September 2018
 
 # NAME
 
@@ -8,26 +8,27 @@
 
 # SYNOPSIS
 
-**gladtex** [OPTIONS] [INPUT  FILE NAME]
+**gladtex** [OPTIONS] <INPUT  FILE NAME>
 
 
 # DESCRIPTION
 
 **GladTeX** is a formula preprocessor for HTML files. It recognizes a special tag
-(`<eq>...</eq>`) and will convert the contained LaTeX formulas into images. The
-resulting images will be linked into the resulting HTML document.  This eases
-the process of creating HTML
+(`<eq>...</eq>`) marking formulas for conversion. The converted vector images
+are integrated into the output HTML document.
+This eases the process of creating HTML
 documents (or web sites) containing formulas.\
 The generated images are saved in a cache to not render the same image over
 and over again. This speeds up the process when formulas occur multiple times or
 when a document is extended gradually.
 
-The LaTeX formulas are preserved in the alt attribute of the embedded images.
-Hence screen reader users benefit from an accessible HTML version of the
+The LaTeX formulas are preserved in the alt attribute of the embedded images,
+hence screen reader users benefit from an accessible HTML version of the
 document.
 
-Furthermore it can be used with Pandoc to convert Markdown documents with LaTeX
-formulas to HTML.
+Furthermore it can be used with Pandoc to convert Markdown documents and other
+formats with LaTeX formulas to HTML, EPUB and in fact to any HTML-based format,
+see the option `-P`.
 
 See [FILE FORMAT](#file-format) for an explanation of the file format and
 [EXAMPLES](#examples) for examples on how to use GladTeX on its own or with
@@ -46,19 +47,32 @@ Pandoc.
     into a single separate file and link images to it.
 
 **-b** _BACKGROUND_COLOR_
-:   Set background color for resulting images (default transparent).
+:   Set background color for resulting images (default transparent). GladTeX
+    understands colors as provided by the `dvips` option  of the xcolor LaTeX
+    package. Alternatively, a 6-digit hexadecimal value can be provided (as used
+    e.g. in HTML/CSS).
 
 **-c** _`FOREGROUND_COLOR`_
-:   Set foreground color for resulting images (default 0,0,0).
+:   Set foreground color for resulting images. See the option above for a more
+in-depth explanation.
 
 **-d** _DIRECTORY_
-:   Directory in which to store the generated images in (relative path).
+:   Directory in which to store the generated images in (relative path).\
+    The given path is interpreted relatively to the input file. For instance,:
+
+        gladtex -d img dir/file.htex
+
+    will create a `dir/img` directory and link accordingly in `x/file.htex`.
 
 **-e** _`LATEX_MATHS_ENV`_
 :   Set custom maths environment to surround the formula (e.g. flalign).
 
 **-E** _ENCODING_
 :   Overwrite encoding to use (default UTF-8).
+
+**-f** _FONTSIZE_
+:   Overwrite the default font size of 12pt. 12pt is the default in most
+    browsers and hence changing this might lead to less-portable documents.
 
 **-i** _CLASS_
 :   CSS class to assign to inline math (default: 'inlinemath').
@@ -94,8 +108,20 @@ Pandoc.
 :   Add given LaTeX code to preamble of document. That'll affect the conversion
     of every image.
 
+**-P**
+:   Act as a pandoc filter. In this mode, input is expected to be a Pandoc JSON
+    AST  and the output will be a modified AST, with all formulas replaced
+    through HTML image tags. It makes sense to use `-` as the input file for
+    this option.
+
+**--png**
+:   Switch from SVG to PNG as image output. This image has several known issues,
+    one of them being that images won't resize when zooming into the document.
+    It is also harder to work with for visually impaired users.
+
 **-r** _DPI_
-:   Set resolution (size of images) to 'dpi' (100 by default).
+:   Set resolution (size of images) to 'dpi' (115 by default). This is only
+    available with the `--png` option. Also see the `-f` option.
 
 **-R**
 :   Replace non-ascii (unicode) characters by LaTeX commands.
@@ -123,6 +149,20 @@ By default, formulas are rendered as inline maths, so they are squeezed to the
 height of the line. It is possible to render a formula as display maths by
 setting the env attribute to displaymath, i.e. `<eq env="displaymath">...</eq>`.
 
+# ENVIRONMENT VARIABLES
+
+GladTeX can be customised by environment variables:
+
+`DEBUG`
+:   If this is set to 1, a full Python traceback, instead of a human-readable
+    error message, will be displayed.
+`GLADTEX_ARGS`:
+:   When this environment variable is set, GladTeX switches into
+    **pandoc filter** mode: input is read from standard input, output written to
+    standard output and the `-P` switch is assumed. The contents of this
+    variable parsed as command-line switches.
+    See an example in [Output As EPUB]#output-asepub).
+
 # EXAMPLES
 
 ## Sample HTEX document
@@ -149,7 +189,7 @@ This can be converted using
 and the result will be a HTML document called `file.html` along with two files
 `eqn0000.png` and `eqn0001.png` in the same directory.
 
-## Markdown to HTML
+## Markdown To HTML
 
 GladTeX can be used together with Pandoc. That can be handy to create an online
 version of a scientific paper written in Markdown. The MarkDown document would
@@ -167,22 +207,39 @@ A useful matrix: $$\begin{pmatrix}
 9 &10&11&12 \end{pmatrix}$$
 ~~~~
 
-The conversion is as easy as:
+The conversion is as easy as typing on the command-line:
 
     pandoc -s -t html --gladtex file.md | gladtex -o file.html
 
+## Output as EPUB
+
+It is beyond of the scope of this document to introduce Pandoc, but with any
+input format, converting to EPUB with GladTeX replacing the images is as easy
+as:
+
+    pandoc -t json FILE.ext | gladtex -d img -P - | pandoc -f json -o book.epub
+
+Capitalised parameters should be replaced. This can be used with Markdown as
+input format, see previous section.
+
+If you want to call Pandoc as a filter without the pipes, you can use the
+environment variable `GLADTEX_ARGS`:
+
+    GLADTEX_ARGS='-d img' pandoc -o BOOK.EPUB -F gladtex FILE.ext
+
+
 # KNOWN LIMITATIONS
 
-LaTeX2e is ***NOT*** unicode aware. If you have any unicode (more precisely,
+LaTeX2E is ***not*** unicode aware. if you have any unicode (more precisely,
 non-ascii characters) signs in your documents, you have the choice to do one of
 the following:
 
 1.  Look up the symbol in one of the many LaTeX formula listings and replace the
     symbol with the appropriate command.
-2.  Use the `-R` switch to let GladTeX replace the Umlauts for you.
+2.  Use the `-r` switch to let GladTeX replace the umlauts for you.
 
-Please note that it is not possible to use LuaLaTeX. At the time of writing,
-dvipng does not support the extended font features of the LuaLaTeX engine.
+PLEASE NOTE: It is impossible to use GladTeX with LuaLaTeX. At the time of writing, dvipng
+does not support the extended font features of the lualatex engine.
 
 
 # PROJECT HOME
