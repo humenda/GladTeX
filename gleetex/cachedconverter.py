@@ -53,28 +53,35 @@ class CachedConverter:
     The formula is either converted  or retrieved from a cache in the same
     directory like the images.
 
-    :param base_path directory to place files in (relative to the file
-            converted. So if the file being converted is foo/bar.htex and the
-            base_path is set to img, the image will be placed in foo/img/.
+    :param base_path directory of the output HTML file; link references in the
+            HTML document will link relative to it
     :param keep_old_cache If an existing cache cannot be read (incompatible
         GladTeX version, ...) Aand the flag is set, the program will simply
         crash and tell the user to remove the cache (default). If set to False,
         the program will instead remove the cache and all eqn* files and
         recreate the cache.
     :param encoding The encoding for the LaTeX document, default None
+    :param img_dir directory for images (default ., equivalent to base_path)
+            For example "images" would put it in `base_path`/images and "../img"
+            would put it in "base_path/../img"
     """
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
 
-    def __init__(self, base_path, keep_old_cache=True, encoding=None):
-        cache_path = os.path.join(base_path,
+    def __init__(self, base_path, keep_old_cache=True, encoding=None,
+            img_dir=''):
+        empty_path = lambda p: ('' if not p or p.strip(os.sep) == '.' else p)
+        self.__output_path = empty_path(base_path) # path where converted document will be
+        self.__img_dir = empty_path(img_dir) # relative to base_path
+        # cache path is **relative** to base_path
+        cache_path = os.path.join(self.__img_dir,
                 CachedConverter.GLADTEX_CACHE_FILE_NAME)
-        self.__base_path = base_path
         self.__cache = caching.ImageCache(cache_path,
-                keep_old_cache=keep_old_cache)
+                keep_old_cache=keep_old_cache,
+                base_path=empty_path(self.__output_path))
         self.__converter = None
         self.__options = {'dpi': None, 'transparency': None, 'fontsize': None,
-                'background_color' : None, 'foreground_color' : None,
-                'preamble' : None, 'latex_maths_env' : None,
+                'background_color': None, 'foreground_color': None,
+                'preamble': None, 'latex_maths_env': None,
                 'keep_latex_source': False, 'png': False}
         self.__encoding = encoding
         self.__replace_nonascii = False
@@ -123,8 +130,9 @@ class CachedConverter:
         formulas_to_convert = [] # find as many file names as equations
         file_ext = (Format.Png.value if self.__options['png']
                 else Format.Svg.value)
-        eqn_path = lambda x: os.path.join(self.__base_path, 'eqn%03d.%s' % (x,
-                file_ext))
+        eqn_path = lambda x: os.path.join(self.__img_dir,
+                'eqn%03d.%s' % (x, file_ext))
+        abs_eqn_path = lambda x: os.path.join(self.__img_dir, eqn_path(x))
 
         # is (formula, display_math) already in the list of formulas to convert;
         # displaymath is important since formulas look different in inline maths
@@ -134,9 +142,10 @@ class CachedConverter:
         file_name_count = 0
         used_file_names = [] # track which file names have been assigned
         for formula_count, (pos, dsp, formula) in enumerate(formulas):
+            # ToDo: this belongs in the cache
             if not self.__cache.contains(formula, dsp) and \
                     not formula_was_converted(formula, dsp):
-                while os.path.exists(eqn_path(file_name_count)) or \
+                while os.path.exists(abs_eqn_path(file_name_count)) or \
                     eqn_path(file_name_count) in used_file_names:
                     file_name_count += 1
                 used_file_names.append(eqn_path(file_name_count))
@@ -148,10 +157,11 @@ class CachedConverter:
     def _convert_concurrently(self, formulas_to_convert):
         """The actual concurrent conversion process. Method is intended to be
         called from convert_all()."""
-        if self.__base_path and not os.path.exists(self.__base_path):
+        imgdir_full = os.path.join(self.__output_path, self.__img_dir)
+        if imgdir_full and not os.path.exists(imgdir_full):
             # create directory *before* it is required in the concurrent
             # formulacreation step
-            os.makedirs(self.__base_path)
+            os.makedirs(imgdir_full)
 
         thread_count = int(multiprocessing.cpu_count() * 2.5)
         # convert missing formulas
@@ -182,7 +192,8 @@ class CachedConverter:
                         error_occurred = ConversionException(str(e.args[0]), formula,
                             formula_count, pos_in_src[0], pos_in_src[1])
                 else:
-                    self.__cache.add_formula(formula, data['pos'], data['path'],
+                    self.__cache.add_formula(formula, data['pos'],
+                            data['path'],
                             data['displaymath'])
                     self.__cache.write()
             #pylint: disable=raising-bad-type
@@ -191,14 +202,15 @@ class CachedConverter:
 
 
 
-    def __convert(self, formula, output_path, displaymath=False):
-        """convert(formula, output_path, displaymath=False)
+    def __convert(self, formula, img_path, displaymath=False):
+        """convert(formula, img_path, displaymath=False)
         Convert given formula with displaymath/inlinemath.
         This method wraps the formula in a tex document, executes all the steps
         to produce a image and return the positioning information for the
         HTML output. It does not check the cache.
         :param formula formula to convert
-        :param output_path image output path
+        :param img_path image output path (relative to the configured base_path,
+                    see __init__)
         :param displaymath whether or not to use displaymath during the conversion
         :return dictionary with position (pos), image path (path) and formula
             style (displaymath, boolean) as a dictionary with the keys in
@@ -212,19 +224,19 @@ class CachedConverter:
         set('latex_maths_env', 'latex_environment')
         set('background_color', 'background_color')
         set('foreground_color', 'foreground_color')
-
         if self.__encoding:
             latex.set_encoding(self.__encoding)
         if self.__replace_nonascii:
             latex.set_replace_nonascii(True)
         # dvipng needs the additionalindication of transparency (enabled by
-        # default) when setting a background colour 
+        # default) when setting a background colour
         if self.__options['background_color']:
             self.__converter.set_transparency(False)
         pos = self.__converter.convert(latex,
-                os.path.splitext(output_path)[0])
-        return {'pos' : pos, 'path' : output_path, 'displaymath' :
-            displaymath}
+                os.path.join(self.__output_path, os.path.splitext(img_path)[0]))
+        return {'pos': pos,
+                'path': img_path, # relative to self.__base_name(!)
+                'displaymath': displaymath}
 
     def get_data_for(self, formula, display_math):
         """Simple wrapper around ImageCache, enriching the returned data with
