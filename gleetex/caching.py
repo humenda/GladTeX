@@ -201,7 +201,8 @@ class ImageCache:
         val = self.__cache[formula]
         if not displaymath in val:
             val[displaymath] = {'pos': pos,
-                    'path': os.path.relpath(file_path, self.__base_path)}
+                    'path': file_path,
+                }
 
     def remove_formula(self, formula, displaymath):
         """This method removes the given formula from the cache. A KeyError is
@@ -245,7 +246,10 @@ class ImageCache:
             # check whether file still exists
             value = self.__cache[formula]
             if displaymath in value.keys():
-                if not os.path.exists(value[displaymath]['path']):
+                # if file doesn't exist anymore, outdated and hence removed from
+                # cache
+                if not os.path.exists(os.path.join(self.__base_path,
+                        value[displaymath]['path'])):
                     del self.__cache[formula]
                     raise KeyError((formula, displaymath))
                 else:

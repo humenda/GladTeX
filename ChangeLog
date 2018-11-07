@@ -1,3 +1,8 @@
+3.0.1
+
+    -   fix AtributeError when specifying `-E`
+
+
 3.0.0
 
     -   new features and incompatible changes:

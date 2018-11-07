@@ -9,6 +9,7 @@ import posixpath
 import sys
 import gleetex
 from gleetex import parser
+from gleetex.htmlhandling import HtmlImageFormatter
 
 
 class HelpfulCmdParser(argparse.ArgumentParser):
@@ -50,7 +51,7 @@ class Main:
         cmd.add_argument('-c', dest='foreground_color',
                 help=("Set foreground color for resulting images (default "
                     "000000, hex)"))
-        cmd.add_argument('-d', dest='directory', help="Directory in which to" +
+        cmd.add_argument('-d', dest='img_directory', help="Directory in which to" +
                 " store generated images in (relative to the output file)")
         cmd.add_argument('-e', dest='latex_maths_env',
                 help="Set custom maths environment to surround the formula" + \
@@ -135,7 +136,7 @@ class Main:
                 # if encoding was specified or if a pandoc filter is supplied,
                 # read document with default encoding
                 if options.encoding or options.pandocfilter:
-                    encoding = ('UTF-8' if options.pandoc else options.encoding)
+                    encoding = ('UTF-8' if options.pandocfilter else options.encoding)
                     with open(options.input, encoding=encoding) as f:
                         data = f.read()
                 else: # read as binary and guess from HTML meta charset
@@ -152,17 +153,14 @@ class Main:
                 self.exit("Error: file %s not found." % options.input, 20)
 
         # check which output file name to use
+        base_path = ''
         if options.output:
             output = options.output
+            base_path = os.path.dirname(options.output)
         elif options.input != '-':
             output = os.path.splitext(options.input)[0] + '.html'
-
-        # else case: output = '-' (see above)
-        base_path = ''
-        if options.output and os.path.dirname(options.output):
-            base_path = os.path.dirname(output)
-        elif options.input != '-' and os.path.dirname(options.input):
             base_path = os.path.dirname(options.input)
+
         if base_path: # if finally a basepath found:, strip \\ if on Windows
             base_path = posixpath.join(*(base_path.split('\\')))
         # the basepath needs to be relative to the output file
@@ -175,9 +173,6 @@ class Main:
         self.__encoding = options.encoding
         fmt = ('pandocfilter' if options.pandocfilter else 'html')
         doc, base_path, output = self.get_input_output(options)
-        old_cwd = os.getcwd()
-        if base_path:
-            os.chdir(base_path)
         try:
             # doc is either a list of raw HTML chunks and formulas or a tuple of
             # (document AST, list of formulas) if options.pandocfilter
@@ -187,10 +182,12 @@ class Main:
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
 
-        link_path = (options.directory if options.directory else '')
-        processed = self.convert_images(doc, link_path, options)
-        with gleetex.htmlhandling.HtmlImageFormatter(base_path=link_path,
-                link_path=options.url)  as img_fmt:
+        processed = self.convert_images(doc, base_path, options.img_directory,
+                options)
+        img_dir = ('' if not options.img_directory or \
+                options.img_directory == '.' else options.img_directory)
+        with HtmlImageFormatter(base_path=os.path.join(base_path, img_dir),
+                link_prefix=options.url) as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.replace_nonascii:
                 img_fmt.set_replace_nonascii(True)
@@ -201,7 +198,6 @@ class Main:
             if options.displaymath:
                 img_fmt.set_display_math_css_class(options.displaymath)
 
-            os.chdir(old_cwd)
             with (sys.stdout if output == '-'
                     else open(output, 'w', encoding=self.__encoding)) as file:
                 if options.pandocfilter:
@@ -209,14 +205,16 @@ class Main:
                 else:
                     gleetex.htmlhandling.write_html(file, processed, img_fmt)
 
-    def convert_images(self, parsed_document, base_path, options):
+    def convert_images(self, parsed_document, base_path, img_dir, options):
         """Convert all formulas to images and store file path and equation in a
         list to be processed later on."""
         base_path = ('' if not base_path or base_path == '.' else base_path)
+        img_dir = ('' if not img_dir or img_dir == '.' else img_dir)
         result = []
         try:
             conv = gleetex.cachedconverter.CachedConverter(base_path,
-                    not options.notkeepoldcache, encoding=self.__encoding)
+                    not options.notkeepoldcache, encoding=self.__encoding,
+                    img_dir=img_dir)
         except gleetex.caching.JsonParserException as e:
             self.exit(e.args[0], 78)
 
@@ -244,8 +242,13 @@ class Main:
                 try:
                     result.append(conv.get_data_for(formula, displaymath))
                 except KeyError as e:
-                    raise KeyError(("formula '%s' not found; that means it was "
-                        "not converted which should usually not happen.") % e.args[0])
+                    # formula is usually tuple(str, bool)
+                    formula = e.args[0]
+                    if isinstance(formula, (list, tuple)):
+                        formula = e.args[0][0] # ignore bool(displaymath)
+                    raise KeyError(("formula '{}' not found; that means it was "
+                            "not converted which should usually not happen.")
+                        .format(formula))
             else:
                 result.append(chunk)
         return result
