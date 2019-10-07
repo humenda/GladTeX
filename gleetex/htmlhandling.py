@@ -449,7 +449,7 @@ class HtmlImageFormatter: # ToDo: localisation
         if identifier not in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
         exclusion_filelink = posixpath.join(self.__link_prefix, self.__exclusion_filepath)
-        return '<a href="{}#{}">{}</a>'.format(exclusion_filelink,
+        return '<a.eqn href="{}#{}">{}</a.eqn>'.format(exclusion_filelink,
                 gen_id(formula), img)
 
     def format(self, pos, formula, img_path, displaymath=False):
