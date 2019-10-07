@@ -15,6 +15,7 @@ import html.parser
 import os
 import posixpath
 import re
+import base64
 
 from . import typesetting
 
@@ -414,6 +415,23 @@ class HtmlImageFormatter: # ToDo: localisation
                     for formula in self.__cached_formula_pars.values()]))
             f.write('\n</body>\n</html>\n')
 
+    # def get_html_img(self, pos, formula, img_path, displaymath=False):
+    #     """:param pos dictionary containing keys depth, height and width
+    #     :param formula LaTeX alternative text
+    #     :param img_path: path to image
+    #     :param displaymath display or inline math (default False, inline maths)
+    #     :returns a string with the formatted HTML"""
+    #     full_url = img_path
+    #     if self.__url:
+    #         if self.__url.endswith('/'): self.__url = self.__url[:-1]
+    #         full_url = self.__url + '/' + img_path
+    #     # depth is a negative offset
+    #     depth = float(pos['depth']) * -1
+    #     css = (self.__css['display'] if displaymath else self.__css['inline'])
+    #     return ('<img src="{0}" style="vertical-align: {3:.2f}px; margin: 0;" '
+    #             'height="{2[height]:.2f}" width="{2[width]:.2f}" alt="{1}" '
+    #             'class="{4}" />').format(full_url, formula, pos, depth, css)
+
     def get_html_img(self, pos, formula, img_path, displaymath=False):
         """:param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
@@ -424,12 +442,15 @@ class HtmlImageFormatter: # ToDo: localisation
         if self.__url:
             if self.__url.endswith('/'): self.__url = self.__url[:-1]
             full_url = self.__url + '/' + img_path
+        with open(full_url, "rb") as image_file:
+            encoded_image = base64.b64encode(image_file.read()).decode("ascii")
+
         # depth is a negative offset
         depth = float(pos['depth']) * -1
         css = (self.__css['display'] if displaymath else self.__css['inline'])
-        return ('<img src="{0}" style="vertical-align: {3:.2f}px; margin: 0;" '
+        return ('<img src="data:image/svg+xml;base64,{0}" style="vertical-align: {3:.2f}px; margin: 0;" '
                 'height="{2[height]:.2f}" width="{2[width]:.2f}" alt="{1}" '
-                'class="{4}" />').format(full_url, formula, pos, depth, css)
+                'class="{4}" >').format(encoded_image, formula, pos, depth, css)
 
     def format_excluded(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula and an formula image in HTML and
