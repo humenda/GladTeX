@@ -85,6 +85,7 @@ class HtmlparserTest(unittest.TestCase):
         self.p.feed('<p><eq>\frac12</eq><br /><eq env="inline">bar</eq></p>')
         formulas = [c for c in self.p.get_data() if isinstance(c, (tuple, list))]
         self.assertEqual(len(formulas), 2) # there should be _2_ formulas
+        print(formulas[0])
         self.assertEqual(formulas[0][1], False) # no displaymath
         self.assertEqual(formulas[1][1], False) # no displaymath
 

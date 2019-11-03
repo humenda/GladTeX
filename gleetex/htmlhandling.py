@@ -158,7 +158,7 @@ class EqnParser:
                     html.unescape(entity.groups()[0]), formula)
             entity = EqnParser.HTML_ENTITY.search(formula)
         attrs = attrs.lower()
-        displaymath = attrs and 'env' in attrs and 'displaymath' in attrs
+        displaymath = bool(attrs) and 'env' in attrs and 'displaymath' in attrs
         self.__data.append(((lnum, pos), # let line number count from 0 as well
                 displaymath, formula))
         return end
