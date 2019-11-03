@@ -15,7 +15,15 @@ with open(os.path.join('gleetex', '__init__.py')) as f:
 
 setuptools.setup(name='GladTeX',
       version=VERSION,
-      description='generate html with LaTeX equations embedded as images',
+      description="""Formula typesetting for the web
+
+This package (and command-line application) allows to create web documents with
+properly typeset formulas. It uses the embedded LaTeX formulas from the source
+document to place SVG images at the right positions on the web page. For people
+not able to see the images (due to a poor internet connection or because of a
+disability), the LaTeX formula is preserved in the alt tag of the SVG image.
+GladTeX hence combines proper math typesetting on the web with the creation of
+accessible scientific documents.""",
       author='Sebastian Humenda',
       author_email='shumenda |at| gmx |dot| de',
       url='https://humenda.github.io/GladTeX',
