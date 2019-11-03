@@ -1,8 +1,6 @@
 import os
 import setuptools
 
-VERSION = None
-
 with open(os.path.join('gleetex', '__init__.py')) as f:
     global VERSION
     import re
