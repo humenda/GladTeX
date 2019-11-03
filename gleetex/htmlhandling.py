@@ -1,4 +1,4 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2019 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """GleeTeX is designed to allow the re-use of the image creation code
@@ -50,8 +50,7 @@ def find_anycase(where, what):
     upper = where.find(what.upper())
     if lower >= 0:
         return lower
-    else:
-        return upper
+    return upper
 
 class EqnParser:
     """This parser parses <eq>...</eq> our of a document. It's not an HTML
@@ -103,7 +102,7 @@ class EqnParser:
     def _parse(self):
         """This function parses the document, while maintaining state using the
         State enum."""
-        in_document = lambda x: (False if x == -1 else True)
+        in_document = lambda x: not x == -1
         # maintain a lower-case copy, which eases searching, but doesn't affect
         # the handler methods
         doc = self.__document[:].lower()
@@ -143,10 +142,9 @@ class EqnParser:
         if not match:
             next_eq = find_anycase(self.__document[start_pos+1:], '<eq')
             closing = find_anycase(self.__document[start_pos:], '</eq>')
-            if next_eq > -1 and closing > -1 and next_eq < closing:
+            if -1 < next_eq < closing and closing > -1:
                 raise ParseException("Unclosed tag found", (lnum, pos))
-            else:
-                raise ParseException("Malformed equation tag found", (lnum, pos))
+            raise ParseException("Malformed equation tag found", (lnum, pos))
         end = start_pos + match.span()[1]
         attrs, formula = match.groups()
         if '<eq>' in formula or '<EQ' in formula:
@@ -160,8 +158,7 @@ class EqnParser:
                     html.unescape(entity.groups()[0]), formula)
             entity = EqnParser.HTML_ENTITY.search(formula)
         attrs = attrs.lower()
-        displaymath = (True if attrs and 'env' in attrs and 'displaymath' in attrs
-                else False)
+        displaymath = attrs and 'env' in attrs and 'displaymath' in attrs
         self.__data.append(((lnum, pos), # let line number count from 0 as well
                 displaymath, formula))
         return end

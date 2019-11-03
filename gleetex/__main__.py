@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2019 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 import argparse
@@ -7,9 +6,8 @@ import multiprocessing
 import os
 import posixpath
 import sys
-import gleetex
-from gleetex import parser
-from gleetex.htmlhandling import HtmlImageFormatter
+from . import *
+from .htmlhandling import HtmlImageFormatter
 
 
 class HelpfulCmdParser(argparse.ArgumentParser):
@@ -34,7 +32,7 @@ class Main:
 
     def _parse_args(self, args):
         """Parse command line arguments and return option instance."""
-        epilog = "GladTeX %s, http://humenda.github.io/GladTeX" % gleetex.VERSION
+        epilog = "GladTeX %s, http://humenda.github.io/GladTeX" % VERSION
         description = ("GladTeX is a preprocessor that enables the use of LaTeX"
             " maths within HTML files. The maths, embedded in <EQ>...</EQ> "
             "tags, as if within \\(..\\) in LaTeX (or $...$ in TeX), is fed "
@@ -177,7 +175,7 @@ class Main:
             # doc is either a list of raw HTML chunks and formulas or a tuple of
             # (document AST, list of formulas) if options.pandocfilter
             self.__encoding, doc = parser.parse_document(doc, fmt)
-        except gleetex.parser.ParseException as e:
+        except parser.ParseException as e:
             input_fn = ('stdin' if options.input == '-' else options.input)
             self.exit('Error while parsing {}: {}'.format(input_fn,
                 str(e)), 5)
@@ -201,9 +199,9 @@ class Main:
             with (sys.stdout if output == '-'
                     else open(output, 'w', encoding=self.__encoding)) as file:
                 if options.pandocfilter:
-                    gleetex.pandoc.write_pandoc_ast(file, processed, img_fmt)
+                    pandoc.write_pandoc_ast(file, processed, img_fmt)
                 else:
-                    gleetex.htmlhandling.write_html(file, processed, img_fmt)
+                    htmlhandling.write_html(file, processed, img_fmt)
 
     def convert_images(self, parsed_document, base_path, img_dir, options):
         """Convert all formulas to images and store file path and equation in a
@@ -212,10 +210,10 @@ class Main:
         img_dir = ('' if not img_dir or img_dir == '.' else img_dir)
         result = []
         try:
-            conv = gleetex.cachedconverter.CachedConverter(base_path,
+            conv = cachedconverter.CachedConverter(base_path,
                     not options.notkeepoldcache, encoding=self.__encoding,
                     img_dir=img_dir)
-        except gleetex.caching.JsonParserException as e:
+        except caching.JsonParserException as e:
             self.exit(e.args[0], 78)
 
         self.set_options(conv, options)
@@ -226,7 +224,7 @@ class Main:
                 list))]
         try:
             conv.convert_all(formulas)
-        except gleetex.cachedconverter.ConversionException as e:
+        except cachedconverter.ConversionException as e:
             self.emit_latex_error(e, options.machinereadable,
                     options.replace_nonascii)
 
@@ -282,7 +280,7 @@ class Main:
             raise err
         escaped = err.formula
         if escape:
-            escaped = gleetex.typesetting.escape_unicode_maths(err.formula)
+            escaped = typesetting.escape_unicode_maths(err.formula)
         msg = None
         additional = ''
         if 'Package inputenc' in err.args[0]:
