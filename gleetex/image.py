@@ -267,7 +267,7 @@ def create_svg(dvi_fn, output_name):
     if not output_name:
         raise ValueError("Empty output_name")
     cmd = ['dvisvgm', '--exact', '--no-fonts', '-o', output_name,
-            '--bbox=preview', dvi_fn]
+            '--bbox=preview', dvi_fn, '--libgs=/usr/lib/libgs.so.9']
     data = None
     try:
         data = proc_call(cmd, install_recommends='texlive-binaries')
