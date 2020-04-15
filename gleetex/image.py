@@ -35,7 +35,7 @@ def proc_call(cmd, cwd=None, install_recommends=True):
     stdout and stderr, decoded if not None. If the return value is not equal 0, a
     subprocess error is raised. Timeouts will happen after 20 seconds."""
     with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            bufsize=1, universal_newlines=False, cwd=cwd) as proc:
+            universal_newlines=False, cwd=cwd) as proc:
         data = []
         try:
             data = [d.decode(sys.getdefaultencoding(), errors="surrogateescape")
