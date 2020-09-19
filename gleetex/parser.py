@@ -14,7 +14,11 @@ import sys
 
 from . import htmlhandling
 from . import pandoc
-ParseException = htmlhandling.ParseException # re-export for consistent API from outside
+
+ParseException = (
+    htmlhandling.ParseException
+)  # re-export for consistent API from outside
+
 
 class Format(enum.Enum):
     HTML = 0
@@ -25,12 +29,13 @@ class Format(enum.Enum):
     @staticmethod
     def parse(string):
         string = string.lower()
-        if string == 'html':
+        if string == "html":
             return Format.HTML
-        elif string == 'pandocfilter':
+        elif string == "pandocfilter":
             return Format.PANDOCFILTER
         else:
             raise ValueError("unrecognised format: %s" % string)
+
 
 def parse_document(doc, fmt):
     """This function parses an input document (string or bytes) with the given
@@ -50,15 +55,14 @@ def parse_document(doc, fmt):
         docparser = htmlhandling.EqnParser()
         docparser.feed(doc)
         encoding = docparser.get_encoding()
-        encoding = (encoding if encoding else 'utf-8')
+        encoding = encoding if encoding else "utf-8"
         doc = docparser.get_data()
     elif fmt == Format.PANDOCFILTER:
         if isinstance(doc, bytes):
             doc = doc.decode(sys.getdefaultencoding())
         ast = json.loads(doc)
         formulas = pandoc.extract_formulas(ast)
-        doc = (ast, formulas) # ← see doc string
+        doc = (ast, formulas)  # ← see doc string
     if not encoding:
         encoding = sys.getdefaultencoding()
     return encoding, doc
-

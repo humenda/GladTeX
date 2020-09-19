@@ -3,6 +3,7 @@ dist
 doc/gleetex.*html
 doc/index.html
 gladtex.1
+GladTeX.egg-info/
 *.pyc
 *pycache*
 *.swp

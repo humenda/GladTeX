@@ -22,9 +22,9 @@ Features
 License
 -------
 
-- (C) 1999-2010 Martin G. Gulbrandsen
-- (C) 2011-2013 Jonathan Daugherty (especially release 1.3)
-- (C) 2013-2018 Sebastian Humenda
+- (C) 1999-2010 Martin G. Gulbrandsen (Perl version)
+- (C) 2011-2013 Jonathan Daugherty (especially release 1.3) (Perl version)
+- (C) 2013-2020 Sebastian Humenda (Python version)
 
 This program is distributed under the LGPL-3, or at your option, any later
 version of the license; for details see the accompanying file COPYING.
@@ -92,3 +92,8 @@ Documentation
 Please use `man gladtex` for further instructions or have a look at the file
 [manpage.md](manpage.md).
 
+Contribute
+----------
+
+Contributions are welcome. Please use [black](https://github.com/psf/black) to
+format the code.
