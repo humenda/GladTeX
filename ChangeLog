@@ -1,3 +1,9 @@
+3.1.1 (UNRELEASED)
+
+    -   Add `-interactive=nonstopmode` to each LaTeX invocation to stop even if
+        a file was not found. This is relevant when using e.g. `-p "\input{foo}"
+        and foo.tex doesn't exist.
+
 3.1
 
     -   [source only] move gladtex.py to gleetex/main.py

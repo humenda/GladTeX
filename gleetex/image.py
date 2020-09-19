@@ -146,7 +146,7 @@ class Tex2img:
         encoding = self.__encoding
         with open(tex_fn, mode='w', encoding=encoding) as tex:
             tex.write(str(tex_document))
-        cmd = ['latex', '-halt-on-error', os.path.basename(tex_fn)]
+        cmd = ['latex', '-interaction=nonstopmode', '-halt-on-error', os.path.basename(tex_fn)]
         try:
             proc_call(cmd, cwd=path, install_recommends='texlive-recommended')
         except subprocess.SubprocessError as e:
