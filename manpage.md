@@ -105,8 +105,9 @@ in-depth explanation.
     name is used and the `.htex` extension is replaced by `.html`.
 
 **-p** _`LATEX_STATEMENT`_
-:   Add given LaTeX code to preamble of document. That'll affect the conversion
-    of every image.
+:   Add given LaTeX code to the preamble of the LaTeX document that is used to
+    generate the embedded images. In order to add the contents of a file to the
+    preamble, use `-p "\input{FILE}"`.
 
 **-P**
 :   Act as a pandoc filter. In this mode, input is expected to be a Pandoc JSON

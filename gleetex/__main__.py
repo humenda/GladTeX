@@ -77,8 +77,10 @@ class Main:
                     "default input file name is used and .htex extension changed "
                     "to .html)"))
         cmd.add_argument('-p', metavar='LATEX_STATEMENT', dest="preamble",
-                help="Add given LaTeX code to preamble of document; that'll " +\
-                    "affect the conversion of every image")
+                help="Add given LaTeX code to the preamble of the LaTeX " + \
+                    "document that is used to generate the embedded images. " +\
+                    "In order to add the contents of a file to the preamble, "+\
+                    "use `-p \"\\input{FILE}\"`.")
         cmd.add_argument('-P', dest="pandocfilter", action='store_true',
                 help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
                     "from stdin, convert the images, change math blocks to "
