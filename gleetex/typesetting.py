@@ -1,10 +1,12 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This module contains functionality to typeset formuas for the usage in a
 LaTeX document (e.g. creating the preamble, replacing non-ascii letters) and to
 typeset LaTeX formulas in a more readable way as alternate description of the
 resulting image. """
+
+import inspect
 
 from . import unicode
 
@@ -276,7 +278,7 @@ class LaTeXDocument:
         """Set fontsize in pt, 12 pt by default."""
         self.__fontsize = size_in_pt
 
-    def get_fontsize(self, size_in_pt):
+    def get_fontsize(self):
         return self.__fontsize
 
     def __str__(self):
@@ -326,17 +328,20 @@ class LaTeXDocument:
             formula = escape_unicode_maths(formula, replace_alphabeticals=True)
         fontsize = "fontsize=%ipt" % self.__fontsize
         color_preamble, color_body = self._format_colors()
-        return (
-            "\\documentclass[%s, fleqn]{scrartcl}\n\n%s\n"
-            "\\usepackage[dvipsnames]{xcolor}\n"
-            "%s\n"  # color definitions, if applicable
-            "\\usepackage[active,textmath,displaymath,tightpage]{preview} "
-            "%% must be last one, see doc\n\n\\begin{document}\n"
-            "\\noindent%%\n"
-            "\\begin{preview}{%s"
-            "%s%s%s}\\end{preview}\n"
-            "\\end{document}\n"
-        ) % (fontsize, preamble, color_preamble, color_body, opening, formula, closing)
+        return inspect.cleandoc(f"""
+            \\documentclass[{fontsize}, fleqn]{{scrartcl}}\n
+            {color_preamble}
+            {preamble}
+            \\usepackage[dvipsnames]{{xcolor}}
+            {color_body}
+            % tightpage must be last, see its package docs
+            \\usepackage[active,textmath,displaymath,tightpage]{{preview}}\n
+            \\begin{{document}}\n
+            \\noindent%
+            \\begin{{preview}}{{%s
+            {opening}{formula}{closing}}}\\end{{preview}}\n
+            \\end{{document}}\n
+        """)
 
 
 def increase_readability(formula, replace_nonascii=False):
