@@ -329,10 +329,11 @@ class LaTeXDocument:
         fontsize = "fontsize=%ipt" % self.__fontsize
         color_preamble, color_body = self._format_colors()
         return inspect.cleandoc(f"""
+            \\PassOptionsToPackage{{dvipsnames}}{{xcolor}}\n
             \\documentclass[{fontsize}, fleqn]{{scrartcl}}\n
             {color_preamble}
             {preamble}
-            \\usepackage[dvipsnames]{{xcolor}}
+            \\usepackage{{xcolor}}
             {color_body}
             % tightpage must be last, see its package docs
             \\usepackage[active,textmath,displaymath,tightpage]{{preview}}\n
