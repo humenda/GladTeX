@@ -332,10 +332,11 @@ class LaTeXDocument:
             \\documentclass[{fontsize}, fleqn]{{scrartcl}}\n
             {color_preamble}
             {preamble}
-            \\usepackage[dvipsnames]{{xcolor}}
+            \\usepackage{{xcolor}}
             {color_body}
             % tightpage must be last, see its package docs
             \\usepackage[active,textmath,displaymath,tightpage]{{preview}}\n
+            \\PassOptionsToPackage{{dvipsnames}}{{xcolor}}\n
             \\begin{{document}}\n
             \\noindent%
             \\begin{{preview}}{{%s
