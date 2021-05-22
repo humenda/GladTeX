@@ -20,28 +20,33 @@ import base64
 from . import typesetting
 
 # match HTML 4 and 5
-CHARSET_PATTERN = re.compile(
-        rb'(?:content="text/html; charset=(.*?)"|charset="(.*?)")')
+CHARSET_PATTERN = re.compile(rb'(?:content="text/html; charset=(.*?)"|charset="(.*?)")')
+
 
 class ParseException(Exception):
     """Exception to propagate a parsing error."""
+
     def __init__(self, msg, pos=None):
         self.msg = msg
         self.pos = pos
         super().__init__(msg, pos)
 
     def __str__(self):
-        return ('line {0.pos[0]}, {0.pos[1]}: {0.msg}'.format(self)
-                if self.pos else self.msg)
+        return (
+            "line {0.pos[0]}, {0.pos[1]}: {0.msg}".format(self)
+            if self.pos
+            else self.msg
+        )
+
 
 def get_position(document, index):
     """This returns the line number and position on line for the given String.
     Note: lines and positions are counted from 0."""
-    line = document[:index+1].count('\n')
-    if document[index] == '\n':
+    line = document[: index + 1].count("\n")
+    if document[index] == "\n":
         return (line, 0)
-    newline = document[:index+1].rfind('\n')
-    newline = (newline if newline >= 0 else 0)
+    newline = document[: index + 1].rfind("\n")
+    newline = newline if newline >= 0 else 0
     return (line, len(document[newline:index]))
 
 
@@ -53,18 +58,21 @@ def find_anycase(where, what):
         return lower
     return upper
 
+
 class EqnParser:
     """This parser parses <eq>...</eq> our of a document. It's not an HTML
     parser, because the content within <eq>.*<eq> is parsed verbatim.
     It also parses comments, to not consider formulas within comments. All other
     cases are unhandled. Especially CData is problematic, although it seems like
     a rare use case."""
-    class State(enum.Enum): # ([\s\S]*?) also matches newlines
-        Comment = re.compile(r'<!--([\s\S]*?)-->', re.MULTILINE)
-        Equation = re.compile(r'<\s*(?:eq|EQ)\s*(.*?)?>([\s\S.]+?)<\s*/\s*(?:eq|EQ)>',
-                re.MULTILINE)
 
-    HTML_ENTITY = re.compile(r'(&(:?#\d+|[a-zA-Z]+);)')
+    class State(enum.Enum):  # ([\s\S]*?) also matches newlines
+        Comment = re.compile(r"<!--([\s\S]*?)-->", re.MULTILINE)
+        Equation = re.compile(
+            r"<\s*(?:eq|EQ)\s*(.*?)?>([\s\S.]+?)<\s*/\s*(?:eq|EQ)>", re.MULTILINE
+        )
+
+    HTML_ENTITY = re.compile(r"(&(:?#\d+|[a-zA-Z]+);)")
 
     def __init__(self):
         self.__document = None
@@ -75,15 +83,20 @@ class EqnParser:
         """Feed a string or a bytes instance and start parsing. If a bytes
         instance is fed, an HTML encoding header has to be present, so that the
         encoding can be extracted."""
-        if isinstance(document, bytes): # try to guess encoding
+        if isinstance(document, bytes):  # try to guess encoding
             try:
-                encoding = next(filter(bool, CHARSET_PATTERN.search(document)
-                        .groups())).decode('ascii')
+                encoding = next(
+                    filter(bool, CHARSET_PATTERN.search(document).groups())
+                ).decode("ascii")
                 document = document.decode(encoding)
             except AttributeError:
-                raise ParseException(("Could not determine encoding of "
+                raise ParseException(
+                    (
+                        "Could not determine encoding of "
                         "document, no charset information in the HTML header "
-                        "found."))
+                        "found."
+                    )
+                )
             self.__encoding = encoding
         self.__document = document[:]
         self._parse()
@@ -96,9 +109,8 @@ class EqnParser:
             pos = doc[start:].find(what)
         else:
             match = what.search(doc[start:])
-            pos = (-1 if not match else match.span()[0])
-        return (pos if pos == -1 else pos + start)
-
+            pos = -1 if not match else match.span()[0]
+        return pos if pos == -1 else pos + start
 
     def _parse(self):
         """This function parses the document, while maintaining state using the
@@ -109,13 +121,15 @@ class EqnParser:
         doc = self.__document[:].lower()
 
         end = len(self.__document) - 1
-        eq_start = re.compile(r'<\s*eq\s*(.*?)>')
+        eq_start = re.compile(r"<\s*eq\s*(.*?)>")
 
         start_pos = 0
         while start_pos < end:
-            comment = self.find_with_offset(doc, start_pos, '<!--')
+            comment = self.find_with_offset(doc, start_pos, "<!--")
             formula = self.find_with_offset(doc, start_pos, eq_start)
-            if in_document(comment) and in_document(formula): # both present, take closest
+            if in_document(comment) and in_document(
+                formula
+            ):  # both present, take closest
                 if comment < formula:
                     self.__data.append(self.__document[start_pos:comment])
                     start_pos = self.handle_comment(comment)
@@ -128,10 +142,9 @@ class EqnParser:
             elif in_document(comment):
                 self.__data.append(self.__document[start_pos:comment])
                 start_pos = self.handle_comment(comment)
-            else: # only data left
+            else:  # only data left
                 self.__data.append(self.__document[start_pos:])
                 start_pos = end
-
 
     def handle_equation(self, start_pos):
         """Parse an equation. The given offset should mark the beginning of this
@@ -141,39 +154,38 @@ class EqnParser:
 
         match = EqnParser.State.Equation.value.search(self.__document[start_pos:])
         if not match:
-            next_eq = find_anycase(self.__document[start_pos+1:], '<eq')
-            closing = find_anycase(self.__document[start_pos:], '</eq>')
+            next_eq = find_anycase(self.__document[start_pos + 1 :], "<eq")
+            closing = find_anycase(self.__document[start_pos:], "</eq>")
             if -1 < next_eq < closing and closing > -1:
                 raise ParseException("Unclosed tag found", (lnum, pos))
             raise ParseException("Malformed equation tag found", (lnum, pos))
         end = start_pos + match.span()[1]
         attrs, formula = match.groups()
-        if '<eq>' in formula or '<EQ' in formula:
-            raise ParseException("Invalid nesting of formulas detected.", (lnum,
-                pos))
+        if "<eq>" in formula or "<EQ" in formula:
+            raise ParseException("Invalid nesting of formulas detected.", (lnum, pos))
 
         # replace HTML entities
         entity = EqnParser.HTML_ENTITY.search(formula)
         while entity:
-            formula = re.sub(EqnParser.HTML_ENTITY,
-                    html.unescape(entity.groups()[0]), formula)
+            formula = re.sub(
+                EqnParser.HTML_ENTITY, html.unescape(entity.groups()[0]), formula
+            )
             entity = EqnParser.HTML_ENTITY.search(formula)
         attrs = attrs.lower()
-        displaymath = bool(attrs) and 'env' in attrs and 'displaymath' in attrs
-        self.__data.append(((lnum, pos), # let line number count from 0 as well
-                displaymath, formula))
+        displaymath = bool(attrs) and "env" in attrs and "displaymath" in attrs
+        self.__data.append(
+            ((lnum, pos), displaymath, formula)  # let line number count from 0 as well
+        )
         return end
-
 
     def handle_comment(self, start_pos):
         match = EqnParser.State.Comment.value.search(self.__document[start_pos:])
         if not match:
             lnum, pos = get_position(self.__document, start_pos)
             # this could be a parser issue, too
-            raise ParseException("Improperly formatted comment found", (lnum,
-                pos))
-        self.__data.append('<!--%s-->' % match.groups()[0])
-        return start_pos + match.span()[1] # return end of match
+            raise ParseException("Improperly formatted comment found", (lnum, pos))
+        self.__data.append("<!--%s-->" % match.groups()[0])
+        return start_pos + match.span()[1]  # return end of match
 
     def get_encoding(self):
         """Return the parsed encoding from the HTML meta data. If none was set,
@@ -183,7 +195,7 @@ class EqnParser:
     def get_data(self):
         """Return parsed chunks. These are either strings or tuples with formula
         information, see class documentation."""
-        return list(x for x in self.__data if x) # filter empty bits
+        return list(x for x in self.__data if x)  # filter empty bits
 
 
 def gen_id(formula):
@@ -194,12 +206,12 @@ def gen_id(formula):
     the same content in the document, that'll cause a clash of id's."""
     # for some characters we just use a simple replacement (otherwise the
     # would be lost)
-    mapped = {'{':'_', '}':'_', '(':'-', ')':'-', '\\':'.', '^':',', '*':'_'}
+    mapped = {"{": "_", "}": "_", "(": "-", ")": "-", "\\": ".", "^": ",", "*": "_"}
     id = []
-    prevchar = ''
+    prevchar = ""
     for c in formula:
         if prevchar == c:
-            continue # avoid multiple same characters
+            continue  # avoid multiple same characters
         if c in mapped:
             id.append(mapped[c])
         elif c.isalpha() or c.isdigit():
@@ -208,11 +220,12 @@ def gen_id(formula):
     # id's must start with an alphabetical character, so prefix the formula with
     # "formula" to make it a valid html id
     if id and not id[0].isalpha():
-        id = ['f', 'o', 'r', 'm', '_'] + id
-    if not id: # is empty
-        raise ValueError("For the formula '%s' no referencable id could be generated." \
-                    % formula)
-    return ''.join(id[:150])
+        id = ["f", "o", "r", "m", "_"] + id
+    if not id:  # is empty
+        raise ValueError(
+            "For the formula '%s' no referencable id could be generated." % formula
+        )
+    return "".join(id[:150])
 
 
 class OutsourcedFormulaParser(html.parser.HTMLParser):
@@ -224,6 +237,7 @@ class OutsourcedFormulaParser(html.parser.HTMLParser):
 
         <p id="id_as_generated_by_gen_id"><pre>stuff</pre></p>
     """
+
     def __init__(self):
         self.__head = []
         self.__id = None
@@ -232,32 +246,36 @@ class OutsourcedFormulaParser(html.parser.HTMLParser):
         super().__init__(convert_charrefs=False)
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'p':
+        if tag == "p":
             attrs = dict(attrs)
-            if attrs.get('id'):
-                self.__id = attrs['id'] # marks beginning of a formula paragraph
-                self.__equations[self.__id] = ''
+            if attrs.get("id"):
+                self.__id = attrs["id"]  # marks beginning of a formula paragraph
+                self.__equations[self.__id] = ""
                 return
-        elif tag == 'body':
+        elif tag == "body":
             self.__passed_head = True
-            self.__head.append('\n<body>\n')
+            self.__head.append("\n<body>\n")
         if not self.__passed_head:
             self.__head.append(self.get_starttag_text())
 
     def handle_startendtag(self, tag, attrs):
-        if self.__id or self.__passed_head: return # skip everything inside a formula
+        if self.__id or self.__passed_head:
+            return  # skip everything inside a formula
         if attrs:
-            self.__head.append('<{} {} />'.format(tag,
-                ' '.join(['%s="%s"' % (x[0], x[1]) for x in attrs])))
+            self.__head.append(
+                "<{} {} />".format(
+                    tag, " ".join(['%s="%s"' % (x[0], x[1]) for x in attrs])
+                )
+            )
         else:
-            self.__head.append('<%s />' % tag)
+            self.__head.append("<%s />" % tag)
 
     def handle_endtag(self, tag):
-        if self.__id: # inside a formula
-            if tag == 'p':
-                self.__id = None # end formula block
+        if self.__id:  # inside a formula
+            if tag == "p":
+                self.__id = None  # end formula block
         elif not self.__passed_head:
-            formatted = '</%s>' % tag
+            formatted = "</%s>" % tag
             self.__head.append(formatted)
 
     def handle_data(self, data):
@@ -268,44 +286,43 @@ class OutsourcedFormulaParser(html.parser.HTMLParser):
 
     def handle_entityref(self, name):
         if self.__id:
-            self.__equations[self.__id] += '&%s;' % name
+            self.__equations[self.__id] += "&%s;" % name
         elif not self.__passed_head:
-            self.__head.append('&%s;' % name)
+            self.__head.append("&%s;" % name)
 
     def handle_charref(self, name):
         if self.__id:
-            self.__equations[self.__id] += '&#%s;' % name
+            self.__equations[self.__id] += "&#%s;" % name
         elif not self.__passed_head:
-            self.__head.append('&#%s;' % name)
+            self.__head.append("&#%s;" % name)
 
     def handle_comment(self, blah):
         if not self.__passed_head:
-            self.__head.append('<!--%s-->' % blah)
+            self.__head.append("<!--%s-->" % blah)
 
     def handle_decl(self, declaration):
         if not self.__passed_head:
-            self.__head.append('<!%s>' % declaration)
-
+            self.__head.append("<!%s>" % declaration)
 
     def get_head(self):
         """Return a string containing everything before the first formula."""
-        return ''.join(self.__head)
+        return "".join(self.__head)
 
     def get_formulas(self):
         """Return an ordered dictionary with id : formula paragraph."""
         return self.__equations
 
     def error(self, message):
-        raise ParseException(message, ('unknown', 'unknown'))
+        raise ParseException(message, ("unknown", "unknown"))
+
 
 def format_formula_paragraph(formula):
     """Format a formula to appear as if it would have been outsourced into an
     external file."""
-    return '<p id="%s"><pre>%s</pre></span></p>\n' % \
-            (gen_id(formula), formula)
+    return '<p id="%s"><pre>%s</pre></span></p>\n' % (gen_id(formula), formula)
 
 
-class HtmlImageFormatter: # ToDo: localisation
+class HtmlImageFormatter:  # ToDo: localisation
     """HtmlImageFormatter(exclusion_filepath='outsourced_formulas.html',
             encoding="UTF-8")
     Format converted formula to be included into the HTML. A typical image
@@ -321,28 +338,34 @@ class HtmlImageFormatter: # ToDo: localisation
     differently anyway. If that behavior is not wanted, it can be disabled and
     nothing will be excluded."""
 
-    EXCLUSION_FILE_NAME = 'outsourced-descriptions.html'
-    HTML_TEMPLATE_HEAD = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"' +
-        '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n' +
-        '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>' +
-        '\n<title>Outsourced Formulas</title>\n</head>\n<!-- ' +
-        'DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n')
-    def __init__(self, base_path='', link_prefix=None):
+    EXCLUSION_FILE_NAME = "outsourced-descriptions.html"
+    HTML_TEMPLATE_HEAD = (
+        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
+        + '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n'
+        + '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+        + "\n<title>Outsourced Formulas</title>\n</head>\n<!-- "
+        + "DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n"
+    )
+
+    def __init__(self, base_path="", link_prefix=None):
         self.__exclude_descriptions = False
-        self.__link_prefix = (link_prefix if link_prefix else '')
-        self.__base_path = (base_path if base_path else '')
-        self.__exclusion_filepath = posixpath.join(self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME)
+        self.__link_prefix = link_prefix if link_prefix else ""
+        self.__base_path = base_path if base_path else ""
+        self.__exclusion_filepath = posixpath.join(
+            self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME
+        )
         if os.path.exists(self.__exclusion_filepath):
             if not os.access(self.__exclusion_filepath, os.W_OK):
-                raise OSError('The file %s is not writable!' %
-                        self.__exclusion_filepath)
-        self.__inline_maxlength=100
+                raise OSError(
+                    "The file %s is not writable!" % self.__exclusion_filepath
+                )
+        self.__inline_maxlength = 100
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
-        self.__url = ''
+        self.__url = ""
         self.initialized = False
-        self.initialize() # read already written file, if any
-        self.__css = {'inline' : 'inlinemath', 'display' : 'displaymath'}
+        self.initialize()  # read already written file, if any
+        self.__css = {"inline": "inlinemath", "display": "displaymath"}
         self.__replace_nonascii = False
 
     def set_replace_nonascii(self, flag):
@@ -358,11 +381,11 @@ class HtmlImageFormatter: # ToDo: localisation
 
     def set_inline_math_css_class(self, css):
         """set css class for inline math."""
-        self.__css['inline'] = css
+        self.__css["inline"] = css
 
     def set_display_math_css_class(self, css):
         """set css class for display math."""
-        self.__css['display'] = css
+        self.__css["display"] = css
 
     def set_exclude_long_formulas(self, flag):
         """When set, the LaTeX code of a formula longer than the configured
@@ -385,7 +408,7 @@ class HtmlImageFormatter: # ToDo: localisation
         if not os.path.exists(self.__exclusion_filepath):
             return self
         document = None
-        with open(self.__exclusion_filepath, 'r', encoding='UTF-8') as f:
+        with open(self.__exclusion_filepath, "r", encoding="UTF-8") as f:
             document = f.read()
         # parse html document:
         parser = OutsourcedFormulaParser()
@@ -402,15 +425,23 @@ class HtmlImageFormatter: # ToDo: localisation
 
     def close(self):
         """Write back file with excluded image descriptions, if any."""
+
         def formula2paragraph(frml):
             return '<p id="%s"><pre>%s</pre></p>' % (gen_id(frml), frml)
+
         if not self.__cached_formula_pars:
             return
-        with open(self.__exclusion_filepath, 'w', encoding='utf-8') as f:
+        with open(self.__exclusion_filepath, "w", encoding="utf-8") as f:
             f.write(self.__file_head)
-            f.write('\n<hr />\n'.join([formula2paragraph(formula) \
-                    for formula in self.__cached_formula_pars.values()]))
-            f.write('\n</body>\n</html>\n')
+            f.write(
+                "\n<hr />\n".join(
+                    [
+                        formula2paragraph(formula)
+                        for formula in self.__cached_formula_pars.values()
+                    ]
+                )
+            )
+            f.write("\n</body>\n</html>\n")
 
     def get_html_img(self, pos, formula, img_path, displaymath=False):
         """:param pos dictionary containing keys depth, height and width
@@ -420,17 +451,20 @@ class HtmlImageFormatter: # ToDo: localisation
         :returns a string with the formatted HTML"""
         full_url = img_path
         if self.__url:
-            if self.__url.endswith('/'): self.__url = self.__url[:-1]
-            full_url = self.__url + '/' + img_path
+            if self.__url.endswith("/"):
+                self.__url = self.__url[:-1]
+            full_url = self.__url + "/" + img_path
         with open(full_url, "rb") as image_file:
             encoded_image = base64.b64encode(image_file.read()).decode("ascii")
 
         # depth is a negative offset
-        depth = float(pos['depth']) * -1
-        css = (self.__css['display'] if displaymath else self.__css['inline'])
-        return ('<img src="data:image/svg+xml;base64,{0}" style="vertical-align: {3:.2f}px; margin: 0;" '
-                'height="{2[height]:.2f}" width="{2[width]:.2f}" alt="{1}" '
-                'class="{4}" >').format(encoded_image, formula, pos, depth, css)
+        depth = float(pos["depth"]) * -1
+        css = self.__css["display"] if displaymath else self.__css["inline"]
+        return (
+            '<img src="data:image/svg+xml;base64,{0}" style="vertical-align: {3:.2f}px; margin: 0;" '
+            'height="{2[height]:.2f}" width="{2[width]:.2f}" alt="{1}" '
+            'class="{4}" >'
+        ).format(encoded_image, formula, pos, depth, css)
 
     def format_excluded(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula and an formula image in HTML and
@@ -443,15 +477,18 @@ class HtmlImageFormatter: # ToDo: localisation
         :param displaymath if set to true, image is treated as display math formula (default False)
         :returns string with formatted HTML image which also links to excluded
         formula"""
-        shortened = (formula[:100] + '...'  if len(formula) > 100 else formula)
+        shortened = formula[:100] + "..." if len(formula) > 100 else formula
         img = self.get_html_img(pos, shortened, img_path, displaymath)
         identifier = gen_id(formula)
         # write formula out to external file
         if identifier not in self.__cached_formula_pars:
             self.__cached_formula_pars[identifier] = formula
-        exclusion_filelink = posixpath.join(self.__link_prefix, self.__exclusion_filepath)
-        return '<a.eqn href="{}#{}">{}</a.eqn>'.format(exclusion_filelink,
-                gen_id(formula), img)
+        exclusion_filelink = posixpath.join(
+            self.__link_prefix, self.__exclusion_filepath
+        )
+        return '<a.eqn href="{}#{}">{}</a.eqn>'.format(
+            exclusion_filelink, gen_id(formula), img
+        )
 
     def format(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula. If self.__exclude_descriptions is set
@@ -464,12 +501,11 @@ class HtmlImageFormatter: # ToDo: localisation
         :param displaymath whether or not formula is in display math (default: no)
         :returns string with formatted HTML image which also links to excluded
         formula"""
-        formula = typesetting.increase_readability(formula,
-                self.__replace_nonascii)
-        if self.__exclude_descriptions and \
-                len(formula) > self.__inline_maxlength:
+        formula = typesetting.increase_readability(formula, self.__replace_nonascii)
+        if self.__exclude_descriptions and len(formula) > self.__inline_maxlength:
             return self.format_excluded(pos, formula, img_path, displaymath)
         return self.get_html_img(pos, formula, img_path, displaymath)
+
 
 def write_html(file, document, formatter):
     """Processed HTML documents are made up of raw HTML chunks which are written
@@ -479,8 +515,11 @@ def write_html(file, document, formatter):
     the given (open) file handle."""
     for chunk in document:
         if isinstance(chunk, dict):
-            is_displaymath = chunk['displaymath']
-            file.write(formatter.format(chunk['pos'], chunk['formula'],
-                    chunk['path'], is_displaymath))
+            is_displaymath = chunk["displaymath"]
+            file.write(
+                formatter.format(
+                    chunk["pos"], chunk["formula"], chunk["path"], is_displaymath
+                )
+            )
         else:
             file.write(chunk)
