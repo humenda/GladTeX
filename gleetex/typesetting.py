@@ -328,7 +328,8 @@ class LaTeXDocument:
             formula = escape_unicode_maths(formula, replace_alphabeticals=True)
         fontsize = "fontsize=%ipt" % self.__fontsize
         color_preamble, color_body = self._format_colors()
-        return inspect.cleandoc(f"""
+        return inspect.cleandoc(
+            f"""
             \\PassOptionsToPackage{{dvipsnames}}{{xcolor}}\n
             \\documentclass[{fontsize}, fleqn]{{scrartcl}}\n
             {color_preamble}
@@ -342,7 +343,8 @@ class LaTeXDocument:
             \\begin{{preview}}{{%s
             {opening}{formula}{closing}}}\\end{{preview}}\n
             \\end{{document}}\n
-        """)
+        """
+        )
 
 
 def increase_readability(formula, replace_nonascii=False):

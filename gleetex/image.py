@@ -1,4 +1,4 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This module takes care of the actual image creation process.
@@ -89,7 +89,7 @@ def proc_call(cmd, cwd=None, install_recommends=True):
 
 # pylint: disable=too-few-public-methods
 class Format(enum.Enum):
-    """Chose the image output format."""
+    """Choose the image output format."""
 
     Png = "png"
     Svg = "svg"
@@ -114,6 +114,11 @@ class Tex2img:
         self.__size = [115, None]
         self.__background = "transparent"
         self.__keep_latex_source = False
+        self.__is_epub = False
+
+    def set_is_epub(self, val):
+        """Enable or disable Epub-conforming image creation."""
+        self.__is_epub = val
 
     def set_dpi(self, dpi):
         """Set output resolution for formula images. This has no effect ifthe
@@ -219,7 +224,11 @@ class Tex2img:
         dvi = "%s.dvi" % base_name
         try:
             self.create_dvi(tex_document, dvi)
-            return self.create_image(dvi)
+            dimensions = self.create_image(dvi)
+            if self.__is_epub:
+                for key, val in dimensions.items():
+                    dimensions[key] = int(round(val))
+            return dimensions
         except OSError:
             remove_all("%s.%s" % (base_name, self.__format.value))
             raise
@@ -296,7 +305,7 @@ def create_svg(dvi_fn, output_name):
     :param output_name  Output file name
     :param size         font size in pt
     :return dimensions for embedding into an HTML document
-    :raises ValueError raised whenever dvipng output coudln't be parsed"""
+    :raises ValueError raised whenever dvipng output couldn't be parsed"""
     if not output_name:
         raise ValueError("Empty output_name")
     cmd = [

@@ -1,4 +1,4 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """In order to convert images only if they are not already cached, the cached
@@ -86,6 +86,7 @@ class CachedConverter:
         cache_path = os.path.join(
             self.__img_dir, CachedConverter.GLADTEX_CACHE_FILE_NAME
         )
+        self.__is_epub = False
         self.__cache = caching.ImageCache(
             cache_path,
             keep_old_cache=keep_old_cache,
@@ -102,6 +103,7 @@ class CachedConverter:
             "latex_maths_env": None,
             "keep_latex_source": False,
             "png": False,
+            "is_epub": False,
         }
         self.__encoding = encoding
         self.__replace_nonascii = False

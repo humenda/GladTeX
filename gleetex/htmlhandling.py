@@ -1,4 +1,4 @@
-# (c) 2013-2019 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """GleeTeX is designed to allow the re-use of the image creation code
@@ -346,7 +346,7 @@ class HtmlImageFormatter:  # ToDo: localisation
         + "DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n"
     )
 
-    def __init__(self, base_path="", link_prefix=None):
+    def __init__(self, base_path="", link_prefix=None, is_epub=False):
         self.__exclude_descriptions = False
         self.__link_prefix = link_prefix if link_prefix else ""
         self.__base_path = base_path if base_path else ""
@@ -362,6 +362,7 @@ class HtmlImageFormatter:  # ToDo: localisation
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
         self.__cached_formula_pars = collections.OrderedDict()
         self.__url = ""
+        self.__is_epub = is_epub
         self.initialized = False
         self.initialize()  # read already written file, if any
         self.__css = {"inline": "inlinemath", "display": "displaymath"}
@@ -455,12 +456,20 @@ class HtmlImageFormatter:  # ToDo: localisation
             full_url = self.__url + "/" + img_path
         # depth is a negative offset
         depth = float(pos["depth"]) * -1
+        if self.__is_epub:
+            depth = str(int(depth))
+        else:
+            depth = f"{depth:.2f}"
         css = self.__css["display"] if displaymath else self.__css["inline"]
+        dimensions = f"height=\"{pos['height']:.2f}\" width=\"{pos['width']:.2f}\""
+        if self.__is_epub:
+            dimensions = f"height=\"{pos['height']}\" width=\"{pos['width']}\""
+
         return (
-            '<img src="{0}" style="vertical-align: {3:.2f}px; margin: 0;" '
-            'height="{2[height]:.2f}" width="{2[width]:.2f}" alt="{1}" '
-            'class="{4}" />'
-        ).format(full_url, formula, pos, depth, css)
+            f'<img src="{full_url}" style="vertical-align: {depth}px; margin: 0;" '
+            f'alt="{formula}" {dimensions} '
+            f' class="{css}" />'
+        )
 
     def format_excluded(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula and an formula image in HTML and

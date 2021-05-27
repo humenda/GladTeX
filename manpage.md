@@ -70,6 +70,10 @@ in-depth explanation.
 **-E** _ENCODING_
 :   Overwrite encoding to use (default UTF-8).
 
+**--epub**
+:   Make embedded formula image more EPUB-compliant, i.e. round pixel sizes to
+    integers.
+
 **-f** _FONTSIZE_
 :   Overwrite the default font size of 12pt. 12pt is the default in most
     browsers and hence changing this might lead to less-portable documents.

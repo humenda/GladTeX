@@ -1,4 +1,4 @@
-# (c) 2013-2019 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 import argparse
@@ -6,6 +6,8 @@ import multiprocessing
 import os
 import posixpath
 import sys
+import textwrap
+
 from . import *
 from .htmlhandling import HtmlImageFormatter
 
@@ -89,6 +91,14 @@ class Main:
             dest="encoding",
             default=None,
             help="Overwrite encoding to use (default UTF-8)",
+        )
+        cmd.add_argument(
+            "--epub",
+            dest="is_epub",
+            default=False,
+            action="store_true",
+            help="Optimise output for epub, for instance round height/width of "
+            "images",
         )
         cmd.add_argument(
             "-i",
@@ -286,7 +296,9 @@ class Main:
             else options.img_directory
         )
         with HtmlImageFormatter(
-            base_path=os.path.join(base_path, img_dir), link_prefix=options.url
+            base_path=os.path.join(base_path, img_dir),
+            link_prefix=options.url,
+            is_epub=options.is_epub,
         ) as img_fmt:
             img_fmt.set_exclude_long_formulas(True)
             if options.replace_nonascii:
@@ -372,6 +384,7 @@ class Main:
             "keep_latex_source",
             "foreground_color",
             "background_color",
+            "is_epub",
         ]
         for option_str in options_to_query:
             option = getattr(options, option_str)
@@ -443,7 +456,6 @@ class Main:
                 err.cause,
             )
             if additional:
-                import textwrap
 
                 msg += " undefined.\n" + "\n".join(textwrap.wrap(additional, 80))
         self.exit(msg, 91)

@@ -1,5 +1,6 @@
-3.1.1 (UNRELEASED)
+3.2 (UNRELEASED)
 
+    -   Add --epub flag to produce HTML output more suitable for EPUBs.
     -   Avoid option clashes with the xcolor package if extending the xcolor
         options using `-p`. Recommend `\PassOptionsToPackage`.
     -   Add `-interactive=nonstopmode` to each LaTeX invocation to stop even if
