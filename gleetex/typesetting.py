@@ -1,7 +1,7 @@
 # (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
-"""This module contains functionality to typeset formuas for the usage in a
+"""This module contains functionality to typeset formulas for the usage in a
 LaTeX document (e.g. creating the preamble, replacing non-ascii letters) and to
 typeset LaTeX formulas in a more readable way as alternate description of the
 resulting image. """

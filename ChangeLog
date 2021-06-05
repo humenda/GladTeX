@@ -1,5 +1,7 @@
-3.2 (UNRELEASED)
+4.0 (UNRELEASED)
 
+    -   Enable standard UNIX quoting for `GLADTEX_AGS` that allows passing
+        arguments with spaces when GladTeX is used as a Pandoc filter.
     -   Add --epub flag to produce HTML output more suitable for EPUBs.
     -   Avoid option clashes with the xcolor package if extending the xcolor
         options using `-p`. Recommend `\PassOptionsToPackage`.

@@ -4,6 +4,7 @@
 import argparse
 import multiprocessing
 import os
+import shlex
 import posixpath
 import sys
 import textwrap
@@ -69,6 +70,7 @@ class Main:
         )
         cmd.add_argument(
             "-d",
+            default="",
             dest="img_directory",
             help="Directory in which to"
             + " store generated images in (relative to the output file)",
@@ -162,7 +164,8 @@ class Main:
             action="store_true",
             help="Use GladTeX as a Pandoc filter: read a Pandoc JSON AST "
             "from stdin, convert the images, change math blocks to "
-            "images and write JSON to stdout",
+            "images and write JSON to stdout; "
+            "see the man page on how to pass args to GladTeX in this mode",
         )
         cmd.add_argument(
             "--png",
@@ -290,13 +293,8 @@ class Main:
             self.exit("Error while parsing {}: {}".format(input_fn, str(e)), 5)
 
         processed = self.convert_images(doc, base_path, options.img_directory, options)
-        img_dir = (
-            ""
-            if not options.img_directory or options.img_directory == "."
-            else options.img_directory
-        )
         with HtmlImageFormatter(
-            base_path=os.path.join(base_path, img_dir),
+            base_path=os.path.join(base_path, options.img_directory),
             link_prefix=options.url,
             is_epub=options.is_epub,
         ) as img_fmt:
@@ -369,7 +367,7 @@ class Main:
                             "formula '{}' not found; that means it was "
                             "not converted which should usually not happen."
                         ).format(formula)
-                    )
+                    ) from e
             else:
                 result.append(chunk)
         return result
@@ -469,10 +467,10 @@ def main():
     # run as pandoc filter?
     args = sys.argv  # fallback if no environment variable set
     if "GLADTEX_ARGS" in os.environ:
-        args = [sys.argv[0]] + os.environ["GLADTEX_ARGS"].split(" ")
+        args = shlex.split(os.environ["GLADTEX_ARGS"])
         if "-P" not in args:
-            args = [args[0]] + ["-P"] + args[1:] + ["-"]
-    m.run(args)
+            args = ["-P"] + args
+    m.run([sys.argv[0]] + args)
 
 
 if __name__ == "__main__":

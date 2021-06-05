@@ -2,7 +2,7 @@
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """GleeTeX is designed to allow the re-use of the image creation code
-independently of the HTML conversion code. Therefore, this modules contains the
+independently of the HTML conversion code. Therefore, this module contains the
 code required to parse equations from HTML, to write converted HTML documents
 back and to handle the outsourcing of formulas too long for an HTML alt tag to
 an external file.

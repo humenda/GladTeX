@@ -1,6 +1,6 @@
 % GLADTEX(1)
 % Sebastian Humenda
-% 8th of September 2018
+% 5th of June 2021
 
 # NAME
 
@@ -117,7 +117,10 @@ in-depth explanation.
 :   Act as a pandoc filter. In this mode, input is expected to be a Pandoc JSON
     AST  and the output will be a modified AST, with all formulas replaced
     through HTML image tags. It makes sense to use `-` as the input file for
-    this option.
+    this option.  
+    This option implies `-E UTF-8`. Also see [GLADTEX_ARGS](#gladtex_args) on
+    how to invoke GladTeX as a pandoc filter and how to pass arguments in this
+    mode.
 
 **--png**
 :   Switch from SVG to PNG as image output. This image has several known issues,
@@ -161,11 +164,18 @@ GladTeX can be customised by environment variables:
 `DEBUG`
 :   If this is set to 1, a full Python traceback, instead of a human-readable
     error message, will be displayed.
-`GLADTEX_ARGS`:
+[`GLADTEX_ARGS`:]{#gladtex_args}
 :   When this environment variable is set, GladTeX switches into
-    **pandoc filter** mode: input is read from standard input, output written to
-    standard output and the `-P` switch is assumed. The contents of this
-    variable parsed as command-line switches.
+    the **pandoc filter** mode: input is read from standard input, output
+    written to standard output and the `-P` and `-E UTF-8` options are assumed.
+    The contents of this variable are parsed as command-line switches. Qutoing
+    can be done in POSIX-shell compatible syntax:
+
+    ```
+    export GLADTEX_ARGS='-d "image directory"'
+    ```
+
+    It may be empty as well, which will just imply `-P`.
     See an example in [Output As EPUB]#output-asepub).
 
 # EXAMPLES
@@ -218,19 +228,18 @@ The conversion is as easy as typing on the command-line:
 
 ## Output as EPUB
 
-It is beyond of the scope of this document to introduce Pandoc, but with any
-input format, converting to EPUB with GladTeX replacing the images is as easy
-as:
+GladTeX can be used together with Pandoc, the swiss knife of format conversion.
+In short, any format that Pandoc understands can be converted to EPUB using
+GladTeX:
 
-    pandoc -t json FILE.ext | gladtex -d img -P - | pandoc -f json -o book.epub
+    pandoc -t json myexample.md | gladtex -d "img dir" -P --epub - |
+        pandoc -f json -o book.epub
 
-Capitalised parameters should be replaced. This can be used with Markdown as
-input format, see previous section.
+GladTeX can be also directly called by Pandoc, by setting the environment
+variable `GLADTEX_ARGS` that automatically implies `-P`:
 
-If you want to call Pandoc as a filter without the pipes, you can use the
-environment variable `GLADTEX_ARGS`:
-
-    GLADTEX_ARGS='-d img' pandoc -o BOOK.EPUB -F gladtex FILE.ext
+    export GLADTEX_ARGS='-d "img dir" --epub'
+    pandoc -o book.EPUB --filter gladtex myexample.md
 
 
 # KNOWN LIMITATIONS
@@ -251,4 +260,3 @@ does not support the extended font features of the lualatex engine.
 
 The project home is at <http://humenda.github.io/GladTeX>. The source can be
 found at <https://github.com/humenda/gladtex>.
-
