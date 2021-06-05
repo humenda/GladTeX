@@ -98,7 +98,6 @@ class HtmlparserTest(unittest.TestCase):
         self.p.feed('<p><eq>\frac12</eq><br /><eq env="inline">bar</eq></p>')
         formulas = [c for c in self.p.get_data() if isinstance(c, (tuple, list))]
         self.assertEqual(len(formulas), 2)  # there should be _2_ formulas
-        print(formulas[0])
         self.assertEqual(formulas[0][1], False)  # no displaymath
         self.assertEqual(formulas[1][1], False)  # no displaymath
 
@@ -176,7 +175,7 @@ class HtmlImageTest(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_that_no_file_is_written_if_no_content(self):
-        with htmlhandling.HtmlImageFormatter("foo.html"):
+        with htmlhandling.HtmlImageFormatter("foo"):
             pass
         self.assertFalse(os.path.exists("foo.html"))
 
@@ -195,6 +194,20 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue("<body" in data and "</body>" in data)
         # make sure encoding is specified
         self.assertTrue("<meta" in data and "charset=" in data)
+
+    def test_written_does_not_contain_header_footer_if_not_requested(self):
+        with htmlhandling.HtmlImageFormatter(".") as img:
+            img.set_write_full_doc(False)
+            img.format_excluded(self.pos, "\\tau\\tau", "foo.png")
+        data = read(
+            htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME, "r", encoding="utf-8"
+        )
+        self.assertFalse("<html" in data and "</html>" in data)
+        self.assertFalse("<body" in data and "</body>" in data)
+        # make sure encoding is specified
+        self.assertFalse("<meta" in data and "charset=" in data)
+        # make sure the formula is present
+        self.assertTrue("\\tau" in data)
 
     def test_id_contains_no_special_characters(self):
         data = htmlhandling.gen_id("\\tau!'{}][~^")
@@ -236,7 +249,7 @@ class HtmlImageTest(unittest.TestCase):
         self.assertEqual(id, expected_id)
 
         # check external file
-        self.assertTrue("<p id" in external_file)
+        self.assertTrue("<p" in external_file and  'id="' in external_file)
         self.assertTrue('="' + expected_id in external_file)
 
     def test_that_link_to_external_image_points_to_file_basepath_and_formula(self):
@@ -264,7 +277,7 @@ class HtmlImageTest(unittest.TestCase):
         with htmlhandling.HtmlImageFormatter() as img:
             img.format_excluded(self.pos, "\\tau" * 999, "foo.png")
         with htmlhandling.HtmlImageFormatter() as img:
-            img.format_excluded(self.pos, "\\pi" * 666, "foo_2.png")
+            img.format_excluded(self.pos, "\\pi\\tau" * 666, "foo_2.png")
         data = read(excl_filename)
         self.assertTrue("\\tau" in data)
         self.assertTrue("\\pi" in data)
@@ -336,7 +349,7 @@ class HtmlImageTest(unittest.TestCase):
             self.assertTrue("←" in data)
 
     def test_formatting_commands_are_stripped(self):
-        with htmlhandling.HtmlImageFormatter("foo.html") as img:
+        with htmlhandling.HtmlImageFormatter("test_basedir") as img:
             data = img.format(self.pos, "a\,b\,c\,d", "foo.png")
             self.assertTrue("a b c d" in data)
             data = img.format(self.pos, "a\,b\;c\ d", "foo.png")
@@ -345,7 +358,9 @@ class HtmlImageTest(unittest.TestCase):
             data = img.format(self.pos, "\Big\{foo\Big\}", "foo.png")
             self.assertTrue("\{foo" in data and "\}" in data)
             data = img.format(self.pos, r"\left\{foo\right\}", "foo.png")
-            self.assertTrue("\{" in data and "foo" in data and "\}" in data)
+            self.assertTrue("\{" in data)
+            self.assertTrue("foo" in data)
+            self.assertTrue("\}" in data)
 
 
 def htmleqn(formula, hr=True):
@@ -356,64 +371,3 @@ def htmleqn(formula, hr=True):
         htmlhandling.gen_id(formula),
         formula,
     )
-
-
-class OutsourcingParserTest(unittest.TestCase):
-    def setUp(self):
-        self.html = (
-            '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
-            + '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n'
-            + '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-            + "<title>Outsourced Formulas</title></head>\n<body>\n<h1>heading</h1>"
-        )
-
-    def get_html(self, string):
-        """Create html string with head / tail und put the specified string into
-        it."""
-        return self.html + string + "\n</body>\n</html>"
-
-    def test_formulas_are_recognized(self):
-        data = self.get_html(htmleqn("\\tau"))
-        parser = htmlhandling.OutsourcedFormulaParser()
-        parser.feed(data)
-        self.assertEqual(len(parser.get_formulas()), 1)
-
-    def test_formula_doesnt_contain_surrounding_rubbish(self):
-        data = self.get_html(htmleqn("\\gamma"))
-        parser = htmlhandling.OutsourcedFormulaParser()
-        parser.feed(data)
-        self.assertEqual(len(parser.get_formulas()), 1)
-        key = next(iter(parser.get_formulas()))
-        par = parser.get_formulas()[key]
-        self.assertFalse("<h1" in par)
-        self.assertFalse("body>" in par)
-        self.assertFalse("hr" in par)
-
-    def test_that_header_is_parsed_correctly(self):
-        p = htmlhandling.OutsourcedFormulaParser()
-        p.feed(self.get_html(htmleqn("test123", False)))
-        head = p.get_head()
-        self.assertTrue("DOCTYPE" in head)
-        self.assertTrue("<html" in head)
-        self.assertTrue("<title" in head)
-        self.assertTrue("</title" in head)
-        self.assertTrue("</head" in head)
-        self.assertTrue("<meta" in head)
-        self.assertTrue("charset=" in head)
-
-    def test_multiple_formulas_are_recognized_correctly(self):
-        p = htmlhandling.OutsourcedFormulaParser()
-        p.feed(
-            self.get_html(
-                htmleqn("\\tau", False)
-                + "\n"
-                + htmleqn("\\gamma")
-                + "\n"
-                + htmleqn("\\epsilon<0")
-            )
-        )
-        forms = p.get_formulas()
-        self.assertEqual(len(forms), 3)
-        self.assertTrue("\\gamma" in forms.values())
-        self.assertTrue("\\gamma" in forms.values())
-        self.assertTrue("\\epsilon<0" in forms.values())

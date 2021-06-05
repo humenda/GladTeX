@@ -4,7 +4,7 @@
 """GleeTeX is designed to allow the re-use of the image creation code
 independently of the HTML conversion code. Therefore, this module contains the
 code required to parse equations from HTML, to write converted HTML documents
-back and to handle the outsourcing of formulas too long for an HTML alt tag to
+back and to handle the exclusion of formulas too long for an HTML alt tag to
 an external file.
 The pandoc module contains similar functions for using GleeTeX as a pandoc
 filter."""
@@ -88,14 +88,14 @@ class EqnParser:
                     filter(bool, CHARSET_PATTERN.search(document).groups())
                 ).decode("ascii")
                 document = document.decode(encoding)
-            except AttributeError:
+            except AttributeError as e:
                 raise ParseException(
                     (
                         "Could not determine encoding of "
                         "document, no charset information in the HTML header "
                         "found."
                     )
-                )
+                ) from e
             self.__encoding = encoding
         self.__document = document[:]
         self._parse()
@@ -227,102 +227,14 @@ def gen_id(formula):
     return "".join(id[:150])
 
 
-class OutsourcedFormulaParser(html.parser.HTMLParser):
-    """This HTML parser parses the head and tries to keep it close to the
-    original document as possible. As soon as a formula is encountered, only
-    the formulas  are parsed. Everything in between and after the them will be
-    fully ignored.
-    A sample formula would look like:
-
-        <p id="id_as_generated_by_gen_id"><pre>stuff</pre></p>
-    """
-
-    def __init__(self):
-        self.__head = []
-        self.__id = None
-        self.__passed_head = False
-        self.__equations = collections.OrderedDict()
-        super().__init__(convert_charrefs=False)
-
-    def handle_starttag(self, tag, attrs):
-        if tag == "p":
-            attrs = dict(attrs)
-            if attrs.get("id"):
-                self.__id = attrs["id"]  # marks beginning of a formula paragraph
-                self.__equations[self.__id] = ""
-                return
-        elif tag == "body":
-            self.__passed_head = True
-            self.__head.append("\n<body>\n")
-        if not self.__passed_head:
-            self.__head.append(self.get_starttag_text())
-
-    def handle_startendtag(self, tag, attrs):
-        if self.__id or self.__passed_head:
-            return  # skip everything inside a formula
-        if attrs:
-            self.__head.append(
-                "<{} {} />".format(
-                    tag, " ".join(['%s="%s"' % (x[0], x[1]) for x in attrs])
-                )
-            )
-        else:
-            self.__head.append("<%s />" % tag)
-
-    def handle_endtag(self, tag):
-        if self.__id:  # inside a formula
-            if tag == "p":
-                self.__id = None  # end formula block
-        elif not self.__passed_head:
-            formatted = "</%s>" % tag
-            self.__head.append(formatted)
-
-    def handle_data(self, data):
-        if self.__id:
-            self.__equations[self.__id] += data
-        elif not self.__passed_head:
-            self.__head.append(data)
-
-    def handle_entityref(self, name):
-        if self.__id:
-            self.__equations[self.__id] += "&%s;" % name
-        elif not self.__passed_head:
-            self.__head.append("&%s;" % name)
-
-    def handle_charref(self, name):
-        if self.__id:
-            self.__equations[self.__id] += "&#%s;" % name
-        elif not self.__passed_head:
-            self.__head.append("&#%s;" % name)
-
-    def handle_comment(self, blah):
-        if not self.__passed_head:
-            self.__head.append("<!--%s-->" % blah)
-
-    def handle_decl(self, declaration):
-        if not self.__passed_head:
-            self.__head.append("<!%s>" % declaration)
-
-    def get_head(self):
-        """Return a string containing everything before the first formula."""
-        return "".join(self.__head)
-
-    def get_formulas(self):
-        """Return an ordered dictionary with id : formula paragraph."""
-        return self.__equations
-
-    def error(self, message):
-        raise ParseException(message, ("unknown", "unknown"))
-
-
 def format_formula_paragraph(formula):
-    """Format a formula to appear as if it would have been outsourced into an
+    """Format a formula to appear as if it would have been excluded into an
     external file."""
     return '<p id="%s"><pre>%s</pre></span></p>\n' % (gen_id(formula), formula)
 
 
 class HtmlImageFormatter:  # ToDo: localisation
-    """HtmlImageFormatter(exclusion_filepath='outsourced_formulas.html',
+    """HtmlImageFormatter(exclusion_filepath='excluded_formulas.html',
             encoding="UTF-8")
     Format converted formula to be included into the HTML. A typical image
     attribute will contain the path to the image, style information, a CSS class
@@ -337,12 +249,12 @@ class HtmlImageFormatter:  # ToDo: localisation
     differently anyway. If that behavior is not wanted, it can be disabled and
     nothing will be excluded."""
 
-    EXCLUSION_FILE_NAME = "outsourced-descriptions.html"
+    EXCLUSION_FILE_NAME = "excluded-descriptions.html"
     HTML_TEMPLATE_HEAD = (
         '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
         + '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n'
         + '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-        + "\n<title>Outsourced Formulas</title>\n</head>\n<!-- "
+        + "\n<title>Excluded Formulas</title>\n</head>\n<!-- "
         + "DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n"
     )
 
@@ -353,20 +265,19 @@ class HtmlImageFormatter:  # ToDo: localisation
         self.__exclusion_filepath = posixpath.join(
             self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME
         )
-        if os.path.exists(self.__exclusion_filepath):
-            if not os.access(self.__exclusion_filepath, os.W_OK):
-                raise OSError(
-                    "The file %s is not writable!" % self.__exclusion_filepath
-                )
+        if os.path.exists(self.__exclusion_filepath) and not os.access(
+            self.__exclusion_filepath, os.W_OK
+        ):
+            raise OSError(f"file {self.__exclusion_filepath} not writable")
         self.__inline_maxlength = 100
         self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
-        self.__cached_formula_pars = collections.OrderedDict()
+        self.__cached_formulas = collections.OrderedDict()
         self.__url = ""
         self.__is_epub = is_epub
-        self.initialized = False
-        self.initialize()  # read already written file, if any
         self.__css = {"inline": "inlinemath", "display": "displaymath"}
         self.__replace_nonascii = False
+        # whether to write a full document or just the excluded formulas
+        self.__write_full_doc = True
 
     def set_replace_nonascii(self, flag):
         """If True, non-ascii characters will be replaced through their LaTeX
@@ -374,8 +285,16 @@ class HtmlImageFormatter:  # ToDo: localisation
         allow easier readibility."""
         self.__replace_nonascii = flag
 
+    def set_write_full_doc(self, flag):
+        """Enable or disable header and footer for the document that contains
+        the excluded formulas. Disabling this will just write the contents that
+        would otherwise go into the body tag. This is useful if GleeTeX is used
+        in a framework that wants to embed or style the resulting document
+        further."""
+        self.__write_full_doc = flag
+
     def set_max_formula_length(self, length):
-        """Set maximum length of a formula before it gets outsourced into a
+        """Set maximum length of a formula before it gets excluded into a
         separate file."""
         self.__inline_maxlength = length
 
@@ -397,26 +316,6 @@ class HtmlImageFormatter:  # ToDo: localisation
         HTML link."""
         self.__url = prefix
 
-    def initialize(self):
-        """Initialize the image writer. If a file with already written image
-        descriptions exists, this one will be parsed first and new formulas
-        appended to it. Otherwise a new file will be written upon ending the
-        with-resources block."""
-        if self.initialized:
-            return
-        self.initialized = True
-        if not os.path.exists(self.__exclusion_filepath):
-            return self
-        document = None
-        with open(self.__exclusion_filepath, "r", encoding="UTF-8") as f:
-            document = f.read()
-        # parse html document:
-        parser = OutsourcedFormulaParser()
-        parser.feed(document)
-        self.__file_head = parser.get_head()
-        self.__cached_formula_pars = parser.get_formulas()
-        return self
-
     def __enter__(self):
         return self
 
@@ -425,23 +324,34 @@ class HtmlImageFormatter:  # ToDo: localisation
 
     def close(self):
         """Write back file with excluded image descriptions, if any."""
+        if not self.__cached_formulas:
+            return # nothing to be done
 
         def formula2paragraph(frml):
-            return '<p id="%s"><pre>%s</pre></p>' % (gen_id(frml), frml)
+            return (
+                f'<p class="{self.__css["display"]} id="{gen_id(frml)}">'
+                + f"<pre>{frml}</pre></p>"
+            )
 
-        if not self.__cached_formula_pars:
-            return
-        with open(self.__exclusion_filepath, "w", encoding="utf-8") as f:
-            f.write(self.__file_head)
+        target_path = self.__exclusion_filepath
+        if not os.sep == "/":  # is a POSIX path by default
+            target_path.replace("/", os.sep)
+        target_dir = os.path.dirname(target_path)
+        if target_dir and not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        with open(target_path, "w", encoding="utf-8") as f:
+            if self.__write_full_doc:
+                f.write(self.__file_head)
             f.write(
                 "\n<hr />\n".join(
                     [
                         formula2paragraph(formula)
-                        for formula in self.__cached_formula_pars.values()
+                        for formula in self.__cached_formulas.values()
                     ]
                 )
             )
-            f.write("\n</body>\n</html>\n")
+            if self.__write_full_doc:
+                f.write("\n</body>\n</html>\n")
 
     def get_html_img(self, pos, formula, img_path, displaymath=False):
         """:param pos dictionary containing keys depth, height and width
@@ -486,8 +396,8 @@ class HtmlImageFormatter:  # ToDo: localisation
         img = self.get_html_img(pos, shortened, img_path, displaymath)
         identifier = gen_id(formula)
         # write formula out to external file
-        if identifier not in self.__cached_formula_pars:
-            self.__cached_formula_pars[identifier] = formula
+        if identifier not in self.__cached_formulas:
+            self.__cached_formulas[identifier] = formula
         exclusion_filelink = posixpath.join(
             self.__link_prefix, self.__exclusion_filepath
         )
@@ -495,8 +405,8 @@ class HtmlImageFormatter:  # ToDo: localisation
 
     def format(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula. If self.__exclude_descriptions is set
-        and the formula igreater than the configured length, the formula will be
-        outsourced, otherwise it'll be included in the IMG's alt tag. In either
+        and the formula is greater than the configured length, the formula will be
+        excluded, otherwise it'll be included in the IMG's alt tag. In either
         case, a string for the current document containing the formatted HTML is returned.
         :param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
