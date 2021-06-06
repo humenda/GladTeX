@@ -187,6 +187,7 @@ class HtmlImageTest(unittest.TestCase):
     def test_written_file_starts_and_ends_more_or_less_properly(self):
         with htmlhandling.HtmlImageFormatter(".") as img:
             img.format_excluded(self.pos, "\\tau\\tau", "foo.png")
+            img.set_write_full_doc(True)
         data = read(
             htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME, "r", encoding="utf-8"
         )

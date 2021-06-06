@@ -307,6 +307,7 @@ class Main:
                 img_fmt.set_inline_math_css_class(options.inlinemath)
             if options.displaymath:
                 img_fmt.set_display_math_css_class(options.displaymath)
+            img_fmt.set_write_full_doc(True)
 
             with (
                 sys.stdout
@@ -465,7 +466,7 @@ def main():
     multiprocessing.freeze_support()
     m = Main()
     # run as pandoc filter?
-    args = sys.argv  # fallback if no environment variable set
+    args = sys.argv[1:]  # fallback if no environment variable set
     if "GLADTEX_ARGS" in os.environ:
         args = shlex.split(os.environ["GLADTEX_ARGS"])
         if "-P" not in args:

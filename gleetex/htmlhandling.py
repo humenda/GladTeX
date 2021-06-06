@@ -5,13 +5,18 @@
 independently of the HTML conversion code. Therefore, this module contains the
 code required to parse equations from HTML, to write converted HTML documents
 back and to handle the exclusion of formulas too long for an HTML alt tag to
+/import
 an external file.
 The pandoc module contains similar functions for using GleeTeX as a pandoc
-filter."""
+filter.
 
+ToDo: completely new doc string
+"""
+
+from abc import abstractmethod
 import collections
 import enum
-import html.parser
+import html
 import os
 import posixpath
 import re
@@ -233,10 +238,10 @@ def format_formula_paragraph(formula):
     return '<p id="%s"><pre>%s</pre></span></p>\n' % (gen_id(formula), formula)
 
 
-class HtmlImageFormatter:  # ToDo: localisation
-    """HtmlImageFormatter(exclusion_filepath='excluded_formulas.html',
-            encoding="UTF-8")
-    Format converted formula to be included into the HTML. A typical image
+class ImageFormatter:  # ToDo: localisation
+    """ImageFormatter(is_epub=False)
+
+    Format converted formula to be included into HTML. A typical image
     attribute will contain the path to the image, style information, a CSS class
     to be used in custom CSS style sheets and an alternative text (the LaTeX
     source) for people who disabled images or for blind screen reader users.
@@ -247,51 +252,31 @@ class HtmlImageFormatter:  # ToDo: localisation
     external to be easily readable. Furthermore the alt attribute is limited to
     255 characters, so formula blocks exceeding that limit need to be treated
     differently anyway. If that behavior is not wanted, it can be disabled and
-    nothing will be excluded."""
+    nothing will be excluded.
+
+    Use `is_epub` to round height/width of the linked images to comply with the
+    EPUB standard."""
+
+    # there's currently no reasonable way to get rid of some of the attributes
+    # pylint: disable=too-many-instance-attributes
 
     EXCLUSION_FILE_NAME = "excluded-descriptions.html"
-    HTML_TEMPLATE_HEAD = (
-        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
-        + '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n'
-        + '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-        + "\n<title>Excluded Formulas</title>\n</head>\n<!-- "
-        + "DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n"
-    )
 
-    def __init__(self, base_path="", link_prefix=None, is_epub=False):
+    def __init__(self, is_epub=False):
         self.__exclude_descriptions = False
-        self.__link_prefix = link_prefix if link_prefix else ""
-        self.__base_path = base_path if base_path else ""
-        self.__exclusion_filepath = posixpath.join(
-            self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME
-        )
-        if os.path.exists(self.__exclusion_filepath) and not os.access(
-            self.__exclusion_filepath, os.W_OK
-        ):
-            raise OSError(f"file {self.__exclusion_filepath} not writable")
         self.__inline_maxlength = 100
-        self.__file_head = HtmlImageFormatter.HTML_TEMPLATE_HEAD
-        self.__cached_formulas = collections.OrderedDict()
+        self._excluded_formulas = collections.OrderedDict()
         self.__url = ""
-        self.__is_epub = is_epub
-        self.__css = {"inline": "inlinemath", "display": "displaymath"}
+        self._is_epub = is_epub
+        self._css = {"inline": "inlinemath", "display": "displaymath"}
         self.__replace_nonascii = False
         # whether to write a full document or just the excluded formulas
-        self.__write_full_doc = True
 
     def set_replace_nonascii(self, flag):
         """If True, non-ascii characters will be replaced through their LaTeX
         command. Note that alphabetical characters will not be replaced, to
         allow easier readibility."""
         self.__replace_nonascii = flag
-
-    def set_write_full_doc(self, flag):
-        """Enable or disable header and footer for the document that contains
-        the excluded formulas. Disabling this will just write the contents that
-        would otherwise go into the body tag. This is useful if GleeTeX is used
-        in a framework that wants to embed or style the resulting document
-        further."""
-        self.__write_full_doc = flag
 
     def set_max_formula_length(self, length):
         """Set maximum length of a formula before it gets excluded into a
@@ -300,11 +285,16 @@ class HtmlImageFormatter:  # ToDo: localisation
 
     def set_inline_math_css_class(self, css):
         """set css class for inline math."""
-        self.__css["inline"] = css
+        self._css["inline"] = css
 
     def set_display_math_css_class(self, css):
         """set css class for display math."""
-        self.__css["display"] = css
+        self._css["display"] = css
+
+    def set_is_epub(self, flag):
+        """Active rounding of height and weight attribute of the formula images
+        to comply with the EPUB standard."""
+        self._is_epub = flag
 
     def set_exclude_long_formulas(self, flag):
         """When set, the LaTeX code of a formula longer than the configured
@@ -324,34 +314,11 @@ class HtmlImageFormatter:  # ToDo: localisation
 
     def close(self):
         """Write back file with excluded image descriptions, if any."""
-        if not self.__cached_formulas:
-            return # nothing to be done
+        self.handle_close()
 
-        def formula2paragraph(frml):
-            return (
-                f'<p class="{self.__css["display"]} id="{gen_id(frml)}">'
-                + f"<pre>{frml}</pre></p>"
-            )
-
-        target_path = self.__exclusion_filepath
-        if not os.sep == "/":  # is a POSIX path by default
-            target_path.replace("/", os.sep)
-        target_dir = os.path.dirname(target_path)
-        if target_dir and not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-        with open(target_path, "w", encoding="utf-8") as f:
-            if self.__write_full_doc:
-                f.write(self.__file_head)
-            f.write(
-                "\n<hr />\n".join(
-                    [
-                        formula2paragraph(formula)
-                        for formula in self.__cached_formulas.values()
-                    ]
-                )
-            )
-            if self.__write_full_doc:
-                f.write("\n</body>\n</html>\n")
+    @abstractmethod
+    def handle_close(self):
+        pass
 
     def get_html_img(self, pos, formula, img_path, displaymath=False):
         """:param pos dictionary containing keys depth, height and width
@@ -366,13 +333,13 @@ class HtmlImageFormatter:  # ToDo: localisation
             full_url = self.__url + "/" + img_path
         # depth is a negative offset
         depth = float(pos["depth"]) * -1
-        if self.__is_epub:
+        if self._is_epub:
             depth = str(int(depth))
         else:
             depth = f"{depth:.2f}"
-        css = self.__css["display"] if displaymath else self.__css["inline"]
+        css = self._css["display"] if displaymath else self._css["inline"]
         dimensions = f"height=\"{pos['height']:.2f}\" width=\"{pos['width']:.2f}\""
-        if self.__is_epub:
+        if self._is_epub:
             dimensions = f"height=\"{pos['height']}\" width=\"{pos['width']}\""
 
         return (
@@ -381,27 +348,16 @@ class HtmlImageFormatter:  # ToDo: localisation
             f' class="{css}" />'
         )
 
+    @abstractmethod
     def format_excluded(self, pos, formula, img_path, displaymath=False):
-        """This method formats a formula and an formula image in HTML and
-        additionally writes the formula to an external (configured) file to
-        which the image links to. That's useful for blind screen reader users
-        who can then easily have a look at the formula.
+        """Format a formula as an image. The formula is additionally added to
+        the list of excluded formulas to be processed later.
         :param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
         :param displaymath if set to true, image is treated as display math formula (default False)
         :returns string with formatted HTML image which also links to excluded
         formula"""
-        shortened = formula[:100] + "..." if len(formula) > 100 else formula
-        img = self.get_html_img(pos, shortened, img_path, displaymath)
-        identifier = gen_id(formula)
-        # write formula out to external file
-        if identifier not in self.__cached_formulas:
-            self.__cached_formulas[identifier] = formula
-        exclusion_filelink = posixpath.join(
-            self.__link_prefix, self.__exclusion_filepath
-        )
-        return '<a href="{}#{}">{}</a>'.format(exclusion_filelink, gen_id(formula), img)
 
     def format(self, pos, formula, img_path, displaymath=False):
         """This method formats a formula. If self.__exclude_descriptions is set
@@ -420,9 +376,93 @@ class HtmlImageFormatter:  # ToDo: localisation
         return self.get_html_img(pos, formula, img_path, displaymath)
 
 
+class HtmlImageFormatter(ImageFormatter):
+    """HtmlImageFormatter(basepath="", # an optional base directory
+    # add link prefix to image link, in addition to base path, e.g.
+    # https://domain.tld/img
+    link_prefix="",
+    # if set, width and height of the image are rounded to integer
+    # values to comply with the EPUB standard
+    is_epub=False)"""
+
+    HTML_TEMPLATE_HEAD = (
+        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
+        + '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n'
+        + '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+        + "\n<title>Excluded Formulas</title>\n</head>\n<!-- "
+        + "DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n"
+    )
+
+    def __init__(self, base_path=None, link_prefix=None, is_epub=False):
+        super().__init__(is_epub)
+        self.__link_prefix = link_prefix if link_prefix else ""
+        self.__base_path = base_path if base_path else ""
+        self.__exclusion_filepath = posixpath.join(
+            self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME
+        )
+        if os.path.exists(self.__exclusion_filepath) and not os.access(
+            self.__exclusion_filepath, os.W_OK
+        ):
+            raise OSError(f"file {self.__exclusion_filepath} not writable")
+        self.__write_full_doc = False
+
+    def set_write_full_doc(self, flag):
+        """Enable or disable header and footer for the document that contains
+        the excluded formulas. Disabling this will just write the contents that
+        would otherwise go into the body tag. This is useful if GleeTeX is used
+        in a framework that wants to embed or style the resulting document
+        further."""
+        self.__write_full_doc = flag
+
+    def handle_close(self):
+        if not self._excluded_formulas:
+            return  # nothing to be done
+
+        def formula2paragraph(frml):
+            return (
+                f'<p class="{self._css["display"]} id="{gen_id(frml)}">'
+                + f"<pre>{frml}</pre></p>"
+            )
+
+        target_path = self.__exclusion_filepath
+        if os.sep != "/":  # is a POSIX path by default
+            target_path.replace("/", os.sep)
+        target_dir = os.path.dirname(target_path)
+        if target_dir and not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        with open(target_path, "w", encoding="utf-8") as f:
+            if self.__write_full_doc:
+                f.write(HtmlImageFormatter.HTML_TEMPLATE_HEAD)
+            f.write(
+                "\n<hr />\n".join(
+                    [
+                        formula2paragraph(formula)
+                        for formula in self._excluded_formulas.values()
+                    ]
+                )
+            )
+            if self.__write_full_doc:
+                f.write("\n</body>\n</html>\n")
+
+    def format_excluded(self, pos, formula, img_path, displaymath=False):
+        """Format html image and the excluded formula. The excluded formula is
+        formatted for HTML output to be included in an HTML document."""
+        shortened = formula[:100] + "..." if len(formula) > 100 else formula
+        img = self.get_html_img(pos, shortened, img_path, displaymath)
+        identifier = gen_id(formula)
+        # add formula's long version to the list of excluded formulas for later
+        # processing
+        if identifier not in self._excluded_formulas:
+            self._excluded_formulas[identifier] = formula
+        exclusion_filelink = posixpath.join(
+            self.__link_prefix, self.__exclusion_filepath
+        )
+        return '<a href="{}#{}">{}</a>'.format(exclusion_filelink, gen_id(formula), img)
+
+
 def write_html(file, document, formatter):
     """Processed HTML documents are made up of raw HTML chunks which are written
-    back unaltered and of processed image. An processed image is a former
+    back unaltered and of a processed image. An processed image is a former
     formula converted to an image with additional meta data. This is passed to
     the format function of the supplied formatter and the result is written to
     the given (open) file handle."""
