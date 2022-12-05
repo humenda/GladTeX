@@ -39,7 +39,6 @@ def proc_call(cmd, cwd=None, install_recommends=True):
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        bufsize=1,
         universal_newlines=False,
         cwd=cwd,
     ) as proc:
