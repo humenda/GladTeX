@@ -36,11 +36,10 @@ class ParseException(Exception):
         super().__init__(msg, pos)
 
     def __str__(self):
-        return (
-            "line {0.pos[0]}, {0.pos[1]}: {0.msg}".format(self)
-            if self.pos
-            else self.msg
-        )
+        if self.pos:
+            return f"line {self.pos[0]}, {self.pos[1]}: {self.msg}"
+        else:
+            return self.msg
 
 
 def get_position(document, index):
@@ -64,8 +63,8 @@ def find_anycase(where, what):
 
 
 class EqnParser:
-    """This parser parses <eq>...</eq> our of a document. It's not an HTML
-    parser, because the content within <eq>.*<eq> is parsed verbatim.
+    """This parser parses <eq>...</eq> in an HTML of a document. It's not an
+    HTML parser, because the content within <eq>.*<eq> is parsed verbatim.
     It also parses comments, to not consider formulas within comments. All other
     cases are unhandled. Especially CData is problematic, although it seems like
     a rare use case."""
@@ -199,10 +198,10 @@ class EqnParser:
     def get_data(self):
         """Return parsed chunks. These are either strings or tuples with formula
         information, see class documentation."""
-        return list(x for x in self.__data if x)  # filter empty bits
+        return [x for x in self.__data if x]  # filter empty bits
 
 
-def gen_id(formula):
+def generate_label(formula):
     """Generate an id for identifying a formula as an anchor in a document.
     The generated ID is guaranteed to be valid in an XML attribute and it won't
     exceed a certain length.
@@ -234,10 +233,11 @@ def gen_id(formula):
 
 def format_formula_paragraph(formula):
     """Format a formula to appear as if it would have been excluded into an
-    external file."""
-    return '<p id="%s"><pre>%s</pre></span></p>\n' % (gen_id(formula), formula)
+    external HTML file."""
+    return '<p id="%s"><pre>%s</pre></span></p>\n' % (generate_label(formula), formula)
 
 
+# pylint: disable=too-many-instance-attributes
 class ImageFormatter:  # ToDo: localisation
     """ImageFormatter(is_epub=False)
 
@@ -249,28 +249,54 @@ class ImageFormatter:  # ToDo: localisation
     excluded. The image will be a link which leads to the excluded image text.
     The alt attribute is a text-only attribute and e.g. line breaks will be lost
     for screen reader users, so it makes sense for longer formulas to be
-    external to be easily readable. Furthermore the alt attribute is limited to
-    255 characters, so formula blocks exceeding that limit need to be treated
-    differently anyway. If that behavior is not wanted, it can be disabled and
+    external to be easily readable. Furthermore the alt attribute is limited in
+    size, so formulas that are too long need to be treated differently.
+    If that behavior is not wanted, it can be disabled and
     nothing will be excluded.
 
-    Use `is_epub` to round height/width of the linked images to comply with the
-    EPUB standard."""
+    Keyword arguments
 
-    # there's currently no reasonable way to get rid of some of the attributes
-    # pylint: disable=too-many-instance-attributes
+    *   `base_path=""`: base path where images are stored, e.g. "images"
+    *   `link_prefix=""`: a prefix which should be added to generated links, e.g.
+        `"https://example.com/img/"`
+    *   `exclusion_file_path=""`: the path which formula descriptions are
+        written to which exceed a certain threshold that doesn't fit into the
+        alt tag of the `img` tag
+    *   `is_epub`: round height/width of the linked images to comply with the
+        EPUB standard.
 
-    EXCLUSION_FILE_NAME = "excluded-descriptions.html"
+    Intended usage:
 
-    def __init__(self, is_epub=False):
-        self.__exclude_descriptions = False
+    fmt = ImageFormatter() # use one of the children classes
+    # values as returned by Tex2img
+    fmt.format(pos, formula, img_path, displaymath=False)
+    fmt.format(pos2, formula2, img_path2, displaymath=True)
+    ...
+    img.get_excluded()
+    """
+
+    FORMULA_MAXLENGTH = 100
+
+    def __init__(
+        self, base_path, link_prefix="", exclusion_file_path="", is_epub=False
+    ):
         self.__inline_maxlength = 100
         self._excluded_formulas = collections.OrderedDict()
         self.__url = ""
         self._is_epub = is_epub
         self._css = {"inline": "inlinemath", "display": "displaymath"}
         self.__replace_nonascii = False
-        # whether to write a full document or just the excluded formulas
+        self._link_prefix = link_prefix if link_prefix else ""
+        self._exclusion_filepath = posixpath.join(base_path, exclusion_file_path)
+        if os.path.exists(self._exclusion_filepath) and not os.access(
+            self._exclusion_filepath, os.W_OK
+        ):
+            raise OSError(f"file {self._exclusion_filepath} not writable")
+
+    def get_exclusion_file_path(self):
+        """Return the path to the file to which formulas will be excluded too if
+        their description exceeds the alt attribute length. May be None."""
+        return self._exclusion_filepath if self._exclusion_filepath else None
 
     def set_replace_nonascii(self, flag):
         """If True, non-ascii characters will be replaced through their LaTeX
@@ -287,6 +313,13 @@ class ImageFormatter:  # ToDo: localisation
         """set css class for inline math."""
         self._css["inline"] = css
 
+    @abstractmethod
+    def _generate_link_label(self, formula):
+        """Generate the link to an excluded formula, consisting either of path
+        and label or just a label. The label is generated uniquely for each
+        label by this function. This function needs to be customised by
+        implementors, e.g. to return "foo.html#formula" or "#formula", etc."""
+
     def set_display_math_css_class(self, css):
         """set css class for display math."""
         self._css["display"] = css
@@ -296,168 +329,130 @@ class ImageFormatter:  # ToDo: localisation
         to comply with the EPUB standard."""
         self._is_epub = flag
 
-    def set_exclude_long_formulas(self, flag):
-        """When set, the LaTeX code of a formula longer than the configured
-        maxlength will be excluded and written + linked into a separate file."""
-        self.__exclude_descriptions = flag
-
     def set_url(self, prefix):
         """Set URL prefix which is used as a prefix to the image file in the
         HTML link."""
         self.__url = prefix
 
-    def __enter__(self):
-        return self
+    def get_excluded(self):
+        """Return a list of LaTeX formulas that did not fit the alt tag and were
+        hence formatted separately, e.g. into a separate document."""
+        return self._excluded_formulas
 
-    def __exit__(self, useless, unused, not_applicable):
-        self.close()
-
-    def close(self):
-        """Write back file with excluded image descriptions, if any."""
-        self.handle_close()
-
-    @abstractmethod
-    def handle_close(self):
-        pass
-
-    def get_html_img(self, pos, formula, img_path, displaymath=False):
-        """:param pos dictionary containing keys depth, height and width
+    def _process_image(self, pos, formula, img_path, displaymath=False):
+        """Process positioning of the image and the various URI-related
+        parameters into formatting information.
+        :param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
         :param displaymath display or inline math (default False, inline maths)
-        :returns a string with the formatted HTML"""
+        :returns a dictionary with the information about the image; its keys
+            correspond to HTML image attributes, except for "url" and "image"."""
+        image = {"formula": formula}
         full_url = img_path
         if self.__url:
-            if self.__url.endswith("/"):
-                self.__url = self.__url[:-1]
-            full_url = self.__url + "/" + img_path
-        # depth is a negative offset
+            full_url = self.__url.rstrip("/") + "/" + img_path
+        image["url"] = full_url
+        # depth is a negative offset (float, first, str later)
         depth = float(pos["depth"]) * -1
         if self._is_epub:
             depth = str(int(depth))
         else:
             depth = f"{depth:.2f}"
-        css = self._css["display"] if displaymath else self._css["inline"]
-        dimensions = f"height=\"{pos['height']:.2f}\" width=\"{pos['width']:.2f}\""
-        if self._is_epub:
-            dimensions = f"height=\"{pos['height']}\" width=\"{pos['width']}\""
+        image["style"] = "vertical-align: {depth}px; margin: 0;"
 
-        return (
-            f'<img src="{full_url}" style="vertical-align: {depth}px; margin: 0;" '
-            f'alt="{formula}" {dimensions} '
-            f' class="{css}" />'
-        )
+        image["class"] = self._css["display"] if displaymath else self._css["inline"]
+        if self._is_epub:
+            image.update(
+                {"height": str(int(pos["height"])), "width": str(int(pos["width"]))}
+            )
+        else:
+            image.update(
+                {"height": f"{pos['height']:.2f}", "width": f"{pos['width']:.2f}"}
+            )
+        return image
 
     @abstractmethod
-    def format_excluded(self, pos, formula, img_path, displaymath=False):
-        """Format a formula as an image. The formula is additionally added to
-        the list of excluded formulas to be processed later.
-        :param pos dictionary containing keys depth, height and width
-        :param formula LaTeX alternative text
-        :param img_path: path to image
-        :param displaymath if set to true, image is treated as display math formula (default False)
-        :returns string with formatted HTML image which also links to excluded
-        formula"""
+    def add_excluded(self, image):
+        """Add a formula to the list of excluded formulas."""
+
+    @abstractmethod
+    def format_internal(self, image, link_label=None):
+        """Format an internal formula for the target output (defined by the
+        class).
+        :param image formula information as returned by _process_image; formula
+            will have been shortened if it were too long
+        :param link_label if not None, the formula image will contian a reference
+        or link to the long version of the formula (e.g. because it didn't fit
+        the alt attribute)"""
 
     def format(self, pos, formula, img_path, displaymath=False):
-        """This method formats a formula. If self.__exclude_descriptions is set
-        and the formula is greater than the configured length, the formula will be
-        excluded, otherwise it'll be included in the IMG's alt tag. In either
-        case, a string for the current document containing the formatted HTML is returned.
+        """This method formats a formula. It invokes the abstract methods
+        `format_internal` and `add_excluded`. `add_excluded` is only
+        invoked if the formula is too long and if exclusion has been configured.
+        This method returns the formatted image. The formatted image will
+        contain a reference to the excluded formula source, if applicable. The
+        formatted excluded formulas can be retrieved using get_excluded().
         :param pos dictionary containing keys depth, height and width
         :param formula LaTeX alternative text
         :param img_path: path to image
         :param displaymath whether or not formula is in display math (default: no)
-        :returns string with formatted HTML image which also links to excluded
-        formula"""
+        :returns a tuple containing the formatted image and, if applicable, the
+            excluded image alternate text.
+        """
         formula = typesetting.increase_readability(formula, self.__replace_nonascii)
-        if self.__exclude_descriptions and len(formula) > self.__inline_maxlength:
-            return self.format_excluded(pos, formula, img_path, displaymath)
-        return self.get_html_img(pos, formula, img_path, displaymath)
+        processed_data = self._process_image(pos, formula, img_path, displaymath)
+        shortened_processed_data = processed_data.copy()
+        shortened_processed_data["formula"] = formula
+        link_destination = None
+        if len(formula) > ImageFormatter.FORMULA_MAXLENGTH:
+            shortened_processed_data["formula"] = (
+                formula[: ImageFormatter.FORMULA_MAXLENGTH] + "..."
+            )
+            link_destination = self._generate_link_destination(processed_data)
+        if len(formula) > self.__inline_maxlength:
+            # builds up internal list of formatted excluded formulas
+            self.add_excluded(processed_data)
+        return self.format_internal(shortened_processed_data, link_destination)
 
 
 class HtmlImageFormatter(ImageFormatter):
-    """HtmlImageFormatter(basepath="", # an optional base directory
-    # add link prefix to image link, in addition to base path, e.g.
-    # https://domain.tld/img
-    link_prefix="",
-    # if set, width and height of the image are rounded to integer
-    # values to comply with the EPUB standard
-    is_epub=False)"""
+    """Format formulas for HTML file output. See ImageFormatter for information
+    about the usage of the class."""
 
-    HTML_TEMPLATE_HEAD = (
-        '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
-        + '\n  "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n'
-        + '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-        + "\n<title>Excluded Formulas</title>\n</head>\n<!-- "
-        + "DO NOT MODIFY THIS FILE, IT IS AUTOMATICALLY GENERATED -->\n<body>\n"
-    )
+    def __init__(self, base_path="", link_prefix="", exclusion_file_path="", is_epub=False):
+        super().__init__(base_path, link_prefix, exclusion_file_path, is_epub)
 
-    def __init__(self, base_path=None, link_prefix=None, is_epub=False):
-        super().__init__(is_epub)
-        self.__link_prefix = link_prefix if link_prefix else ""
-        self.__base_path = base_path if base_path else ""
-        self.__exclusion_filepath = posixpath.join(
-            self.__base_path, HtmlImageFormatter.EXCLUSION_FILE_NAME
-        )
-        if os.path.exists(self.__exclusion_filepath) and not os.access(
-            self.__exclusion_filepath, os.W_OK
-        ):
-            raise OSError(f"file {self.__exclusion_filepath} not writable")
-        self.__write_full_doc = False
-
-    def set_write_full_doc(self, flag):
-        """Enable or disable header and footer for the document that contains
-        the excluded formulas. Disabling this will just write the contents that
-        would otherwise go into the body tag. This is useful if GleeTeX is used
-        in a framework that wants to embed or style the resulting document
-        further."""
-        self.__write_full_doc = flag
-
-    def handle_close(self):
-        if not self._excluded_formulas:
-            return  # nothing to be done
-
-        def formula2paragraph(frml):
-            return (
-                f'<p class="{self._css["display"]} id="{gen_id(frml)}">'
-                + f"<pre>{frml}</pre></p>"
-            )
-
-        target_path = self.__exclusion_filepath
-        if os.sep != "/":  # is a POSIX path by default
-            target_path.replace("/", os.sep)
-        target_dir = os.path.dirname(target_path)
-        if target_dir and not os.path.exists(target_dir):
-            os.makedirs(target_dir)
-        with open(target_path, "w", encoding="utf-8") as f:
-            if self.__write_full_doc:
-                f.write(HtmlImageFormatter.HTML_TEMPLATE_HEAD)
-            f.write(
-                "\n<hr />\n".join(
-                    [
-                        formula2paragraph(formula)
-                        for formula in self._excluded_formulas.values()
-                    ]
-                )
-            )
-            if self.__write_full_doc:
-                f.write("\n</body>\n</html>\n")
-
-    def format_excluded(self, pos, formula, img_path, displaymath=False):
-        """Format html image and the excluded formula. The excluded formula is
-        formatted for HTML output to be included in an HTML document."""
-        shortened = formula[:100] + "..." if len(formula) > 100 else formula
-        img = self.get_html_img(pos, shortened, img_path, displaymath)
-        identifier = gen_id(formula)
-        # add formula's long version to the list of excluded formulas for later
-        # processing
-        if identifier not in self._excluded_formulas:
-            self._excluded_formulas[identifier] = formula
+    def _generate_link_destination(self, formula):
+        html_label = generate_label(formula["formula"])
         exclusion_filelink = posixpath.join(
-            self.__link_prefix, self.__exclusion_filepath
+            self._link_prefix, self._exclusion_filepath
         )
-        return '<a href="{}#{}">{}</a>'.format(exclusion_filelink, gen_id(formula), img)
+        return f"{exclusion_filelink}#{html_label}"
+
+    def format_internal(self, image, link_label=None):
+        link_start, link_end = ("", "")
+        if link_label:
+            link_start = f'<a href="{link_label}">' if link_label else ""
+            link_end = "</a>" if link_label else ""
+        escaped_formula = html.escape(image["formula"], quote=True)
+        return (
+            link_start
+            + (
+                f'<img src="{image["url"]}" style="{image["style"]}" '
+                f'alt="{escaped_formula}" height="{image["height"]}" '
+                f'width="{image["width"]}" class="{image["class"]}" />'
+            )
+            + link_end
+        )
+
+    # Todo: this function is useless: if should be merged with format and it
+    # should build up a dictionary of id, full formula; the formatting should go
+    # to a separate function; link prefix and such details should be part of
+    # super class; ToDo, btw, link prefix also for image paths, probably not
+    # used yet in format strings of format_internal
+    def add_excluded(self, image):
+        self._excluded_formulas[generate_label(image["formula"])] = image["formula"]
 
 
 def write_html(file, document, formatter):

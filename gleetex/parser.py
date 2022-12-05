@@ -1,4 +1,4 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """Top-level API to parse input documents.
@@ -31,10 +31,9 @@ class Format(enum.Enum):
         string = string.lower()
         if string == "html":
             return Format.HTML
-        elif string == "pandocfilter":
+        if string == "pandocfilter":
             return Format.PANDOCFILTER
-        else:
-            raise ValueError("unrecognised format: %s" % string)
+        raise ValueError("unrecognised format: %s" % string)
 
 
 def parse_document(doc, fmt):

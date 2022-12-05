@@ -2,10 +2,20 @@
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This module contains functionality to parse formulas from a given Pandoc
-document AST and to replace these through formatted HTML equations. Even
-though this could be done in a single run, this would conflict with the internal
-GleeTeX structure and allows for an easy parallelisation of the formula
-conversion."""
+document AST and to replace these through formatted HTML equations.
+
+It works in these parsses:
+
+1.  Extract all math elements from the Pandoc AST.
+2.  Convert all formulas to images
+    *   LaTeX is the slowest bit in this process, therefore the formulas are
+        collected and then converted in parallel.
+3.  Replace all math tags in the pandoc AST by raw HTML inline formatting
+    instructions that reference the converted images and position them
+    correctly. Note that this cannot made HTML-independent because of the
+    requirement to use vertical alignment that is not supported by the Pandoc
+    AST and is hence expressed as a CSS styling instruction.
+"""
 
 import json
 

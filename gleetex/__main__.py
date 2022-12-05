@@ -9,8 +9,16 @@ import posixpath
 import sys
 import textwrap
 
-from . import *
-from .htmlhandling import HtmlImageFormatter
+from . import (
+    caching,
+    cachedconverter,
+    htmlhandling,
+    pandoc,
+    parser,
+    sink,
+    typesetting,
+    VERSION,
+)
 
 
 class HelpfulCmdParser(argparse.ArgumentParser):
@@ -21,11 +29,6 @@ class HelpfulCmdParser(argparse.ArgumentParser):
         sys.stderr.write("error: %s\n" % message)
         self.print_help()
         sys.exit(2)
-
-
-def format_ordinal(number):
-    endings = ["th", "st", "nd", "rd"] + ["th"] * 6
-    return "%d%s" % (number, endings[number % 10])
 
 
 class Main:
@@ -49,9 +52,9 @@ class Main:
         cmd = HelpfulCmdParser(epilog=epilog, description=description)
         cmd.add_argument(
             "-a",
-            action="store_true",
+            default=sink.EXCLUSION_FILE_NAME,
             dest="exclusionfile",
-            help="save text alternatives "
+            help="path to the file to which to write excluded formulas"
             + "for images which are too long for the alt attribute into a "
             + "single separate file and link images to it",
         )
@@ -249,25 +252,22 @@ class Main:
             except UnicodeDecodeError as e:
                 self.exit(
                     (
-                        "Error while reading from %s: %s\nProbably this file"
-                        " has a different encoding, try specifying -E."
-                    )
-                    % (options.input, str(e)),
+                        f"Error while reading from {options.input}: {e}\nProbably this "
+                        "file has a different encoding, try specifying -E."
+                    ),
                     88,
                 )
             except IsADirectoryError:
                 self.exit(
-                    "Error: cannot open %s for reading: is a directory."
-                    % options.input,
+                    f"Error: cannot open {options.input} for reading: is a directory.",
                     19,
                 )
             except FileNotFoundError:
-                self.exit("Error: file %s not found." % options.input, 20)
+                self.exit(f"Error: file {options.input} not found.", 20)
 
         # check which output file name to use
         base_path = ""
         if options.output:
-            output = options.output
             base_path = os.path.dirname(options.output)
         elif options.input != "-":
             output = os.path.splitext(options.input)[0] + ".html"
@@ -290,34 +290,39 @@ class Main:
             self.__encoding, doc = parser.parse_document(doc, fmt)
         except parser.ParseException as e:
             input_fn = "stdin" if options.input == "-" else options.input
-            self.exit("Error while parsing {}: {}".format(input_fn, str(e)), 5)
+            self.exit(f"Error while parsing {input_fn}: {e}", 5)
 
         processed = self.convert_images(doc, base_path, options.img_directory, options)
-        with HtmlImageFormatter(
+        img_fmt = htmlhandling.HtmlImageFormatter(
             base_path=os.path.join(base_path, options.img_directory),
             link_prefix=options.url,
+            exclusion_file_path=options.exclusionfile,
             is_epub=options.is_epub,
-        ) as img_fmt:
-            img_fmt.set_exclude_long_formulas(True)
-            if options.replace_nonascii:
-                img_fmt.set_replace_nonascii(True)
-            if options.url:
-                img_fmt.set_url(options.url)
-            if options.inlinemath:
-                img_fmt.set_inline_math_css_class(options.inlinemath)
-            if options.displaymath:
-                img_fmt.set_display_math_css_class(options.displaymath)
-            img_fmt.set_write_full_doc(True)
+        )
+        if options.replace_nonascii:
+            img_fmt.set_replace_nonascii(True)
+        if options.url:
+            img_fmt.set_url(options.url)
+        if options.inlinemath:
+            img_fmt.set_inline_math_css_class(options.inlinemath)
+        if options.displaymath:
+            img_fmt.set_display_math_css_class(options.displaymath)
 
-            with (
-                sys.stdout
-                if output == "-"
-                else open(output, "w", encoding=self.__encoding)
+        # pass formatter to document sinks; the formatter will accumulate
+        # formulas that were too long to write them out later
+        with (
+            sys.stdout if output == "-" else open(output, "w", encoding=self.__encoding)
             ) as file:
-                if options.pandocfilter:
-                    pandoc.write_pandoc_ast(file, processed, img_fmt)
-                else:
-                    htmlhandling.write_html(file, processed, img_fmt)
+            if options.pandocfilter:
+                pandoc.write_pandoc_ast(file, processed, img_fmt)
+            else:
+                htmlhandling.write_html(file, processed, img_fmt)
+        # ToDo: make sink type an argument
+        sink_type = sink.SinkType.html_file
+        try:
+            sink.EXCLUSION_FORMULA_SINKS[sink_type](img_fmt.get_exclusion_file_path(), img_fmt.get_excluded())
+        except KeyError:
+            raise NotImplementedError() from None
 
     def convert_images(self, parsed_document, base_path, img_dir, options):
         """Convert all formulas to images and store file path and equation in a

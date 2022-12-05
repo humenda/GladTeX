@@ -1,3 +1,6 @@
+# (c) 2013-2021 Sebastian Humenda
+# This code is licenced under the terms of the LGPL-3+, see the file COPYING for
+# more details.
 """This script auto-generates gleetex/unicode_data.py. The purpose is to provide a
 table with mappings from unicode points to their LaTeX equivalent. This way,
 formulas can be converted using LaTeX2e, but the end-user can still use unicode
@@ -7,6 +10,9 @@ text more readable."""
 import collections
 import enum
 import os
+import shlex
+import shutil
+import sys
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -54,7 +60,7 @@ def create_unicode_latex_table(root):
     characters."""
     unicode_table = {}
     for character in root.find("charlist").iterfind("character"):
-        childtags = set(node.tag for node in character.getchildren())
+        childtags = set(node.tag for node in character)
         # skip characters without LaTeX alternative
         if (
             "latex" not in childtags
@@ -151,8 +157,13 @@ def main():
         print("Error: Generator script must be run from GladTeX source root.")
     table = create_unicode_latex_table(get_unicode_table_xml())
     python_table = serialize_table(table)
-    with open("gleetex/unicode.py", "w", encoding="utf-8") as f:
+    path = os.path.join("gleetex", "unicode.py")
+    with open(path, "w", encoding="utf-8") as f:
         f.write(generate_python_src_file(table, python_table))
+    exit = 0
+    if shutil.which("black"):
+        exit = os.system(f"black {shlex.quote(path)}")
+    sys.exit(exit)
 
 
 if __name__ == "__main__":

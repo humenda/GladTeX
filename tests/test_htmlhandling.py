@@ -270,7 +270,7 @@ class HtmlImageTest(unittest.TestCase):
     def test_height_and_width_is_in_formatted_html_img_tag(self):
         data = None
         with htmlhandling.HtmlImageFormatter("foo.html") as img:
-            data = img.get_html_img(self.pos, "\\tau\\tau", "foo.png")
+            data = img._process_image(self.pos, "\\tau\\tau", "foo.png")
         self.assertTrue("height=" in data and str(self.pos["height"]) in data)
         self.assertTrue("width=" in data and str(self.pos["width"]) in data)
 

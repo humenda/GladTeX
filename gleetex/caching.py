@@ -1,4 +1,4 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2021 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This module contains the ImageCache, caching formulas which have already been

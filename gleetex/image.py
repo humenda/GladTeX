@@ -97,10 +97,11 @@ class Format(enum.Enum):
 
 class Tex2img:
     """Convert a TeX document string into a png file.
-    This class interacts with the LaTeX and dvipng sub processes. Upon error
+    This class interacts with the LaTeX and dvipng/dvisvgm sub processes. Upon error
     the methods throw a SubprocessError with all necessary information to fix
     the issue.
 
+On PNG:
     The background of the PNG files will be transparent by default. If you set a
     background colour within the LaTeX document, you need to turn off
     transparency in this converter manually."""
