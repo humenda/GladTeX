@@ -10,17 +10,17 @@ from . import parser
 from . import sink
 from . import typesetting
 
-VERSION = "3.1.0"
+VERSION = '3.1.0'
 
 __all__ = [
-    "caching",
-    "cachedconverter",
-    "htmlhandling",
-    "image",
-    "pandoc",
-    "parser",
-    "sink",
-    "typesetting",
-    "unicode",
-    "VERSION",
+    'caching',
+    'cachedconverter',
+    'htmlhandling',
+    'image',
+    'pandoc',
+    'parser',
+    'sink',
+    'typesetting',
+    'unicode',
+    'VERSION',
 ]

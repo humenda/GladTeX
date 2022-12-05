@@ -4,9 +4,10 @@
 """Top-level API to parse input documents.
 
 The main point of the parsing is to extract formulas from a given input
-document, while preserving the remaining formatting.
-The returned parsed document structure is highly dependent on the input format
-and hence document in their respective functions."""
+document, while preserving the remaining formatting. The returned parsed
+document structure is highly dependent on the input format and hence
+document in their respective functions.
+"""
 
 import enum
 import json
@@ -29,24 +30,25 @@ class Format(enum.Enum):
     @staticmethod
     def parse(string):
         string = string.lower()
-        if string == "html":
+        if string == 'html':
             return Format.HTML
-        if string == "pandocfilter":
+        if string == 'pandocfilter':
             return Format.PANDOCFILTER
-        raise ValueError("unrecognised format: %s" % string)
+        raise ValueError('unrecognised format: %s' % string)
 
 
 def parse_document(doc, fmt):
     """This function parses an input document (string or bytes) with the given
     format specifier. For HTML, the returned "parsed" document is a list of
     chunks, where raw chunks are just plain HTML instructions and data and
-    formula chunks are parsed from the '<eq/>' tags.
-    If the input document is a pandoc AST, the formulas will be extracted and
-    the document is a tuple of (pandoc AST, formulas).
+    formula chunks are parsed from the '<eq/>' tags. If the input document is a
+    pandoc AST, the formulas will be extracted and the document is a tuple of
+    (pandoc AST, formulas).
 
     :param doc  input of bytes or string to parse
     :param fmt  either the enum type `Format` or a string understood by Format.parse
-    :return     (encoding, document) (a tuple)"""
+    :return     (encoding, document) (a tuple)
+    """
     if isinstance(fmt, str):
         fmt = Format.parse(fmt)
     encoding = None
@@ -54,7 +56,7 @@ def parse_document(doc, fmt):
         docparser = htmlhandling.EqnParser()
         docparser.feed(doc)
         encoding = docparser.get_encoding()
-        encoding = encoding if encoding else "utf-8"
+        encoding = encoding if encoding else 'utf-8'
         doc = docparser.get_data()
     elif fmt == Format.PANDOCFILTER:
         if isinstance(doc, bytes):

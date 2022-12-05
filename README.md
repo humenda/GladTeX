@@ -95,5 +95,6 @@ Please use `man gladtex` for further instructions or have a look at the file
 Contribute
 ----------
 
-Contributions are welcome. Please use [black](https://github.com/psf/black) to
+Contributions are welcome. Please use
+[PyFormat](https://pypi.org/project/pyformat/) to
 format the code.
