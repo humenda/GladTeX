@@ -444,9 +444,9 @@ class Main:
                 if escaped != err.formula
                 else ""
             )
-            msg = "Error while converting formula %d\n" % err.formula_count
+            msg = "Error while converting formula %d" % err.formula_count
             if err.src_line_number and err.src_pos_on_line:
-                msg += " at line %d, %d:\n" % (
+                msg = msg.rstrip() + " at line %d, %d:\n" % (
                     err.src_line_number,
                     err.src_pos_on_line,
                 )
