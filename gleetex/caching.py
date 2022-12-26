@@ -1,11 +1,11 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2022 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This module contains the ImageCache, caching formulas which have already
 been converted. This allows to re-use images for formulas which occur multiple
-timesd within a document. Furthermore, it can significantly speed up
-incremental document creation, because the cache is remembered across GladTeX
-runs.
+times within a document or multiple documents in a directory. Furthermore, it
+can significantly speed up incremental document creation, because the cache is
+remembered across GladTeX runs.
 
 Cache format:
 
@@ -23,8 +23,8 @@ Cache format:
             }
     }
 
-Formulas are `normalized`, so spacing is unified to detect possibly equal
-formulas more easyly.
+The spacing in formulas is normalised to avoid converting the same formula with
+different spacing.
 """
 
 import contextlib
@@ -35,13 +35,10 @@ CACHE_VERSION = '2.0'
 
 
 def normalize_formula(formula):
-    """This function normalizes a formula.
+    """Normalise the spacing of a formula.
 
-    This e.g. means that multiple white spaces are squeezed into one and
-    a tab will be replaced by a space. With this it is more realistic
-    that a recurring formula in a document is detected as such, even
-    though if it might have been written with different spacing. Empty
-    braces ({}) are removed as well.
+    This squeezes multiple whitespace into a single, on, replaces tabs by spaces
+    and strip trailing spaces.
     """
     return (
         formula.replace('{}', ' ')
@@ -56,7 +53,7 @@ def recover_bools(object):
     """After JSon is read from disk, keys as False or True have been serialized
     to 'false' and 'true', but they're not recovered by the json parser.
 
-    This function alters converts these keys back to booleans; note: it
+    This function converts these keys back to booleans; note: it
     only works with references, so this function doesn't return
     anything.
     """
