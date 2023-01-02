@@ -1,9 +1,12 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2022 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
-"""In order to convert images only if they are not already cached, the cached
-converter sacrifices customizability for convenience and provides a class
-converting a formula directly to a png file."""
+"""
+A preconfigured image converter that caches conversion results.
+
+This convert with caching ability is less flexible than using the image
+converter directly, but automatically uses a cache if available to avoid
+conversion if the formula image is already present."""
 
 import concurrent.futures
 import multiprocessing
@@ -54,6 +57,9 @@ class ConversionException(Exception):
 
 class CachedConverter:
     """Convert formulas to images.
+    
+    Cache the resulting images to reuse those for subsequent runs or for
+    recurring instances in the same document.
 
     c = CachedConverter(base_path)
     for formula in [... formulas ...]:
@@ -79,11 +85,8 @@ class CachedConverter:
     GLADTEX_CACHE_FILE_NAME = 'gladtex.cache'
 
     def __init__(self, base_path, keep_old_cache=True, encoding=None, img_dir=''):
-        def empty_path(p): return (
-            '' if not p or p.strip(os.sep) == '.' else p)
-        self.__output_path = empty_path(
-            base_path
-        )  # path where converted document will be
+        empty_path = lambda p: ('' if not p or p.strip(os.sep) == '.' else p)
+        self.__output_path = empty_path(base_path) # path for converted document
         self.__img_dir = empty_path(img_dir)  # relative to base_path
         # cache path is **relative** to base_path
         cache_path = os.path.join(
@@ -157,24 +160,16 @@ class CachedConverter:
             self._convert_concurrently(formulas_to_convert)
 
     def _get_formulas_to_convert(self, formulas):
-        """Return a list of formulas to convert, along with their count in the
-        global list of formulas of the document being converted and the file
-        name.
-
-        Function was decomposed for better testability.
-        """
-        formulas_to_convert = []  # find as many file names as equations
+        """Build up a pipeline (list) of formulas for conversion.
+        Formulas that that are in the cache or are doubled in the pipeline are dropped."""
+        pipeline = []  # find as many file names as equations
         file_ext = Format.Png.value if self.__options['png'] else Format.Svg.value
-        def eqn_path(x): return os.path.join(
-            self.__img_dir, 'eqn%03d.%s' % (x, file_ext))
-
-        def abs_eqn_path(x): return os.path.join(self.__img_dir, eqn_path(x))
+        eqn_path = lambda x: os.path.join(self.__img_dir, 'eqn%03d.%s' % (x, file_ext))
 
         # is (formula, display_math) already in the list of formulas to convert;
         # displaymath is important since formulas look different in inline maths
-        def formula_was_converted(f, dsp): return (normalize_formula(f), dsp) in (
-            (normalize_formula(u[0]), u[3]) for u in formulas_to_convert
-        )
+        formula_was_converted = lambda f, dsp: \
+                (normalize_formula(f), dsp) in ( (normalize_formula(u[0]), u[3]) for u in pipeline)
         # find enough free file names
         file_name_count = 0
         used_file_names = []  # track which file names have been assigned
@@ -184,15 +179,15 @@ class CachedConverter:
                 formula, dsp
             ):
                 while (
-                    os.path.exists(abs_eqn_path(file_name_count))
+                    os.path.exists(eqn_path(file_name_count))
                     or eqn_path(file_name_count) in used_file_names
                 ):
                     file_name_count += 1
                 used_file_names.append(eqn_path(file_name_count))
-                formulas_to_convert.append(
+                pipeline.append(
                     (formula, pos, eqn_path(file_name_count), dsp, formula_count + 1)
                 )
-        return formulas_to_convert
+        return pipeline
 
     def _convert_concurrently(self, formulas_to_convert):
         """The actual concurrent conversion process.
@@ -205,7 +200,7 @@ class CachedConverter:
             # formulacreation step
             os.makedirs(imgdir_full)
 
-        thread_count = int(multiprocessing.cpu_count() * 2.5)
+        thread_count = int(multiprocessing.cpu_count() * 2)
         # convert missing formulas
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=thread_count
@@ -219,40 +214,45 @@ class CachedConverter:
             }
             error_occurred = None
             for future in concurrent.futures.as_completed(jobs):
+                # cancel all pending requests
                 if error_occurred and not future.done():
                     future.cancel()
                     continue
                 formula, pos_in_src, formula_count = jobs[future]
-                try:
-                    data = future.result()
-                except subprocess.SubprocessError as e:
-                    # retrieve the position (line, pos on line) in the source
-                    # document from original formula list
-                    if pos_in_src:  # missing for the pandocfilter case
-                        pos_in_src = list(
-                            p + 1 for p in pos_in_src
-                        )  # user expects lines/pos_in_src' to count from 1
-                    self.__cache.write()  # write back cache with valid entries
-                    if not pos_in_src:  # pandocfilter case:
-                        error_occurred = ConversionException(
-                            str(e.args[0]), formula, formula_count
-                        )
-                    else:
-                        error_occurred = ConversionException(
-                            str(e.args[0]),
-                            formula,
-                            formula_count,
-                            pos_in_src[0],
-                            pos_in_src[1],
-                        )
-                else:
-                    self.__cache.add_formula(
-                        formula, data['pos'], data['path'], data['displaymath']
-                    )
-                    self.__cache.write()
-            # pylint: disable=raising-bad-type
-            if error_occurred:
-                raise error_occurred
+                error_occurred = self._handle_job_output(future, formula, pos_in_src, formula_count)
+        # pylint: disable=raising-bad-type
+        if error_occurred:
+            raise error_occurred
+
+    def _handle_job_output(self, future, formula, pos_in_src, formula_count):
+        """Process the output as produced by each conversion future.
+        Handle the error case by signalling the error to end all other
+        conversions."""
+        try:
+            data = future.result()
+        except subprocess.SubprocessError as e:
+            # retrieve the position (line, pos on line) in the source document
+            # from original formula list
+            if pos_in_src:  # missing for the pandocfilter case
+                pos_in_src = [p + 1 for p in pos_in_src] # line/pos count from 1
+            self.__cache.write()  # write back cache with valid entries
+            if pos_in_src:  # pandocfilter case:
+                return ConversionException(
+                    str(e.args[0]),
+                    formula,
+                    formula_count,
+                    pos_in_src[0],
+                    pos_in_src[1],
+                )
+            else:
+                return ConversionException(
+                    str(e.args[0]), formula, formula_count
+                )
+        else:
+            self.__cache.add_formula(
+                formula, data['pos'], data['path'], data['displaymath']
+            )
+            self.__cache.write()
 
     def __convert(self, formula, img_path, displaymath=False):
         """convert(formula, img_path, displaymath=False) Convert given formula

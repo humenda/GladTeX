@@ -212,12 +212,11 @@ class ImageCache:
         those set iwth inlinemath. This method raises OSError if
         specified image doesn't exist or if it got an absolute
         file_path.
+
+        If a file path already exists, the cache entry will be overridden.
         """
         if os.path.isabs(file_path):
-            raise OSError(
-                ('The file path to the image may NOT be an absolute ' 'path: ')
-                + file_path
-            )
+            raise OSError(f"image path in cache may not be absolute: {file_path}")
         if '\\' in file_path:
             file_path = file_path.replace('\\', '/')
         if not os.path.exists(os.path.join(self.__base_path, file_path)):
@@ -298,3 +297,4 @@ class ImageCache:
                     return value[displaymath]
             else:
                 raise KeyError((formula, displaymath))
+
