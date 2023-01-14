@@ -1,14 +1,15 @@
 # pylint: disable=too-many-public-methods
 from functools import reduce
+import io
 import os
 import re
 import shutil
 import tempfile
 import unittest
-from gleetex import htmlhandling
+from gleetex import htmlhandling, sink
 
 
-excl_filename = htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME
+excl_filename = sink.EXCLUSION_FILE_NAME
 
 HTML_SKELETON = """<html><head><meta http-equiv="Content-Type" content="text/html; charset={0}" />
 </head><body>{1}</body>"""
@@ -185,71 +186,56 @@ class HtmlImageTest(unittest.TestCase):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_that_no_file_is_written_if_no_content(self):
-        with htmlhandling.HtmlImageFormatter('foo'):
-            pass
+        ht = htmlhandling.HtmlImageFormatter('foo')
         self.assertFalse(os.path.exists('foo.html'))
 
     def test_file_if_written_when_content_exists(self):
-        with htmlhandling.HtmlImageFormatter() as img:
-            img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
-        self.assertTrue(os.path.exists(excl_filename))
+        img = htmlhandling.HtmlImageFormatter()
+        img.format(self.pos, '\\tau\\tau' * 20, 'foo.png')
+        self.assertTrue(len(img.get_excluded()) == 1)
 
     def test_written_file_starts_and_ends_more_or_less_properly(self):
-        with htmlhandling.HtmlImageFormatter('.') as img:
-            img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
-            img.set_write_full_doc(True)
-        data = read(
-            htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME, 'r', encoding='utf-8'
-        )
+        img = htmlhandling.HtmlImageFormatter('.')
+        img.format(self.pos, '\\tau\\tau', 'foo.png')
+        file = io.StringIO()
+        htmlhandling.write_html(file, [], img_fmt)
+        file.seek(0)
+        data = file.read()
         self.assertTrue('<html' in data and '</html>' in data)
         self.assertTrue('<body' in data and '</body>' in data)
         # make sure encoding is specified
         self.assertTrue('<meta' in data and 'charset=' in data)
 
-    def test_written_does_not_contain_header_footer_if_not_requested(self):
-        with htmlhandling.HtmlImageFormatter('.') as img:
-            img.set_write_full_doc(False)
-            img.format_excluded(self.pos, '\\tau\\tau', 'foo.png')
-        data = read(
-            htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME, 'r', encoding='utf-8'
-        )
-        self.assertFalse('<html' in data and '</html>' in data)
-        self.assertFalse('<body' in data and '</body>' in data)
-        # make sure encoding is specified
-        self.assertFalse('<meta' in data and 'charset=' in data)
-        # make sure the formula is present
-        self.assertTrue('\\tau' in data)
-
     def test_id_contains_no_special_characters(self):
-        data = htmlhandling.gen_id("\\tau!'{}][~^")
+        data = htmlhandling.generate_label("\\tau!'{}][~^")
         for character in {'!', "'", '\\', '{', '}'}:
             self.assertFalse(character in data)
 
     def test_formula_can_consist_only_of_numbers_and_id_is_generated(self):
-        data = htmlhandling.gen_id('9*8*7=504')
+        data = htmlhandling.generate_label('9*8*7=504')
         self.assertTrue(data.startswith('form'))
         self.assertTrue(data.endswith('504'))
 
     def test_that_empty_ids_raise_exception(self):
-        self.assertRaises(ValueError, htmlhandling.gen_id, '')
+        self.assertRaises(ValueError, htmlhandling.generate_label, '')
 
     def test_that_same_characters_are_not_repeated(self):
-        id = htmlhandling.gen_id('jo{{{{{{{{ha')
+        id = htmlhandling.generate_label('jo{{{{{{{{ha')
         self.assertEqual(id, 'jo_ha')
 
     def test_that_ids_are_max_150_characters_wide(self):
-        id = htmlhandling.gen_id('\\alpha\\cdot\\gamma + ' * 999)
+        id = htmlhandling.generate_label('\\alpha\\cdot\\gamma + ' * 999)
         self.assertTrue(len(id) == 150)
 
     def test_that_ids_start_with_letter(self):
-        id = htmlhandling.gen_id('{}\\[]ÖÖÖö9343...·tau')
+        id = htmlhandling.generate_label('{}\\[]ÖÖÖö9343...·tau')
         self.assertTrue(id[0].isalpha())
 
     def test_that_link_to_external_image_points_to_file_and_formula(self):
-        with htmlhandling.HtmlImageFormatter() as img:
-            formatted_img = img.format_excluded(
+        img = htmlhandling.HtmlImageFormatter()
+        formatted_img = img.format(
                 self.pos, '\\tau\\tau', 'foo.png')
-            expected_id = htmlhandling.gen_id('\\tau\\tau')
+        expected_id = htmlhandling.generate_label('\\tau\\tau')
         external_file = read(excl_filename, 'r', encoding='utf-8')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
@@ -266,10 +252,10 @@ class HtmlImageTest(unittest.TestCase):
 
     def test_that_link_to_external_image_points_to_file_basepath_and_formula(self):
         os.mkdir('basepath')
-        with htmlhandling.HtmlImageFormatter('basepath') as img:
-            formatted_img = img.format_excluded(
-                self.pos, '\\tau\\tau', 'foo.png')
-            expected_id = htmlhandling.gen_id('\\tau\\tau')
+        img = htmlhandling.HtmlImageFormatter('basepath')
+        formatted_img = img.format(
+            self.pos, '\\tau\\tau', 'foo.png')
+        expected_id = htmlhandling.generate_label('\\tau\\tau')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
         self.assertTrue(href != None)
@@ -281,103 +267,103 @@ class HtmlImageTest(unittest.TestCase):
 
     def test_height_and_width_is_in_formatted_html_img_tag(self):
         data = None
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            data = img._process_image(self.pos, '\\tau\\tau', 'foo.png')
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        data = img._process_image(self.pos, '\\tau\\tau', 'foo.png')
         self.assertTrue('height=' in data and str(self.pos['height']) in data)
         self.assertTrue('width=' in data and str(self.pos['width']) in data)
 
     def test_no_formula_gets_lost_when_reparsing_external_formula_file(self):
-        with htmlhandling.HtmlImageFormatter() as img:
-            img.format_excluded(self.pos, '\\tau' * 999, 'foo.png')
-        with htmlhandling.HtmlImageFormatter() as img:
-            img.format_excluded(self.pos, '\\pi\\tau' * 666, 'foo_2.png')
+        img = htmlhandling.HtmlImageFormatter(exclusion_file_path=excl_filename)
+        img.format(self.pos, '\\tau' * 999, 'foo.png')
+        img = htmlhandling.HtmlImageFormatter(exclusion_file_path=excl_filename)
+        img.format(self.pos, '\\pi\\tau' * 666, 'foo_2.png')
         data = read(excl_filename)
         self.assertTrue('\\tau' in data)
         self.assertTrue('\\pi' in data)
 
     def test_too_long_formulas_are_not_outsourced_if_not_configured(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.format(self.pos, '\\tau' * 999, 'foo.png')
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        img.format(self.pos, '\\tau' * 999, 'foo.png')
         self.assertFalse(os.path.exists('foo.html'))
 
     def test_that_too_long_formulas_get_outsourced_if_configured(self):
-        with htmlhandling.HtmlImageFormatter() as img:
-            img.set_max_formula_length(90)
-            img.set_exclude_long_formulas(True)
-            img.format(self.pos, '\\tau' * 999, 'foo.png')
+        img = htmlhandling.HtmlImageFormatter()
+        img.set_max_formula_length(90)
+        img.set_exclude_long_formulas(True)
+        img.format(self.pos, '\\tau' * 999, 'foo.png')
         self.assertTrue(os.path.exists(excl_filename))
         data = read(htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME)
         self.assertTrue('\\tau\\tau' in data)
 
     def test_url_is_included(self):
         prefix = 'http://crustulus.de/blog'
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.set_url(prefix)
-            data = img.format(self.pos, '\epsilon<0', 'foo.png')
-            self.assertTrue(prefix in data)
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        img.set_url(prefix)
+        data = img.format(self.pos, '\epsilon<0', 'foo.png')
+        self.assertTrue(prefix in data)
 
     def test_url_doesnt_contain_double_slashes(self):
         prefix = 'http://crustulus.de/blog/'
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.set_url(prefix)
-            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
-            self.assertFalse('//' in data.replace('http://', 'ignore'))
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        img.set_url(prefix)
+        data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
+        self.assertFalse('//' in data.replace('http://', 'ignore'))
 
     # depth is used as negative offset, so negative depth should result in
     # positive offset
     def test_that_negative_depth_results_in_positive_offset(self):
         self.pos['depth'] = '-999'
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
-            self.assertTrue('align: ' + str(self.pos['depth'])[1:] in data)
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        data = img.format(self.pos, r'\gamma\text{strahlung}', 'foo.png')
+        self.assertTrue('align: ' + str(self.pos['depth'])[1:] in data)
 
     def test_that_displaymath_is_set_or_unset(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            data = img.format(
-                self.pos, r'\gamma\text{strahlung}', 'foo.png', True)
-            self.assertTrue('="displaymath' in data)
-            data = img.format(
-                self.pos, r'\gamma\text{strahlung}', 'foo.png', False)
-            self.assertTrue('="inlinemath' in data)
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        data = img.format(
+            self.pos, r'\gamma\text{strahlung}', 'foo.png', True)
+        self.assertTrue('="displaymath' in data)
+        data = img.format(
+            self.pos, r'\gamma\text{strahlung}', 'foo.png', False)
+        self.assertTrue('="inlinemath' in data)
 
     def test_that_alternative_css_class_is_set_correctly(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.set_display_math_css_class('no1')
-            img.set_inline_math_css_class('no2')
-            data = img.format(
-                self.pos, r'\gamma\text{strahlung}', 'foo.png', True)
-            self.assertTrue('="no1"' in data)
-            data = img.format(
-                self.pos, r'\gamma\text{strahlung}', 'foo.png', False)
-            self.assertTrue('="no2' in data)
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        img.set_display_math_css_class('no1')
+        img.set_inline_math_css_class('no2')
+        data = img.format(
+            self.pos, r'\gamma\text{strahlung}', 'foo.png', True)
+        self.assertTrue('="no1"' in data)
+        data = img.format(
+            self.pos, r'\gamma\text{strahlung}', 'foo.png', False)
+        self.assertTrue('="no2' in data)
 
     def test_that_unicode_is_replaced_if_requested(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.set_replace_nonascii(True)
-            data = img.format(self.pos, '←', 'foo.png')
-            self.assertTrue(
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        img.set_replace_nonascii(True)
+        data = img.format(self.pos, '←', 'foo.png')
+        self.assertTrue(
                 '\\leftarrow' in data, 'expected: "\\leftarrow" to be in "%s"' % data
             )
 
     def test_that_unicode_is_kept_if_not_requested_to_replace(self):
-        with htmlhandling.HtmlImageFormatter('foo.html') as img:
-            img.set_replace_nonascii(False)
-            data = img.format(self.pos, '←', 'foo.png')
-            self.assertTrue('←' in data)
+        img = htmlhandling.HtmlImageFormatter('foo.html')
+        img.set_replace_nonascii(False)
+        data = img.format(self.pos, '←', 'foo.png')
+        self.assertTrue('←' in data)
 
     def test_formatting_commands_are_stripped(self):
-        with htmlhandling.HtmlImageFormatter('test_basedir') as img:
-            data = img.format(self.pos, 'a\,b\,c\,d', 'foo.png')
-            self.assertTrue('a b c d' in data)
-            data = img.format(self.pos, 'a\,b\;c\ d', 'foo.png')
-            self.assertTrue('a b c d' in data)
+        img = htmlhandling.HtmlImageFormatter('test_basedir')
+        data = img.format(self.pos, 'a\,b\,c\,d', 'foo.png')
+        self.assertTrue('a b c d' in data)
+        data = img.format(self.pos, 'a\,b\;c\ d', 'foo.png')
+        self.assertTrue('a b c d' in data)
 
-            data = img.format(self.pos, '\Big\{foo\Big\}', 'foo.png')
-            self.assertTrue('\{foo' in data and '\}' in data)
-            data = img.format(self.pos, r'\left\{foo\right\}', 'foo.png')
-            self.assertTrue('\{' in data)
-            self.assertTrue('foo' in data)
-            self.assertTrue('\}' in data)
+        data = img.format(self.pos, '\Big\{foo\Big\}', 'foo.png')
+        self.assertTrue('\{foo' in data and '\}' in data)
+        data = img.format(self.pos, r'\left\{foo\right\}', 'foo.png')
+        self.assertTrue('\{' in data)
+        self.assertTrue('foo' in data)
+        self.assertTrue('\}' in data)
 
 
 def htmleqn(formula, hr=True):
@@ -385,6 +371,6 @@ def htmleqn(formula, hr=True):
     external file."""
     return '%s\n<p id="%s"><pre>%s</pre></span></p>\n' % (
         ('<hr/>' if hr else ''),
-        htmlhandling.gen_id(formula),
+        htmlhandling.generate_label(formula),
         formula,
     )

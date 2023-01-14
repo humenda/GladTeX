@@ -1,17 +1,14 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2023 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
-"""GleeTeX is designed to allow the re-use of the image creation code
+"""
+GleeTeX is designed to allow the re-use of the image creation code
 independently of the HTML conversion code. Therefore, this module contains the
 code required to parse equations from HTML, to write converted HTML documents
-back and to handle the exclusion of formulas too long for an HTML alt tag to.
-
-/import
-an external file.
+back and to handle the exclusion of formulas too long for an HTML alt tag to
+an external HTML file.
 The pandoc module contains similar functions for using GleeTeX as a pandoc
-filter.
-
-ToDo: completely new doc string
+filter, without the using HTML as destination format.
 """
 
 from abc import abstractmethod
@@ -116,7 +113,7 @@ class EqnParser:
         """This find method searches in the document for a given string,
         staking the offset into account.
 
-        REturned is the absolute position (so offset + relative match
+        Returned is the absolute position (so offset + relative match
         position) or -1 for no hit.
         """
         if isinstance(what, str):
@@ -299,7 +296,7 @@ class ImageFormatter:  # ToDo: localisation
     fmt.format(pos, formula, img_path, displaymath=False)
     fmt.format(pos2, formula2, img_path2, displaymath=True)
     ...
-    img.get_excluded()
+    img.get_excluded() # a list of formulas that were too long for the alt tag
     """
 
     FORMULA_MAXLENGTH = 100
