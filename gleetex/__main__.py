@@ -267,10 +267,7 @@ class Main:
                     88,
                 )
             except IsADirectoryError:
-                self.exit(
-                    f'Error: cannot open {options.input} for reading: is a directory.',
-                    19,
-                )
+                self.exit(f'Error: cannot open {options.input} for reading: is a directory.', 19)
             except FileNotFoundError:
                 self.exit(f'Error: file {options.input} not found.', 20)
 

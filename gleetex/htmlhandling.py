@@ -19,6 +19,7 @@ import os
 import posixpath
 import re
 
+from . import sink
 from . import typesetting
 
 # match HTML 4 and 5
@@ -299,11 +300,8 @@ class ImageFormatter:  # ToDo: localisation
     img.get_excluded() # a list of formulas that were too long for the alt tag
     """
 
-    FORMULA_MAXLENGTH = 100
-
-    def __init__(
-        self, base_path, link_prefix='', exclusion_file_path='', is_epub=False
-    ):
+    def __init__(self, base_path=None, link_prefix='',
+                 exclusion_file_path=sink.EXCLUSION_FILE_NAME, is_epub=False):
         self.__inline_maxlength = 100
         self._excluded_formulas = collections.OrderedDict()
         self.__url = ''
@@ -311,6 +309,7 @@ class ImageFormatter:  # ToDo: localisation
         self._css = {'inline': 'inlinemath', 'display': 'displaymath'}
         self.__replace_nonascii = False
         self._link_prefix = link_prefix if link_prefix else ''
+        base_path = ("" if not base_path else base_path)
         self._exclusion_filepath = posixpath.join(
             base_path, exclusion_file_path)
         if os.path.exists(self._exclusion_filepath) and not os.access(
@@ -395,7 +394,7 @@ class ImageFormatter:  # ToDo: localisation
             depth = str(int(depth))
         else:
             depth = f'{depth:.2f}'
-        image['style'] = 'vertical-align: {depth}px; margin: 0;'
+        image['style'] = f'vertical-align: {depth}px; margin: 0;'
 
         image['class'] = self._css['display'] if displaymath else self._css['inline']
         if self._is_epub:
@@ -445,18 +444,15 @@ class ImageFormatter:  # ToDo: localisation
             formula, self.__replace_nonascii)
         processed_data = self._process_image(
             pos, formula, img_path, displaymath)
-        shortened_processed_data = processed_data.copy()
-        shortened_processed_data['formula'] = formula
+        shortened_data = processed_data.copy()
+        shortened_data['formula'] = formula
         link_destination = None
-        if len(formula) > ImageFormatter.FORMULA_MAXLENGTH:
-            shortened_processed_data['formula'] = (
-                formula[: ImageFormatter.FORMULA_MAXLENGTH] + '...'
-            )
-            link_destination = self._generate_link_destination(processed_data)
         if len(formula) > self.__inline_maxlength:
+            shortened_data['formula'] = f"{formula[:self.__inline_maxlength]}..."
+            link_destination = self._generate_link_destination(processed_data)
             # builds up internal list of formatted excluded formulas
             self.add_excluded(processed_data)
-        return self.format_internal(shortened_processed_data, link_destination)
+        return self.format_internal(shortened_data, link_destination)
 
 
 class HtmlImageFormatter(ImageFormatter):
@@ -465,8 +461,8 @@ class HtmlImageFormatter(ImageFormatter):
     See ImageFormatter for information about the usage of the class.
     """
 
-    def __init__(self, base_path='', link_prefix='', exclusion_file_path='', is_epub=False):
-        super().__init__(base_path, link_prefix, exclusion_file_path, is_epub)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def _generate_link_destination(self, formula):
         html_label = generate_label(formula['formula'])
@@ -505,7 +501,7 @@ def write_html(file, document, formatter):
     """Processed HTML documents are made up of raw HTML chunks which are
     written back unaltered and of a processed image.
 
-    An processed image is a former formula converted to an image with
+    A processed image is a former formula converted to an image with
     additional meta data. This is passed to the format function of the
     supplied formatter and the result is written to the given (open)
     file handle.
