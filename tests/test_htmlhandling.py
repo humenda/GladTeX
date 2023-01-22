@@ -194,18 +194,6 @@ class HtmlImageTest(unittest.TestCase):
         img.format(self.pos, '\\tau\\tau' * 20, 'foo.png')
         self.assertTrue(len(img.get_excluded()) == 1)
 
-    def test_written_file_starts_and_ends_more_or_less_properly(self):
-        img = htmlhandling.HtmlImageFormatter('.')
-        img.format(self.pos, '\\tau\\tau', 'foo.png')
-        file = io.StringIO()
-        htmlhandling.write_html(file, [], img_fmt)
-        file.seek(0)
-        data = file.read()
-        self.assertTrue('<html' in data and '</html>' in data)
-        self.assertTrue('<body' in data and '</body>' in data)
-        # make sure encoding is specified
-        self.assertTrue('<meta' in data and 'charset=' in data)
-
     def test_id_contains_no_special_characters(self):
         data = htmlhandling.generate_label("\\tau!'{}][~^")
         for character in {'!', "'", '\\', '{', '}'}:
@@ -232,10 +220,11 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue(id[0].isalpha())
 
     def test_that_link_to_external_image_points_to_file_and_formula(self):
+        formula = '\\tau\\tau\gamma\delta' * 42
         img = htmlhandling.HtmlImageFormatter()
-        formatted_img = img.format(
-                self.pos, '\\tau\\tau', 'foo.png')
-        expected_id = htmlhandling.generate_label('\\tau\\tau')
+        formatted_img = img.format(self.pos, formula, 'foo.png')
+        expected_id = htmlhandling.generate_label(formula)
+        sink.html_write_excluded_file(excl_filename, img.get_excluded())
         external_file = read(excl_filename, 'r', encoding='utf-8')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
@@ -252,10 +241,10 @@ class HtmlImageTest(unittest.TestCase):
 
     def test_that_link_to_external_image_points_to_file_basepath_and_formula(self):
         os.mkdir('basepath')
+        formula = '\\tau\\tau\delta\gamma\epsilon' * 42
         img = htmlhandling.HtmlImageFormatter('basepath')
         formatted_img = img.format(
-            self.pos, '\\tau\\tau', 'foo.png')
-        expected_id = htmlhandling.generate_label('\\tau\\tau')
+            self.pos, formula, 'foo.png')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
         self.assertTrue(href != None)
@@ -263,12 +252,13 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue('#' in href.groups()[0])
         path, id = href.groups()[0].split('#')
         self.assertEqual(path, 'basepath/' + excl_filename)
+        expected_id = htmlhandling.generate_label(formula)
         self.assertEqual(id, expected_id)
 
     def test_height_and_width_is_in_formatted_html_img_tag(self):
         data = None
         img = htmlhandling.HtmlImageFormatter('foo.html')
-        data = img._process_image(self.pos, '\\tau\\tau', 'foo.png')
+        data = img.format(self.pos, '\\tau\\tau', 'foo.png')
         self.assertTrue('height=' in data and str(self.pos['height']) in data)
         self.assertTrue('width=' in data and str(self.pos['width']) in data)
 
@@ -277,6 +267,7 @@ class HtmlImageTest(unittest.TestCase):
         img.format(self.pos, '\\tau' * 999, 'foo.png')
         img = htmlhandling.HtmlImageFormatter(exclusion_file_path=excl_filename)
         img.format(self.pos, '\\pi\\tau' * 666, 'foo_2.png')
+        sink.html_write_excluded_file(excl_filename, img.get_excluded())
         data = read(excl_filename)
         self.assertTrue('\\tau' in data)
         self.assertTrue('\\pi' in data)
@@ -286,14 +277,11 @@ class HtmlImageTest(unittest.TestCase):
         img.format(self.pos, '\\tau' * 999, 'foo.png')
         self.assertFalse(os.path.exists('foo.html'))
 
-    def test_that_too_long_formulas_get_outsourced_if_configured(self):
+    def test_that_too_long_formulas_get_excluded(self):
         img = htmlhandling.HtmlImageFormatter()
         img.set_max_formula_length(90)
-        img.set_exclude_long_formulas(True)
         img.format(self.pos, '\\tau' * 999, 'foo.png')
-        self.assertTrue(os.path.exists(excl_filename))
-        data = read(htmlhandling.HtmlImageFormatter.EXCLUSION_FILE_NAME)
-        self.assertTrue('\\tau\\tau' in data)
+        self.assertEqual(len(img.get_excluded()), 1)
 
     def test_url_is_included(self):
         prefix = 'http://crustulus.de/blog'
@@ -364,13 +352,3 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue('\{' in data)
         self.assertTrue('foo' in data)
         self.assertTrue('\}' in data)
-
-
-def htmleqn(formula, hr=True):
-    """Format a formula to appear as if it would have been outsourced into an
-    external file."""
-    return '%s\n<p id="%s"><pre>%s</pre></span></p>\n' % (
-        ('<hr/>' if hr else ''),
-        htmlhandling.generate_label(formula),
-        formula,
-    )
