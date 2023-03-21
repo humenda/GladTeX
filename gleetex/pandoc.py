@@ -1,10 +1,10 @@
-# (c) 2013-2018 Sebastian Humenda
+# (c) 2013-2023 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This module contains functionality to parse formulas from a given Pandoc
 document AST and to replace these through formatted HTML equations.
 
-It works in these parsses:
+It works in these passses:
 
 1.  Extract all math elements from the Pandoc AST.
 2.  Convert all formulas to images
@@ -37,7 +37,7 @@ def __extract_formulas(formulas, ast):
                 raise ParseException(
                     '[pandoc] unknown formula formatting: ' + repr(ast['c'])
                 )
-            style = True if style == 'DisplayMath' else False
+            style = style == 'DisplayMath'
             # position is None (only applicable for HTML parsing)
             formulas.append((None, style, formula))
         elif 'c' in ast:

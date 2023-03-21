@@ -1,6 +1,10 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2023 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
+"""
+Data sinks, i.e. supported output formats.
+"""
+
 from . import caching
 from . import cachedconverter
 from . import htmlhandling
