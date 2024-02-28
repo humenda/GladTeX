@@ -347,9 +347,9 @@ class LaTeXDocument:
             f"""
             \\PassOptionsToPackage{{dvipsnames}}{{xcolor}}\n
             \\documentclass[{fontsize}, fleqn]{{scrartcl}}\n
-            {color_preamble}
             {preamble}
             \\usepackage{{xcolor}}
+            {color_preamble}
             {color_body}
             % tightpage must be last, see its package docs
             \\usepackage[active,textmath,displaymath,tightpage]{{preview}}\n
