@@ -57,7 +57,7 @@ class ConversionException(Exception):
 
 class CachedConverter:
     """Convert formulas to images.
-    
+
     Cache the resulting images to reuse those for subsequent runs or for
     recurring instances in the same document.
 
@@ -165,6 +165,7 @@ class CachedConverter:
         pipeline = []  # find as many file names as equations
         file_ext = Format.Png.value if self.__options['png'] else Format.Svg.value
         eqn_path = lambda x: os.path.join(self.__img_dir, 'eqn%03d.%s' % (x, file_ext))
+        abs_eqn_path = lambda x: os.path.join(self.__output_path, eqn_path(x))
 
         # is (formula, display_math) already in the list of formulas to convert;
         # displaymath is important since formulas look different in inline maths
@@ -179,7 +180,7 @@ class CachedConverter:
                 formula, dsp
             ):
                 while (
-                    os.path.exists(eqn_path(file_name_count))
+                    os.path.exists(abs_eqn_path(file_name_count))
                     or eqn_path(file_name_count) in used_file_names
                 ):
                     file_name_count += 1
