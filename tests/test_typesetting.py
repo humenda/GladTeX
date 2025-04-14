@@ -44,6 +44,116 @@ class test_typesetting(unittest.TestCase):
         self.assertTrue(r'\begin{flalign*}' in str(doc))
         self.assertTrue(r'\end{flalign*}' in str(doc))
 
+    def test_non_nestable_math_envs_are_not_wrapped(self):
+        doc = LaTeXDocument(r'\begin{align}foobar\end{align}')
+        doc.set_displaymath(True)
+        self.assertNotIn(r'\[', str(doc))
+        self.assertNotIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertNotIn(r'\(', str(doc))
+        self.assertNotIn(r'\)', str(doc))
+
+    def test_non_nestable_math_envs_ignore_spaces(self):
+        doc = LaTeXDocument("""    \t   \t
+
+                \v        \r
+            \\begin{align*}blabla
+
+            \\end{align*}
+        """)
+        doc.set_displaymath(True)
+        self.assertNotIn(r'\[', str(doc))
+        self.assertNotIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertNotIn(r'\(', str(doc))
+        self.assertNotIn(r'\)', str(doc))
+
+        doc = LaTeXDocument(""" \t  \r \t
+
+         \t
+           \t\v \\begin{array}{r}
+            blabla
+
+            \\end{array}
+        """)
+        doc.set_displaymath(True)
+        self.assertIn(r'\[', str(doc))
+        self.assertIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertIn(r'\(', str(doc))
+        self.assertIn(r'\)', str(doc))
+
+    def test_non_nestable_math_envs_ignore_comments_and_spaces(self):
+        doc = LaTeXDocument("""  \r  \t   \t % klap30alf;''vak309u1$&la
+                    %\\begin{pmatrix}asdfl;3\v
+
+                %
+            \\begin{eqnarray}blabla
+
+            \\end{eqnarray}
+        """)
+        doc.set_displaymath(True)
+        self.assertNotIn(r'\[', str(doc))
+        self.assertNotIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertNotIn(r'\(', str(doc))
+        self.assertNotIn(r'\)', str(doc))
+
+        doc = LaTeXDocument(""" \t  % a3k0'  a'ef4FAS \t
+                      \v \r
+         \t %                     \\begin{align}asd3%%33-uadsfjl3;lkja04
+
+
+           \t \\begin{array}{r}
+            blabla
+
+            \\end{array}
+        """)
+        doc.set_displaymath(True)
+        self.assertIn(r'\[', str(doc))
+        self.assertIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertIn(r'\(', str(doc))
+        self.assertIn(r'\)', str(doc))
+
+    def test_non_nestable_math_envs_ignore_comments_and_spaces_only(self):
+        doc = LaTeXDocument("""  \r  \t   \t % klap30alf;''vak309u1$&la
+                    %\\begin{align*}asdfl;3\v
+
+              f  %
+            \\begin{eqnarray}blabla
+
+            \\end{eqnarray}
+        """)
+        doc.set_displaymath(True)
+        self.assertIn(r'\[', str(doc))
+        self.assertIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertIn(r'\(', str(doc))
+        self.assertIn(r'\)', str(doc))
+
+        doc = LaTeXDocument(""" \t  % a3k0'  a'ef4FAS \t
+                 \\     \v \r
+         \t %                     \\begin{align}asd3%%33-uadsfjl3;lkja04
+
+
+           \t \\begin{array}{r}
+            blabla
+        """)
+        doc.set_displaymath(True)
+        self.assertIn(r'\[', str(doc))
+        self.assertIn(r'\]', str(doc))
+
+        doc.set_displaymath(False)
+        self.assertIn(r'\(', str(doc))
+        self.assertIn(r'\)', str(doc))
+
 
 ################################################################################
 
