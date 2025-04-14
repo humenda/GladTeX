@@ -7,6 +7,7 @@ typeset LaTeX formulas in a more readable way as alternate description of the
 resulting image."""
 
 import inspect
+import re
 
 from . import unicode
 
@@ -19,6 +20,42 @@ FORMATTING_COMMANDS = [
     '\\left',
     '\\right',
     '\\limits',
+]
+
+# A list of LaTeX math environments which place their content in math
+# mode but can't be used in math mode themselves (i.e. be nested). Used
+# to prevent bad math environment nesting while rendering (see #21).
+#
+# Assembled from
+# - `https://docs.mathjax.org/en/latest/input/tex/macros/index.html#environments`
+# - `https://en.wikibooks.org/wiki/LaTeX/Advanced_Mathematics`
+# filtered by custom tests to see if LaTeX compiles with nesting. Some
+# environments might still be missing, but these should cover the most
+# common use cases.
+NON_NESTABLE_MATH_ENVS = [
+    'align*',
+    'align',
+    'alignat*',
+    'alignat',
+    'displaymath',
+    'empheq',
+    'eqnarray*',
+    'eqnarray',
+    'equation*',
+    'equation',
+    'flalign*',
+    'flalign',
+    'gather*',
+    'gather',
+    'math',
+    'multline*',
+    'multline',
+    'numcases',
+    'prooftree',
+    'subnumcases',
+    'xalignat*',
+    'xalignat',
+    'xxalignat',
 ]
 
 
@@ -330,17 +367,27 @@ class LaTeXDocument:
     def _format_document(self, preamble):
         """Return a formatted LaTeX document with the specified formula
         embedded."""
-        opening, closing = None, None
-        if self.__maths_env:
+        formula = self.__equation.lstrip().rstrip()
+        if self.__replace_nonascii:
+            formula = escape_unicode_maths(formula, replace_alphabeticals=True)
+        # Try to detect and support the usage of math environments which
+        # cannot be nested in other math environments in order to
+        # prevent invalid nesting (fixes #21).
+        #
+        # For this, we look for such a math environment opening after
+        # ignoring all initial space characters and LaTeX `%` comments
+        # *only*, as it is supposed to be a formula and to avoid complex
+        # parsing. When found, such an environment is not wrapped.
+        envs_list = '|'.join(re.escape(env) for env in NON_NESTABLE_MATH_ENVS)
+        if re.match(rf'(\s*(%.*[\r\n]+)?)*\\begin\{{({envs_list})\}}', formula):
+            opening = closing = ''
+        elif self.__maths_env:
             opening = '\\begin{%s}' % self.__maths_env
             closing = '\\end{%s}' % self.__maths_env
         else:
             # determine characters with which to surround the formula
             opening = '\\[' if self.__displaymath else '\\('
             closing = '\\]' if self.__displaymath else '\\)'
-        formula = self.__equation.lstrip().rstrip()
-        if self.__replace_nonascii:
-            formula = escape_unicode_maths(formula, replace_alphabeticals=True)
         fontsize = 'fontsize=%ipt' % self.__fontsize
         color_preamble, color_body = self._format_colors()
         return inspect.cleandoc(
