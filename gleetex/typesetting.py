@@ -379,7 +379,7 @@ class LaTeXDocument:
         # *only*, as it is supposed to be a formula and to avoid complex
         # parsing. When found, such an environment is not wrapped.
         envs_list = '|'.join(re.escape(env) for env in NON_NESTABLE_MATH_ENVS)
-        if re.match(rf'(\s*(%.*[\r\n]+)?)*\\begin\{{({envs_list})\}}', formula):
+        if re.match(rf'\s*(%.*(\n|\r\n?)\s*)*\\begin\{{({envs_list})\}}', formula):
             opening = closing = ''
         elif self.__maths_env:
             opening = '\\begin{%s}' % self.__maths_env
