@@ -28,7 +28,7 @@ FORMATTING_COMMANDS = [
 #
 # Assembled from
 # - `https://docs.mathjax.org/en/latest/input/tex/macros/index.html#environments`
-# - `https://en.wikibooks.org/wiki/LaTeX/Advanced_Mathematics`
+# - `https://en.wikibooks.org/wiki/LaTeX/Advanced_Mathematics`,
 # filtered by custom tests to see if LaTeX compiles with nesting. Some
 # environments might still be missing, but these should cover the most
 # common use cases.
@@ -57,6 +57,16 @@ NON_NESTABLE_MATH_ENVS = [
     'xalignat',
     'xxalignat',
 ]
+# The pattern used to detect the presence of one of the environments
+# above in a given formula. We look for such an environment opening
+# after ignoring all initial space characters and LaTeX `%` comments
+# *only*, as the it is supposed to only be a formula and to avoid
+# complex and error-prone parsing, while still supporting the presumably
+# most common use cases.
+MATH_ENV_DETECTION_PATTERN = re.compile(
+    r'\s*(%.*(\n|\r\n?)\s*)*\\begin\{{({})\}}'
+        .format('|'.join(re.escape(env) for env in NON_NESTABLE_MATH_ENVS)),
+)
 
 
 class DocumentSerializationException(Exception):
@@ -372,14 +382,9 @@ class LaTeXDocument:
             formula = escape_unicode_maths(formula, replace_alphabeticals=True)
         # Try to detect and support the usage of math environments which
         # cannot be nested in other math environments in order to
-        # prevent invalid nesting (fixes #21).
-        #
-        # For this, we look for such a math environment opening after
-        # ignoring all initial space characters and LaTeX `%` comments
-        # *only*, as it is supposed to be a formula and to avoid complex
-        # parsing. When found, such an environment is not wrapped.
-        envs_list = '|'.join(re.escape(env) for env in NON_NESTABLE_MATH_ENVS)
-        if re.match(rf'\s*(%.*(\n|\r\n?)\s*)*\\begin\{{({envs_list})\}}', formula):
+        # prevent invalid nesting. I.e., when found, such an environment
+        # is not wrapped (fixing #21).
+        if MATH_ENV_DETECTION_PATTERN.match(formula):
             opening = closing = ''
         elif self.__maths_env:
             opening = '\\begin{%s}' % self.__maths_env
