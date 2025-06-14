@@ -266,7 +266,7 @@ def format_formula_paragraph(formula):
 class ImageFormatter:  # ToDo: localisation
     """ImageFormatter(is_epub=False)
 
-    Format converted formula to be included into HTML. A typical image
+    Format converted formula for a specific output format. A typical image
     attribute will contain the path to the image, style information, a CSS class
     to be used in custom CSS style sheets and an alternative text (the LaTeX
     source) for people who disabled images or for blind screen reader users.
@@ -474,8 +474,8 @@ class HtmlImageFormatter(ImageFormatter):
     def format_internal(self, image, link_label=None):
         link_start, link_end = ('', '')
         if link_label:
-            link_start = f'<a href="{link_label}">' if link_label else ''
-            link_end = '</a>' if link_label else ''
+            link_start = f'<a href="{link_label}">'
+            link_end = '</a>'
         escaped_formula = html.escape(image['formula'], quote=True)
         return (
             link_start

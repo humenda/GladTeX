@@ -301,12 +301,20 @@ class Main:
 
         processed = self.convert_images(
             doc, base_path, options.img_directory, options)
-        img_fmt = htmlhandling.HtmlImageFormatter(
-            base_path=os.path.join(base_path, options.img_directory),
-            link_prefix=options.url,
-            exclusion_file_path=options.exclusionfile,
-            is_epub=options.is_epub,
-        )
+        if options.pandocfilter:
+            img_fmt = pandoc.PandocAstImageFormatter(
+                base_path=os.path.join(base_path, options.img_directory),
+                link_prefix=options.url,
+                exclusion_file_path=options.exclusionfile,
+                is_epub=options.is_epub,
+            )
+        else:
+            img_fmt = htmlhandling.HtmlImageFormatter(
+                base_path=os.path.join(base_path, options.img_directory),
+                link_prefix=options.url,
+                exclusion_file_path=options.exclusionfile,
+                is_epub=options.is_epub,
+            )
         if options.replace_nonascii:
             img_fmt.set_replace_nonascii(True)
         if options.url:

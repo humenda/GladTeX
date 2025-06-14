@@ -18,8 +18,9 @@ It works in these parsses:
 """
 
 import json
+import posixpath
 
-from .htmlhandling import ParseException
+from .htmlhandling import ImageFormatter, ParseException, generate_label
 
 
 def __extract_formulas(formulas, ast):
@@ -59,9 +60,12 @@ def extract_formulas(ast):
 
 
 def replace_formulas_in_ast(formatter, ast, formulas):
-    """replace 'Math' elements from the given AST with a formatted variant Each
-    'Math' element found in the Pandoc AST will be replaced through a formatted
-    (HTML) image link.
+    """Replace 'Math' elements from the given AST with a formatted variant.
+
+    Each 'Math' element found in the Pandoc AST will directly be
+    replaced by the image link AST element returned by
+    `formatter.format()`, which means the `formatter` has to produce a
+    valid Pandoc AST element.
 
     The formulas are taken from the supplied formulas list. The number
     of formulas in the document has to match the number of formulas form
@@ -74,14 +78,11 @@ def replace_formulas_in_ast(formatter, ast, formulas):
             replace_formulas_in_ast(formatter, item, formulas)
     elif isinstance(ast, dict):
         if 't' in ast and ast['t'] == 'Math':
-            ast['t'] = 'RawInline'  # raw HTML
             eqn = formulas.pop(0)
-            ast['c'] = [
-                'html',
-                formatter.format(
-                    eqn['pos'], eqn['formula'], eqn['path'], eqn['displaymath']
-                ),
-            ]
+            ast.clear()
+            ast.update(formatter.format(
+                eqn['pos'], eqn['formula'], eqn['path'], eqn['displaymath'],
+            ))
         elif 'c' in ast:
             replace_formulas_in_ast(formatter, ast['c'], formulas)
     # ^ ignore all other cases
@@ -98,3 +99,46 @@ def write_pandoc_ast(file, document, formatter):
     ast, formulas = document
     replace_formulas_in_ast(formatter, ast['blocks'], formulas)
     file.write(json.dumps(ast))
+
+
+class PandocAstImageFormatter(ImageFormatter):
+    """Format formulas for the Pandoc (JSON) AST."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _generate_link_destination(self, formula):
+        id = generate_label(formula['formula'])
+        exclusion_filelink = posixpath.join(
+            self._link_prefix, self._exclusion_filepath,
+        )
+        return f'{exclusion_filelink}#{id}'
+
+    def format_internal(self, image, link_label=None):
+        ast_node = {
+            "t": "Image",
+            "c": [
+                [
+                    "",
+                    [image["class"]],
+                    [
+                        ["style", image["style"]],
+                        ["width", image["width"]],
+                        ["height", image["height"]],
+                    ],
+                ],
+                [{"t": "Str", "c": image["formula"]}],
+                [image["url"], ""],
+            ],
+        }
+        if link_label:
+            ast_node = {
+                "t": "Link",
+                "c": [["", [], []], [ast_node], [link_label, ""]],
+            }
+        return ast_node
+
+    def add_excluded(self, image):
+        self._excluded_formulas[generate_label(image['formula'])] = image[
+            'formula'
+        ]
