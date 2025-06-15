@@ -274,6 +274,7 @@ class Main:
         # check which output file name to use
         base_path = ''
         if options.output:
+            output = options.output
             base_path = os.path.dirname(options.output)
         elif options.input != '-':
             output = os.path.splitext(options.input)[0] + '.html'
