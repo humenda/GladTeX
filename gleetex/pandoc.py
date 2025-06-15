@@ -88,16 +88,75 @@ def replace_formulas_in_ast(formatter, ast, formulas):
     # ^ ignore all other cases
 
 
-def write_pandoc_ast(file, document, formatter):
-    """Replace 'Math' elements from a Pandoc AST with 'RawInline' elements,
-    containing formatted HTML image tags.
+def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
+    """Return the `<aside>` section Pandoc AST blocks with all excluded formulas."""
+    formula_paragraphs = []
+    for label, formula in formatter.get_excluded().items():
+        formula_paragraphs.append(
+            {
+                "t": "Para",
+                "c": [
+                    {
+                        "t": "Link",
+                        "c": [
+                            [label, [], []],
+                            [
+                                {
+                                    "t": "Code",
+                                    "c": [
+                                        ["", [], []],
+                                        formula,
+                                    ],
+                                },
+                            ],
+                            [
+                                "#"
+                                + ImageFormatter.IMG_ID_PREFIX
+                                + generate_label(formula),
+                                "",
+                            ],
+                        ],
+                    },
+                ],
+            },
+        )
+
+    return [
+        {"t": "RawBlock", "c": ["html", "<aside>"]},
+        {
+            "t": "Header",
+            "c": [
+                1,
+                ["", [], []],
+                [
+                    {"t": "Str", "c": excluded_formulas_heading},
+                ],
+            ],
+        },
+        *formula_paragraphs,
+        {"t": "RawBlock", "c": ["html", "</aside>"]},
+    ]
+
+def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
+    """Replace 'Math' elements from a Pandoc AST with the formatted elements.
 
     :param formatter    A formatter offering the "format" method (see ImageFormatter)
     :param formulas     A list of formulas with the information (pos, formula, path, displaymath)
     :param ast          Document ast to modified
+
+    If the value returned by `formatter.get_exclusion_file_path()` is
+    `None` and there are excluded formulas, the excluded formulas will
+    be embedded at the end of the document in an HTML `<aside>` element
+    with the heading `excluded_formulas_heading`.
     """
     ast, formulas = document
     replace_formulas_in_ast(formatter, ast['blocks'], formulas)
+
+    if formatter.get_exclusion_file_path() is None and formatter.get_excluded():
+        ast['blocks'].extend(
+            _generate_excluded_formula_blocks(formatter, excluded_formulas_heading)
+        )
+
     file.write(json.dumps(ast))
 
 
@@ -111,10 +170,10 @@ class PandocAstImageFormatter(ImageFormatter):
         id = generate_label(formula['formula'])
         exclusion_filelink = posixpath.join(
             self._link_prefix, self._exclusion_filepath,
-        )
+        ) if self._exclusion_filepath is not None else ''
         return f'{exclusion_filelink}#{id}'
 
-    def format_internal(self, image, link_label=None):
+    def format_internal(self, image, full_formula, link_label=None):
         ast_node = {
             "t": "Image",
             "c": [
@@ -134,7 +193,16 @@ class PandocAstImageFormatter(ImageFormatter):
         if link_label:
             ast_node = {
                 "t": "Link",
-                "c": [["", [], []], [ast_node], [link_label, ""]],
+                "c": [
+                    [
+                        ImageFormatter.IMG_ID_PREFIX
+                        + generate_label(full_formula),
+                        [],
+                        [],
+                    ],
+                    [ast_node],
+                    [link_label, ""],
+                ],
             }
         return ast_node
 

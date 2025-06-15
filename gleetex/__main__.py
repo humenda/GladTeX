@@ -105,7 +105,26 @@ class Main:
             default=False,
             action='store_true',
             help='Optimise output for epub, for instance round height/width of '
-            'images',
+            'images; implies `--embed-excluded-formulas`',
+        )
+        cmd.add_argument(
+            '-I',
+            '--embed-excluded-formulas',
+            action=argparse.BooleanOptionalAction,
+            default=None,  # Distinguishes whether the flag was passed or not.
+            help='When enabled, embed long excluded formulas in an `<aside>` at'
+            ' the end of the document instead of writing them to the extra file'
+            ' specified by `-a`, useful for EPUB generation when using GladTeX'
+            ' as a Pandoc filter (default: false)',
+        )
+        cmd.add_argument(
+            '-H',
+            '--excluded-formulas-heading',
+            metavar='HEADING',
+            default='Excluded Formulas',
+            help='The heading used in the `<aside>` section for the excluded'
+            ' formulas when `--embed-excluded-formulas` is passed'
+            " (default: 'Excluded Formulas')",
         )
         cmd.add_argument(
             '-i',
@@ -288,6 +307,15 @@ class Main:
     def run(self, args):
         options = self._parse_args(args[1:])
         self.validate_options(options)
+
+        if options.is_epub and options.embed_excluded_formulas is None:
+            options.embed_excluded_formulas = True
+        # Convert `None` to `False`.
+        options.embed_excluded_formulas = bool(options.embed_excluded_formulas)
+
+        if options.embed_excluded_formulas:
+            options.exclusionfile = None
+
         self.__encoding = options.encoding
         fmt = 'pandocfilter' if options.pandocfilter else 'html'
         doc, base_path, output = self.get_input_output(options)
@@ -331,16 +359,22 @@ class Main:
                 output, 'w', encoding=self.__encoding)
         ) as file:
             if options.pandocfilter:
-                pandoc.write_pandoc_ast(file, processed, img_fmt)
+                pandoc.write_pandoc_ast(
+                    file, processed, img_fmt, options.excluded_formulas_heading,
+                )
             else:
-                htmlhandling.write_html(file, processed, img_fmt)
-        # ToDo: make sink type an argument
-        sink_type = sink.SinkType.html_file
-        try:
-            sink.EXCLUSION_FORMULA_SINKS[sink_type](
-                img_fmt.get_exclusion_file_path(), img_fmt.get_excluded())
-        except KeyError:
-            raise NotImplementedError() from None
+                htmlhandling.write_html(
+                    file, processed, img_fmt, options.excluded_formulas_heading,
+                )
+
+        if not options.embed_excluded_formulas:
+            # ToDo: make sink type an argument
+            sink_type = sink.SinkType.html_file
+            try:
+                sink.EXCLUSION_FORMULA_SINKS[sink_type](
+                    img_fmt.get_exclusion_file_path(), img_fmt.get_excluded())
+            except KeyError:
+                raise NotImplementedError() from None
 
     def convert_images(self, parsed_document, base_path, img_dir, options):
         """Convert all formulas to images and store file path and equation in a

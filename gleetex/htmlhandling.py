@@ -286,7 +286,8 @@ class ImageFormatter:  # ToDo: localisation
         `"https://example.com/img/"`
     *   `exclusion_file_path=""`: the path which formula descriptions are
         written to which exceed a certain threshold that doesn't fit into the
-        alt tag of the `img` tag
+        alt tag of the `img` tag, or `None` to indicate that excluded formulas
+        are written in the same document they appear in
     *   `is_epub`: round height/width of the linked images to comply with the
         EPUB standard.
 
@@ -300,6 +301,11 @@ class ImageFormatter:  # ToDo: localisation
     img.get_excluded() # a list of formulas that were too long for the alt tag
     """
 
+    # The prefix for the IDs of the (links wrapping) the formula images
+    # used to uniquely identify the image in order to allow returning to
+    # it by a backlink.
+    IMG_ID_PREFIX = 'gladtex-img-'
+
     def __init__(self, base_path=None, link_prefix='',
                  exclusion_file_path=sink.EXCLUSION_FILE_NAME, is_epub=False):
         self.__inline_maxlength = 100
@@ -310,12 +316,15 @@ class ImageFormatter:  # ToDo: localisation
         self.__replace_nonascii = False
         self._link_prefix = link_prefix if link_prefix else ''
         base_path = ("" if not base_path else base_path)
-        self._exclusion_filepath = posixpath.join(
-            base_path, exclusion_file_path)
-        if os.path.exists(self._exclusion_filepath) and not os.access(
-            self._exclusion_filepath, os.W_OK
-        ):
-            raise OSError(f'file {self._exclusion_filepath} not writable')
+        self._exclusion_filepath = exclusion_file_path
+        if self._exclusion_filepath is not None:
+            self._exclusion_filepath = posixpath.join(
+                base_path, self._exclusion_filepath,
+            )
+            if os.path.exists(self._exclusion_filepath) and not os.access(
+                self._exclusion_filepath, os.W_OK,
+            ):
+                raise OSError(f'file {self._exclusion_filepath} not writable')
 
     def get_exclusion_file_path(self):
         """Return the path to the file to which formulas will be excluded too
@@ -414,13 +423,14 @@ class ImageFormatter:  # ToDo: localisation
         """Add a formula to the list of excluded formulas."""
 
     @abstractmethod
-    def format_internal(self, image, link_label=None):
+    def format_internal(self, image, full_formula, link_label=None):
         """Format an internal formula for the target output (defined by the
         class).
 
         :param image formula information as returned by _process_image; formula
             will have been shortened if it were too long
-        :param link_label if not None, the formula image will contian a reference
+        :param full_formula always the full, unshortened formula
+        :param link_label if not None, the formula image will contain a reference
         or link to the long version of the formula (e.g. because it didn't fit
         the alt attribute)
         """
@@ -452,7 +462,7 @@ class ImageFormatter:  # ToDo: localisation
             link_destination = self._generate_link_destination(processed_data)
             # builds up internal list of formatted excluded formulas
             self.add_excluded(processed_data)
-        return self.format_internal(shortened_data, link_destination)
+        return self.format_internal(shortened_data, formula, link_destination)
 
 
 class HtmlImageFormatter(ImageFormatter):
@@ -468,13 +478,17 @@ class HtmlImageFormatter(ImageFormatter):
         html_label = generate_label(formula['formula'])
         exclusion_filelink = posixpath.join(
             self._link_prefix, self._exclusion_filepath
-        )
+        ) if self._exclusion_filepath is not None else ''
         return f'{exclusion_filelink}#{html_label}'
 
-    def format_internal(self, image, link_label=None):
+    def format_internal(self, image, full_formula, link_label=None):
         link_start, link_end = ('', '')
         if link_label:
-            link_start = f'<a href="{link_label}">'
+            link_start = (
+                '<a id="'
+                f'{ImageFormatter.IMG_ID_PREFIX}{generate_label(full_formula)}'
+                f'" href="{link_label}">'
+            )
             link_end = '</a>'
         escaped_formula = html.escape(image['formula'], quote=True)
         return (
@@ -497,7 +511,19 @@ class HtmlImageFormatter(ImageFormatter):
             image['formula'])] = image['formula']
 
 
-def write_html(file, document, formatter):
+def _write_excluded_formula_section(file, formatter, excluded_formulas_heading):
+    """Write all excluded formulas in an `<aside>` section to `file`."""
+    file.write(f'<aside><h1>{excluded_formulas_heading}</h1>\n')
+
+    for label, formula in formatter.get_excluded().items():
+        file.write(
+            f'<p><a href="#{ImageFormatter.IMG_ID_PREFIX}{generate_label(formula)}"'
+            f' id="{label}"><pre>{html.escape(formula)}</pre></a></p>\n',
+        )
+
+    file.write('</aside>')
+
+def write_html(file, document, formatter, excluded_formulas_heading):
     """Processed HTML documents are made up of raw HTML chunks which are
     written back unaltered and of a processed image.
 
@@ -505,7 +531,17 @@ def write_html(file, document, formatter):
     additional meta data. This is passed to the format function of the
     supplied formatter and the result is written to the given (open)
     file handle.
+
+    If the value returned by `formatter.get_exclusion_file_path()` is
+    `None` and there are excluded formulas, the excluded formulas will
+    be embedded at the end of the document in an HTML `<aside>` element
+    with the heading `excluded_formulas_heading`.
     """
+    closing_body_tag_pattern = re.compile(r'<\s*/\s*body\s*>', re.IGNORECASE)
+    embed_excluded_formulas = (
+        formatter.get_exclusion_file_path() is None and formatter.get_excluded()
+    )
+    match = None
     for chunk in document:
         if isinstance(chunk, dict):
             is_displaymath = chunk['displaymath']
@@ -514,5 +550,19 @@ def write_html(file, document, formatter):
                     chunk['pos'], chunk['formula'], chunk['path'], is_displaymath
                 )
             )
+        elif embed_excluded_formulas and (
+            match := closing_body_tag_pattern.search(chunk)
+        ):
+            # Write the rest of the body.
+            file.write(chunk[: match.span()[0]])
+
+            _write_excluded_formula_section(file, formatter, excluded_formulas_heading)
+
+            # Write the rest of the document.
+            file.write(chunk[match.span()[0] :])
         else:
             file.write(chunk)
+
+    if match is None and embed_excluded_formulas:
+        # Malformed document with no `</body>`, just append the excluded formulas.
+        _write_excluded_formula_section(file, formatter, excluded_formulas_heading)
