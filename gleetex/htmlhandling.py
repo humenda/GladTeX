@@ -550,7 +550,7 @@ def write_html(file, document, formatter, excluded_formulas_heading):
                     chunk['pos'], chunk['formula'], chunk['path'], is_displaymath
                 )
             )
-        elif embed_excluded_formulas and (
+        elif not chunk.startswith('<!--') and embed_excluded_formulas and (
             match := closing_body_tag_pattern.search(chunk)
         ):
             # Write the rest of the body.
