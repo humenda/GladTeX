@@ -1,4 +1,4 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2025 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This script auto-generates gleetex/unicode_data.py.
@@ -141,26 +141,21 @@ def generate_python_src_file(table, python_table):
     """Generate a fully importable python source file, by dumping the enum
     declarations, python imports, doc strings and the given python string with
     the unicode table into the source and returning it as a whole string."""
-    enum_def = 'class LaTeXMode(enum.Enum):\n    """%s"""\n    ' % LaTeXMode.__doc__
+    enum_def = f'class LaTeXMode(enum.Enum):\n    """{LaTeXMode.__doc__}"""\n    '
     enum_values = tuple(e for e in dir(LaTeXMode) if not e.startswith('_'))
     enum_def += '\n    '.join(
-        '%s = %s' % (name, getattr(LaTeXMode, name).value) for name in enum_values
+        f"{name} = {getattr(LaTeXMode, name).value}" for name in enum_values
     )
-    return """\"\"\"
+    return f"""\"\"\"
 DO NOT ALTER THIS FILE IN ANY WAY, IT IS GENERATED AUTOMATICALLY. SEE THE SCRIPT
 `update_unicode_table.py` FOR MORE INFORMATION.
 
 This file contains a table of unicode code point to LaTeX command mapping. It
-has %s entries and was derived from
-<%s>.\"\"\"
+has {len(table)} entries and was derived from
+<{UNICODE_TABLE_URL}>.\"\"\"
 #pylint: disable=too-many-lines,missing-docstring\n\n
 import enum\n
-%s\n\n%s\n""" % (
-        len(table),
-        UNICODE_TABLE_URL,
-        enum_def,
-        python_table,
-    )
+{enum_def}\n\n{python_table}\n"""
 
 
 def main():
