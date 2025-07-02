@@ -367,7 +367,7 @@ class Main:
                     file, processed, img_fmt, options.excluded_formulas_heading,
                 )
 
-        if not options.embed_excluded_formulas:
+        if not options.embed_excluded_formulas and img_fmt.get_excluded():
             # ToDo: make sink type an argument
             sink_type = sink.SinkType.html_file
             try:
