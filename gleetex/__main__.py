@@ -54,6 +54,7 @@ class Main:
         cmd = HelpfulCmdParser(epilog=epilog, description=description)
         cmd.add_argument(
             '-a',
+            '--exclusion-file',
             default=sink.EXCLUSION_FILE_NAME,
             dest='exclusionfile',
             help='path to the file to which to write excluded formulas'
@@ -62,7 +63,7 @@ class Main:
         )
         cmd.add_argument(
             '-b',
-            dest='background_color',
+            '--background-color',
             help=(
                 'Set background color for resulting images '
                 '(default transparent, use hex)'
@@ -70,11 +71,12 @@ class Main:
         )
         cmd.add_argument(
             '-c',
-            dest='foreground_color',
+            '--foreground-color',
             help=('Set foreground color for resulting images (default ' '000000, hex)'),
         )
         cmd.add_argument(
             '-d',
+            '--image-directory',
             default='',
             dest='img_directory',
             help='Directory in which to'
@@ -82,12 +84,14 @@ class Main:
         )
         cmd.add_argument(
             '-e',
+            '--latex-math-environment',
             dest='latex_maths_env',
             help='Set custom maths environment to surround the formula'
             + ' (e.g. flalign)',
         )
         cmd.add_argument(
             '-f',
+            '--font-size',
             metavar='SIZE',
             dest='fontsize',
             default=12,
@@ -95,7 +99,7 @@ class Main:
         )
         cmd.add_argument(
             '-E',
-            dest='encoding',
+            '--encoding',
             default=None,
             help='Overwrite encoding to use (default UTF-8)',
         )
@@ -128,25 +132,28 @@ class Main:
         )
         cmd.add_argument(
             '-i',
+            '--inlinemath-class',
             metavar='CLASS',
             dest='inlinemath',
             help="CSS class to assign to inline math (default: 'inlinemath')",
         )
         cmd.add_argument(
             '-l',
+            '--displaymath-class',
             metavar='CLASS',
             dest='displaymath',
             help="CSS class to assign to block-level math (default: 'displaymath')",
         )
         cmd.add_argument(
             '-K',
-            dest='keep_latex_source',
+            '--keep-latex-source',
             action='store_true',
             default=False,
             help='keep LaTeX file(s) when converting formulas (useful for debugging)',
         )
         cmd.add_argument(
             '-m',
+            '--machine-readable',
             dest='machinereadable',
             action='store_true',
             default=False,
@@ -154,6 +161,7 @@ class Main:
         )
         cmd.add_argument(
             '-n',
+            '--dont-keep-old-cache',
             action='store_true',
             dest='notkeepoldcache',
             help=(
@@ -165,8 +173,8 @@ class Main:
         )
         cmd.add_argument(
             '-o',
+            '--output',
             metavar='FILENAME',
-            dest='output',
             help=(
                 "Set output file name; '-' will print text to stdout (by"
                 'default input file name is used and .htex extension changed '
@@ -175,6 +183,7 @@ class Main:
         )
         cmd.add_argument(
             '-p',
+            '--latex-preamble',
             metavar='LATEX_STATEMENT',
             dest='preamble',
             help='Add given LaTeX code to the preamble of the LaTeX '
@@ -184,7 +193,7 @@ class Main:
         )
         cmd.add_argument(
             '-P',
-            dest='pandocfilter',
+            '--pandocfilter',
             action='store_true',
             help='Use GladTeX as a Pandoc filter: read a Pandoc JSON AST '
             'from stdin, convert the images, change math blocks to '
@@ -210,16 +219,16 @@ class Main:
         )
         cmd.add_argument(
             '-R',
+            '--replace-nonascii',
             action='store_true',
-            dest='replace_nonascii',
             default=False,
             help='Replace non-ascii characters in formulas '
             'through their LaTeX commands',
         )
         cmd.add_argument(
             '-u',
+            '--url',
             metavar='URL',
-            dest='url',
             help='URL to image files (relative links are default)',
         )
         cmd.add_argument(
