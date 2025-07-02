@@ -47,7 +47,7 @@ class Main:
             'GladTeX is a preprocessor that enables the use of LaTeX'
             ' maths within HTML files. The maths, embedded in <EQ>...</EQ> '
             'tags, as if within \\(..\\) in LaTeX (or $...$ in TeX), is fed '
-            'through latex and replaced by images.\n\nPlease also see the '
+            'through LaTeX and replaced by images.\n\nPlease also see the '
             'documentation on the web or from the manual page for more '
             'information, especially on environment variables.'
         )
@@ -57,22 +57,20 @@ class Main:
             '--exclusion-file',
             default=sink.EXCLUSION_FILE_NAME,
             dest='exclusionfile',
-            help='path to the file to which to write excluded formulas'
-            + 'for images which are too long for the alt attribute into a '
-            + 'single separate file and link images to it',
+            help='Path to the file to which to write excluded formulas'
+            'for images which are too long for the alt attribute into a '
+            'single separate file and link images to it',
         )
         cmd.add_argument(
             '-b',
             '--background-color',
-            help=(
-                'Set background color for resulting images '
-                '(default transparent, use hex)'
-            ),
+            help='Set background color for resulting images '
+            '(default: transparent; use hex)',
         )
         cmd.add_argument(
             '-c',
             '--foreground-color',
-            help=('Set foreground color for resulting images (default ' '000000, hex)'),
+            help='Set foreground color for resulting images (default: 000000; hex)',
         )
         cmd.add_argument(
             '-d',
@@ -80,14 +78,14 @@ class Main:
             default='',
             dest='img_directory',
             help='Directory in which to'
-            + ' store generated images in (relative to the output file)',
+            ' store generated images in (relative to the output file)',
         )
         cmd.add_argument(
             '-e',
             '--latex-math-environment',
             dest='latex_maths_env',
             help='Set custom maths environment to surround the formula'
-            + ' (e.g. flalign)',
+            ' (e.g. flalign)',
         )
         cmd.add_argument(
             '-f',
@@ -95,13 +93,13 @@ class Main:
             metavar='SIZE',
             dest='fontsize',
             default=12,
-            help='Set font size in pt (default 12)',
+            help='Set font size in pt (default: 12)',
         )
         cmd.add_argument(
             '-E',
             '--encoding',
             default=None,
-            help='Overwrite encoding to use (default UTF-8)',
+            help='Overwrite encoding to use (default: UTF-8)',
         )
         cmd.add_argument(
             '--epub',
@@ -149,7 +147,7 @@ class Main:
             '--keep-latex-source',
             action='store_true',
             default=False,
-            help='keep LaTeX file(s) when converting formulas (useful for debugging)',
+            help='Keep LaTeX file(s) when converting formulas (useful for debugging)',
         )
         cmd.add_argument(
             '-m',
@@ -164,22 +162,18 @@ class Main:
             '--dont-keep-old-cache',
             action='store_true',
             dest='notkeepoldcache',
-            help=(
-                'Purge unreadable caches along with all eqn*.png files. '
-                'Caches can be unreadable if the used GladTeX version is '
-                'incompatible. If this option is unset, GladTeX will '
-                'simply fail when the cache is unreadable.'
-            ),
+            help='Purge unreadable caches along with all eqn*.png files. '
+            'Caches can be unreadable if the used GladTeX version is '
+            'incompatible. If this option is unset, GladTeX will '
+            'simply fail when the cache is unreadable.',
         )
         cmd.add_argument(
             '-o',
             '--output',
             metavar='FILENAME',
-            help=(
-                "Set output file name; '-' will print text to stdout (by"
-                'default input file name is used and .htex extension changed '
-                'to .html)'
-            ),
+            help="Set output file name; '-' will print text to stdout (by"
+            'default input file name is used and .htex extension changed '
+            'to .html)',
         )
         cmd.add_argument(
             '-p',
@@ -187,9 +181,9 @@ class Main:
             metavar='LATEX_STATEMENT',
             dest='preamble',
             help='Add given LaTeX code to the preamble of the LaTeX '
-            + 'document that is used to generate the embedded images. '
-            + 'In order to add the contents of a file to the preamble, '
-            + 'use `-p "\\input{FILE}"`.',
+            'document that is used to generate the embedded images. '
+            'In order to add the contents of a file to the preamble, '
+            'use `-p "\\input{FILE}"`.',
         )
         cmd.add_argument(
             '-P',
@@ -212,17 +206,15 @@ class Main:
             metavar='DPI',
             dest='dpi',
             default=None,
-            help=(
-                'Set resolution in DPI, only available if PNG output '
-                'selected; also see `-f`'
-            ),
+            help='Set resolution in DPI, only available if PNG output '
+            'selected; also see `-f`',
         )
         cmd.add_argument(
             '-R',
             '--replace-nonascii',
             action='store_true',
             default=False,
-            help='Replace non-ascii characters in formulas '
+            help='Replace non-ASCII characters in formulas '
             'through their LaTeX commands',
         )
         cmd.add_argument(
@@ -234,7 +226,7 @@ class Main:
         cmd.add_argument(
             'input',
             help='Input .htex file with LaTeX '
-            + 'formulas (if omitted or -, stdin will be read)',
+            'formulas (if omitted or -, stdin will be read)',
         )
         return cmd.parse_args(args)
 
