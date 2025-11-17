@@ -33,7 +33,7 @@ accessible scientific documents.""",
     author='Sebastian Humenda',
     author_email='shumenda@gmx.de',
     url='https://humenda.github.io/GladTeX',
-    packages=['gleetex'],
+    packages=['gleetex', 'gleetex.pandoc'],
     entry_points={'console_scripts': ['gladtex = gleetex.__main__:main']},
     license='LGPL3.0',
 )

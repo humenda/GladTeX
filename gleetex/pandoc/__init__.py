@@ -20,7 +20,15 @@ It works in these parsses:
 import json
 import posixpath
 
-from .htmlhandling import ImageFormatter, ParseException, generate_label
+from ..htmlhandling import ImageFormatter, ParseException, generate_label
+
+
+__all__ = [
+    "extract_formulas",
+    "replace_formulas_in_ast",
+    "write_pandoc_ast",
+    "PandocAstImageFormatter",
+]
 
 
 def __extract_formulas(formulas, ast):
