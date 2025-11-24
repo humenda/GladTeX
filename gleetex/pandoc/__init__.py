@@ -21,6 +21,16 @@ import json
 import posixpath
 
 from ..htmlhandling import ImageFormatter, ParseException, generate_label
+from .ast import (
+    Heading,
+    InlineCode,
+    InlineImage,
+    InlineLink,
+    InlineText,
+    Paragraph,
+    RawBlock,
+    RawFormat,
+)
 
 
 __all__ = [
@@ -98,52 +108,23 @@ def replace_formulas_in_ast(formatter, ast, formulas):
 
 def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
     """Return the `<aside>` section Pandoc AST blocks with all excluded formulas."""
-    formula_paragraphs = []
-    for label, formula in formatter.get_excluded().items():
-        formula_paragraphs.append(
-            {
-                "t": "Para",
-                "c": [
-                    {
-                        "t": "Link",
-                        "c": [
-                            [label, [], []],
-                            [
-                                {
-                                    "t": "Code",
-                                    "c": [
-                                        ["", [], []],
-                                        formula,
-                                    ],
-                                },
-                            ],
-                            [
-                                "#"
-                                + ImageFormatter.IMG_ID_PREFIX
-                                + generate_label(formula),
-                                "",
-                            ],
-                        ],
-                    },
-                ],
-            },
-        )
-
-    return [
-        {"t": "RawBlock", "c": ["html", "<aside>"]},
-        {
-            "t": "Header",
-            "c": [
-                1,
-                ["", [], []],
-                [
-                    {"t": "Str", "c": excluded_formulas_heading},
-                ],
-            ],
-        },
-        *formula_paragraphs,
-        {"t": "RawBlock", "c": ["html", "</aside>"]},
+    formula_paragraphs = [
+        Paragraph([
+            InlineLink(
+                [InlineCode(formula)],
+                url=f"#{ImageFormatter.IMG_ID_PREFIX}{generate_label(formula)}",
+                id=label,
+            ),
+        ])
+        for label, formula in formatter.get_excluded().items()
     ]
+
+    return [block.to_json() for block in (
+        RawBlock(RawFormat.HTML, "<aside>"),
+        Heading([InlineText(excluded_formulas_heading)], level=1),
+        *formula_paragraphs,
+        RawBlock(RawFormat.HTML, "</aside>"),
+    )]
 
 def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
     """Replace 'Math' elements from a Pandoc AST with the formatted elements.
@@ -182,37 +163,21 @@ class PandocAstImageFormatter(ImageFormatter):
         return f'{exclusion_filelink}#{id}'
 
     def format_internal(self, image, full_formula, link_label=None):
-        ast_node = {
-            "t": "Image",
-            "c": [
-                [
-                    "",
-                    [image["class"]],
-                    [
-                        ["style", image["style"]],
-                        ["width", image["width"]],
-                        ["height", image["height"]],
-                    ],
-                ],
-                [{"t": "Str", "c": image["formula"]}],
-                [image["url"], ""],
-            ],
-        }
+        ast_node = InlineImage(
+            [InlineText(image["formula"])],
+            url=image["url"],
+            classes=[image["class"]],
+            key_values={key: image[key] for key in ("style", "width", "height")},
+        )
+
         if link_label:
-            ast_node = {
-                "t": "Link",
-                "c": [
-                    [
-                        ImageFormatter.IMG_ID_PREFIX
-                        + generate_label(full_formula),
-                        [],
-                        [],
-                    ],
-                    [ast_node],
-                    [link_label, ""],
-                ],
-            }
-        return ast_node
+            ast_node = InlineLink(
+                [ast_node],
+                url=link_label,
+                id=ImageFormatter.IMG_ID_PREFIX + generate_label(full_formula),
+            )
+
+        return ast_node.to_json()
 
     def add_excluded(self, image):
         self._excluded_formulas[generate_label(image['formula'])] = image[
