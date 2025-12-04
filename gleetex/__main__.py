@@ -92,8 +92,7 @@ class Main:
             '--font-size',
             metavar='SIZE',
             dest='fontsize',
-            default=12,
-            help='Set font size in pt (default: 12)',
+            help='Set font size in pt (default: 12); cannot be used together with `-r`',
         )
         cmd.add_argument(
             '-E',
@@ -318,6 +317,10 @@ class Main:
 
         if options.embed_excluded_formulas:
             options.exclusionfile = None
+
+        if not options.dpi and not options.fontsize:
+            # Set default font size iff neither `-r` nor `-f` have been pased.
+            options.fontsize = 12
 
         self.__encoding = options.encoding
         fmt = 'pandocfilter' if options.pandocfilter else 'html'
