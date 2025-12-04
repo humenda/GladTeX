@@ -247,11 +247,13 @@ class Main:
         gave an invalid parameter.
         """
         if opts.fontsize and opts.dpi:
-            print("Options -f and -d can't be used at the same time.")
-            sys.exit(14)
+            self.exit("Error: options `-f` and `-r` can't be used at the same time.", 14)
         if opts.dpi and not opts.png:
-            print(('Impossible to set resolution when using SVG as output, ' 'try -f'))
-            sys.exit(14)
+            self.exit(
+                "Error: impossible to set resolution when using SVG as output,"
+                " try `-f` or pass `--png` for PNG output.",
+                14,
+            )
 
     def get_input_output(self, options):
         """Determine whether GladTeX is reading from stdin/file, writing to
