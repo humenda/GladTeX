@@ -7,7 +7,10 @@ inspired by Pandoc's Haskell type definitions.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum
+# Using `StrEnum` instead of plain `Enum` enables seamless usage of the enum
+# values in JSON (treated as plain `str`) and in code while preserving most of
+# an `Enum`s advantages.
+from enum import StrEnum
 
 
 # Abstract classes #############################################################
@@ -92,7 +95,7 @@ class InlinesMixin(AbstractAstMixin):
         return [element.to_json() for element in self.inlines]
 
 
-class RawFormat(Enum):
+class RawFormat(StrEnum):
     """The types of raw elements."""
 
     HTML = "html"
@@ -105,7 +108,7 @@ class RawFormatMixin(AbstractAstMixin):
     format: RawFormat
 
     def to_json(self):
-        return self.format.value
+        return self.format
 
 
 # Block elements ###############################################################
@@ -211,7 +214,7 @@ class InlineImage(InlineLink):
         return "Image"
 
 
-class MathType(Enum):
+class MathType(StrEnum):
     """The types of `Math` elements."""
 
     INLINE = "InlineMath"
@@ -229,4 +232,4 @@ class Math(AbstractInline):
         return "Math"
 
     def to_json(self):
-        return self._to_json([{"t": self.type.value}, self.formula])
+        return self._to_json([{"t": self.type}, self.formula])
