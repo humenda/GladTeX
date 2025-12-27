@@ -20,16 +20,19 @@ It works in these parsses:
 import json
 import posixpath
 
-from ..htmlhandling import ImageFormatter, ParseException, generate_label
+from ..htmlhandling import ImageFormatter, generate_label
 from .ast import (
     Heading,
     InlineCode,
     InlineImage,
     InlineLink,
     InlineText,
+    Math,
+    MathType,
     Paragraph,
     RawBlock,
     RawFormat,
+    foreach_element,
 )
 
 
@@ -41,49 +44,37 @@ __all__ = [
 ]
 
 
-def __extract_formulas(formulas, ast):
-    """Recursively extract 'Math' elements from the given AST and add them to
-    `formulas (list)`."""
-    if isinstance(ast, list):
-        for item in ast:
-            __extract_formulas(formulas, item)
-    elif isinstance(ast, dict):
-        if 't' in ast and ast['t'] == 'Math':
-            style, formula = ast['c']
-            # style = {'t': 'blah'} -> we want blah
-            style = next(iter(style.values()))
-            if style not in ['InlineMath', 'DisplayMath']:
-                raise ParseException(
-                    '[pandoc] unknown formula formatting: ' + repr(ast['c'])
-                )
-            style = True if style == 'DisplayMath' else False
-            # position is None (only applicable for HTML parsing)
-            formulas.append((None, style, formula))
-        elif 'c' in ast:
-            __extract_formulas(formulas, ast['c'])
-    #    ^ all other cases do not matter
-
-
 def extract_formulas(ast):
-    """Extract formulas from a given Pandoc document AST. The returned formulas
-    are typed like those form the HTML parser, therefore the first argument of
-    the tuple is unused and hence None.
+    """Extract formulas from the given Pandoc document `ast`.
+
+    The returned formulas are typed like those form the HTML parser,
+    therefore the first argument of the tuple is unused and hence `None`.
+
+    If an invalid or unknown `Math` element is encountered, a
+    `PandocJsonAstParseError` is raised.
 
     :param  ast  Structure of lists and dicts representing a Pandoc document AST
     :return a list of formulas where each formula is (None, style, formula)
     """
     formulas = []
-    __extract_formulas(formulas, ast['blocks'])
+
+    def append_to_formulas(ast_node):
+        math = Math.from_json(ast_node)
+        # `position` is `None` (only applicable for HTML parsing).
+        formulas.append((None, math.type == MathType.DISPLAY, math.formula))
+
+    foreach_element(Math, append_to_formulas, ast['blocks'])
+
     return formulas
 
 
 def replace_formulas_in_ast(formatter, ast, formulas):
-    """Replace 'Math' elements from the given AST with a formatted variant.
+    """Replace `Math` elements from the given AST with a formatted variant.
 
-    Each 'Math' element found in the Pandoc AST will directly be
+    Each `Math` element found in the Pandoc AST will directly be
     replaced by the image link AST element returned by
     `formatter.format()`, which means the `formatter` has to produce a
-    valid Pandoc AST element.
+    valid Pandoc JSON AST element.
 
     The formulas are taken from the supplied formulas list. The number
     of formulas in the document has to match the number of formulas form
@@ -91,19 +82,14 @@ def replace_formulas_in_ast(formatter, ast, formulas):
     """
     if not formulas:
         return
-    if isinstance(ast, list):
-        for item in ast:
-            replace_formulas_in_ast(formatter, item, formulas)
-    elif isinstance(ast, dict):
-        if 't' in ast and ast['t'] == 'Math':
-            eqn = formulas.pop(0)
-            ast.clear()
-            ast.update(formatter.format(
-                eqn['pos'], eqn['formula'], eqn['path'], eqn['displaymath'],
-            ))
-        elif 'c' in ast:
-            replace_formulas_in_ast(formatter, ast['c'], formulas)
-    # ^ ignore all other cases
+
+    def replace_with_image(_math):
+        eqn = formulas.pop(0)
+        return formatter.format(
+            eqn['pos'], eqn['formula'], eqn['path'], eqn['displaymath'],
+        )
+
+    foreach_element(Math, replace_with_image, ast)
 
 
 def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
@@ -127,7 +113,7 @@ def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
     )]
 
 def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
-    """Replace 'Math' elements from a Pandoc AST with the formatted elements.
+    """Replace `Math` elements from a Pandoc AST with the formatted elements.
 
     :param formatter    A formatter offering the "format" method (see ImageFormatter)
     :param formulas     A list of formulas with the information (pos, formula, path, displaymath)
