@@ -12,6 +12,31 @@ from dataclasses import dataclass, field
 # an `Enum`s advantages.
 from enum import StrEnum
 
+from ..parser import ParseException
+
+
+# Exceptions ###################################################################
+
+# Using `ParseException` as superclass as it is handled properly in global
+# parsing exception handling.
+class PandocJsonAstParseError(ParseException):
+    """Invalid or unknown structure encountered while parsing a Pandoc JSON AST.
+
+    Attributes:
+
+    - `msg`: A message describing the exact error encountered.
+    - `ast`: The AST where the error encountered.
+    """
+
+    def __init__(self, msg, ast):
+        super().__init__(msg)
+        self.msg = msg
+        self.ast = ast
+
+    def __str__(self):
+        """Return a prepared error description including `ast` and `msg`."""
+        return f"Error while parsing Pandoc AST `{self.ast}`: {self.msg}"
+
 
 # Abstract classes #############################################################
 
@@ -46,6 +71,26 @@ class AbstractElement(ABC):
             "t": self.pandoc_ast_name(),
             "c": content,
         }
+
+    # This method provides the foundation for a potential complete AST parsing
+    # in the future.
+    @classmethod
+    def _content_from_json(cls, json_ast):
+        """Return the element JSON content of the `json_ast` element.
+
+        `json_ast` should be an element of this type (`cls`), if not or any
+        other error is encountered, a `PandocJsonAstParseError` is raised.
+
+        This method is intended to be used in subclasses when constructing
+        themselves from a JSON AST node.
+        """
+        match json_ast:
+            case {"t": ast_type, "c": content} if ast_type == cls.pandoc_ast_name():
+                return content
+            case _:
+                raise PandocJsonAstParseError(
+                    "Unknown or invalid AST node", json_ast
+                )
 
 
 class AbstractBlock(AbstractElement, ABC):
@@ -233,3 +278,58 @@ class Math(AbstractInline):
 
     def to_json(self):
         return self._to_json([{"t": self.type}, self.formula])
+
+    # This mechanism could be generalized (in an abstract super class) when
+    # implemented similarly in another element type.
+    @classmethod
+    def from_json(cls, json_ast):
+        """Construct a `Math` element from the Pandoc `json_ast` node."""
+        match cls._content_from_json(json_ast):
+            case [{"t": math_type}, formula] if math_type in MathType:
+                return cls(formula, MathType(math_type))
+            case _:
+                # More cases could be added in order to improve the error
+                # message, but in order to remain simple and in the assumption
+                # that this error is rarely encountered, we refrain from doing
+                # so.
+                raise PandocJsonAstParseError(
+                    f"Invalid or unknown AST for `{cls.pandoc_ast_name()}` element",
+                    json_ast,
+                )
+
+
+# Utility functions ############################################################
+
+def foreach_element(element_type, action, ast):
+    """Perform `action` recursively for each `element_type` element in `ast`.
+
+    `ast` should be a (valid) Pandoc JSON AST node or a `list` of such and
+    `element_type` a (non-abstract) subclass of `AbstractElement`. If any
+    unknown element type or structure in `ast` is encountered while traversing,
+    it is silently ignored.
+
+    `action` should be a function that takes a raw Pandoc JSON AST element as
+    input and returns either such an element as output, which will replace the
+    original element in `ast`, or `None`, where the passed element is left
+    untouched.
+    """
+    # The following implements a simple traversing algorithm based on simple
+    # parsing assumptions of the structure of the Pandoc JSON AST in order
+    # to stay simple and not to have to implement every possible AST element
+    # type for correct AST parsing.
+    #
+    # For similar reasons, we don't construct an instance of `element_type` of
+    # the found AST nodes as this would require support for at least every
+    # supported element type and thus incur high overhead that we might never
+    # actually need (currently, we only ever construct `Math` elements).
+    match ast:
+        case [*_]:
+            for element in ast:
+                foreach_element(element_type, action, element)
+        case {"t": type} if type == element_type.pandoc_ast_name():
+            if (new_ast := action(ast)) is not None:
+                ast.clear()
+                ast.update(new_ast)
+        case {"c": content}:
+            foreach_element(element_type, action, content)
+        # Silently ignore any unknown case.
