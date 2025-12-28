@@ -15,6 +15,16 @@ from enum import StrEnum
 from ..parser import ParseException
 
 
+# Constants ####################################################################
+
+# A `list` is used here as this eases the comparison to the `list` used in
+# Pandoc's JSON AST. We only support a single minor version (currently the
+# latest) as Pandoc's AST API seems to break between minor versions, but these
+# changes occur rarely.
+SUPPORTED_AST_VERSION = [1, 23]
+"""The Pandoc JSON AST version supported for parsing by this module."""
+
+
 # Exceptions ###################################################################
 
 # Using `ParseException` as superclass as it is handled properly in global
@@ -30,12 +40,30 @@ class PandocJsonAstParseError(ParseException):
 
     def __init__(self, msg, ast):
         super().__init__(msg)
-        self.msg = msg
         self.ast = ast
 
     def __str__(self):
         """Return a prepared error description including `ast` and `msg`."""
         return f"Error while parsing Pandoc AST `{self.ast}`: {self.msg}"
+
+
+class UnsupportedPandocJsonAstVersionError(PandocJsonAstParseError):
+    """An unsupported version of Pandoc's JSON AST was encountered.
+
+    Additional attribute:
+
+    - `version`: The unsupported version encountered (changing its value will
+      not change `msg`).
+    """
+
+    def __init__(self, version, ast):
+        super().__init__(
+            f"Unsupported AST version `{version}`;"
+            f" only `{SUPPORTED_AST_VERSION}` is supported",
+            ast,
+        )
+        # NOTE: When this attribute is changed later, `msg` will not match.
+        self.version = version
 
 
 # Abstract classes #############################################################
@@ -333,3 +361,42 @@ def foreach_element(element_type, action, ast):
         case {"c": content}:
             foreach_element(element_type, action, content)
         # Silently ignore any unknown case.
+
+
+def is_supported_ast_version(version):
+    """Return whether `version` is supported for parsing in this module.
+
+    `version` should be a `list` of at least two integers which are compared
+    for equality with `SUPPORTED_AST_VERSION`; the return value is `True` if
+    `version` is supported, else `False`. If `version` is of an unexpected
+    format, an exception will be raised.
+    """
+    # Not following semantic versioning semantics as Pandoc's AST API seems to
+    # break between minor versions.
+    return version[:2] == SUPPORTED_AST_VERSION
+
+
+def ast_root_blocks(ast_root):
+    """Return the blocks of the Pandoc JSON `ast_root`.
+
+    If `ast_version` is an invalid or unknown Pandoc JSON AST root, a
+    `PandocJsonAstParseError` is raised. Else, the version of `ast_root` is
+    checked against `SUPPORTED_AST_VERSION` and if unsupported, a
+    `UnsupportedPandocJsonAstVersionError` is raised. If it is supportede, the
+    block elements are returned *without copying*, so any modification will
+    propagate to `ast_root`.
+    """
+    match ast_root:
+        case {"pandoc-api-version": [*_] as version, "blocks": [*_] as blocks}:
+            if is_supported_ast_version(version):
+                return blocks
+            else:
+                raise UnsupportedPandocJsonAstVersionError(
+                    # Patch `"blocks"` in order not to print the entire possibly
+                    # gigantic AST on error.
+                    version, ast_root | {"blocks": "[...]"}
+                )
+        case _:
+            raise PandocJsonAstParseError(
+                "Invalid or unknown Pandoc JSON AST root", ast_root
+            )

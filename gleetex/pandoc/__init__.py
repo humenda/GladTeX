@@ -32,6 +32,7 @@ from .ast import (
     Paragraph,
     RawBlock,
     RawFormat,
+    ast_root_blocks,
     foreach_element,
 )
 
@@ -46,6 +47,11 @@ __all__ = [
 
 def extract_formulas(ast):
     """Extract formulas from the given Pandoc document `ast`.
+
+    `ast` is expected to be a valid and known Pandoc JSON AST root with a
+    supported version (see `.ast.SUPPORTED_AST_VERSION`), if not, a
+    `PandocJsonAstParseError` or a `UnsupportedPandocJsonAstVersionError` is
+    raised, respectively.
 
     The returned formulas are typed like those form the HTML parser,
     therefore the first argument of the tuple is unused and hence `None`.
@@ -63,7 +69,7 @@ def extract_formulas(ast):
         # `position` is `None` (only applicable for HTML parsing).
         formulas.append((None, math.type == MathType.DISPLAY, math.formula))
 
-    foreach_element(Math, append_to_formulas, ast['blocks'])
+    foreach_element(Math, append_to_formulas, ast_root_blocks(ast))
 
     return formulas
 
@@ -115,9 +121,15 @@ def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
 def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
     """Replace `Math` elements from a Pandoc AST with the formatted elements.
 
+    :param file         The file the modified AST is written to
     :param formatter    A formatter offering the "format" method (see ImageFormatter)
-    :param formulas     A list of formulas with the information (pos, formula, path, displaymath)
-    :param ast          Document ast to modified
+    :param document     A pair (ast, formulas), where `ast` is the document AST and
+                        `formulas` is a tuple (pos, formula, path, displaymath)
+
+    The `ast` in `document` is expected to be a valid Pandoc JSON AST root
+    with a supported version (see `ast.SUPPORTED_AST_VERSION`), if not, a
+    `PandocJsonAstParseError` or a `UnsupportedPandocJsonAstVersionError` is
+    raised, respectively.
 
     If the value returned by `formatter.get_exclusion_file_path()` is
     `None` and there are excluded formulas, the excluded formulas will
@@ -125,10 +137,11 @@ def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
     with the heading `excluded_formulas_heading`.
     """
     ast, formulas = document
-    replace_formulas_in_ast(formatter, ast['blocks'], formulas)
+    ast_blocks = ast_root_blocks(ast)
+    replace_formulas_in_ast(formatter, ast_blocks, formulas)
 
     if formatter.get_exclusion_file_path() is None and formatter.get_excluded():
-        ast['blocks'].extend(
+        ast_blocks.extend(
             _generate_excluded_formula_blocks(formatter, excluded_formulas_heading)
         )
 
