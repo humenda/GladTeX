@@ -7,6 +7,7 @@ typeset LaTeX formulas in a more readable way as alternate description of the
 resulting image."""
 
 import inspect
+import locale
 import re
 
 from . import unicode
@@ -314,9 +315,7 @@ class LaTeXDocument:
         encoding_preamble = ''
         if self.__encoding:
             # try to guess language and hence character set (fontenc)
-            import locale
-
-            language = locale.getdefaultlocale()
+            language = locale.getlocale()
             if language and language[0]:  # extract just the language code
                 language = language[0].split('_')[0]
             if not language or not language[0]:
