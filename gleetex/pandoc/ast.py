@@ -313,7 +313,7 @@ class Math(AbstractInline):
     def from_json(cls, json_ast):
         """Construct a `Math` element from the Pandoc `json_ast` node."""
         match cls._content_from_json(json_ast):
-            case [{"t": math_type}, formula] if math_type in MathType:
+            case [{"t": math_type}, formula] if math_type in MathType._value2member_map_:
                 return cls(formula, MathType(math_type))
             case _:
                 # More cases could be added in order to improve the error
