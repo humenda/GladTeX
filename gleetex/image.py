@@ -338,7 +338,6 @@ def create_svg(dvi_fn, output_name):
         '--no-fonts',
         '-o',
         output_name,
-        '--bbox=preview',
         dvi_fn,
     ]
     data = None
