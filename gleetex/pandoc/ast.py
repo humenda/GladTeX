@@ -230,6 +230,22 @@ class Heading(InlinesMixin, AttributesMixin, AbstractBlock):
         )
 
 
+@dataclass
+class Div(AttributesMixin, AbstractBlock):
+    """A generic block container with optional attributes."""
+
+    blocks: list[AbstractBlock] = field(default_factory=list)
+
+    @staticmethod
+    def pandoc_ast_name():
+        return "Div"
+
+    def to_json(self):
+        return self._to_json(
+            [AttributesMixin.to_json(self), [block.to_json() for block in self.blocks]]
+        )
+
+
 # Inline elements ##############################################################
 
 @dataclass
@@ -285,6 +301,20 @@ class InlineImage(InlineLink):
     @staticmethod
     def pandoc_ast_name():
         return "Image"
+
+
+@dataclass
+class Span(InlinesMixin, AttributesMixin, AbstractInline):
+    """A generic inline container with optional attributes."""
+
+    @staticmethod
+    def pandoc_ast_name():
+        return "Span"
+
+    def to_json(self):
+        return self._to_json(
+            [AttributesMixin.to_json(self), InlinesMixin.to_json(self)]
+        )
 
 
 class MathType(StrEnum):
