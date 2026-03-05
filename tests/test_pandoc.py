@@ -54,6 +54,33 @@ class PandocAstImageFormatterTest(TestCase):
         )
         self.assertEqual(ast['t'], 'Link')
 
+    def test_identical_long_formulas_get_unique_excluded_labels(self):
+        formula = r'\lambda x - q +' * 100
+        formatter = Formatter()
+        ast1 = formatter.format(
+            {'depth': 12, 'height': 1, 'width': 24}, formula, 'foo.png',
+        )
+        ast2 = formatter.format(
+            {'depth': 12, 'height': 1, 'width': 24}, formula, 'bar.png',
+        )
+        self.assertEqual(ast1['t'], 'Link')
+        self.assertEqual(ast2['t'], 'Link')
+
+        image_anchor_id1 = ast1['c'][0][0]
+        image_anchor_id2 = ast2['c'][0][0]
+        link_target1 = ast1['c'][2][0]
+        link_target2 = ast2['c'][2][0]
+        label1 = link_target1.split('#')[1]
+        label2 = link_target2.split('#')[1]
+
+        self.assertNotEqual(label1, label2)
+        self.assertEqual(image_anchor_id1, Formatter.get_image_anchor_id(label1))
+        self.assertEqual(image_anchor_id2, Formatter.get_image_anchor_id(label2))
+        self.assertEqual(
+            list(formatter.get_excluded().keys()),
+            [label1, label2],
+        )
+
     def test_outsourced_descriptions_contain_all_information(self):
         formula = r'a = b^2 + x^3 - \frac{3x^7 \cdot 3}{\alpha \beta \gamma}' * 100
         path = 'foo.png'
