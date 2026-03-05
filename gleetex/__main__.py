@@ -194,6 +194,12 @@ class Main:
             'see the man page on how to pass args to GladTeX in this mode',
         )
         cmd.add_argument(
+            '--skip-faulty-formulas',
+            action='store_true',
+            default=False,
+            help='Continue conversion if a formula fails and insert a placeholder',
+        )
+        cmd.add_argument(
             '--png',
             action='store_true',
             dest='png',
@@ -388,6 +394,7 @@ class Main:
         base_path = '' if not base_path or base_path == '.' else base_path
         img_dir = '' if not img_dir or img_dir == '.' else img_dir
         result = []
+        failed_formulas = {}
         try:
             conv = cachedconverter.CachedConverter(
                 base_path,
@@ -404,23 +411,52 @@ class Main:
         else:  # HTML chunks from EqnParser
             formulas = [
                 c for c in parsed_document if isinstance(c, (tuple, list))]
-        try:
-            conv.convert_all(formulas)
-        except cachedconverter.ConversionException as e:
-            self.emit_latex_error(
-                e, options.machinereadable, options.replace_nonascii)
+        if options.skip_faulty_formulas:
+            for formula_count, formula in enumerate(formulas, start=1):
+                try:
+                    conv.convert_all([formula])
+                except cachedconverter.ConversionException:
+                    _pos, displaymath, eqn = formula
+                    failed_formulas[formula_count] = (displaymath, eqn)
+                    self._emit_skip_warning(formula_count, eqn)
+            if failed_formulas:
+                sys.stderr.write(
+                    f'{len(failed_formulas)} formulas failed; placeholders inserted.\n'
+                )
+        else:
+            try:
+                conv.convert_all(formulas)
+            except cachedconverter.ConversionException as e:
+                self.emit_latex_error(
+                    e, options.machinereadable, options.replace_nonascii)
 
         if options.pandocfilter:
             # return (ast, formulas), just with formulas being replaced with the
             # conversion data
             return (
                 parsed_document[0],
-                [conv.get_data_for(eqn, style) for _p, style, eqn in formulas],
+                [
+                    (
+                        pandoc.create_error_placeholder(style)
+                        if idx in failed_formulas
+                        else conv.get_data_for(eqn, style)
+                    )
+                    for idx, (_p, style, eqn) in enumerate(formulas, start=1)
+                ],
             )
+        formula_count = 0
         for chunk in parsed_document:
             # output of EqnParser: list-alike is formula, str is raw HTML
             if isinstance(chunk, (tuple, list)):
+                formula_count += 1
                 _p, displaymath, formula = chunk
+                if formula_count in failed_formulas:
+                    result.append(
+                        '<div class="gladtex-error">[LaTeX error]</div>'
+                        if displaymath
+                        else '<span class="gladtex-error">[LaTeX error]</span>'
+                    )
+                    continue
                 try:
                     result.append(conv.get_data_for(formula, displaymath))
                 except KeyError as e:
@@ -437,6 +473,15 @@ class Main:
             else:
                 result.append(chunk)
         return result
+
+    def _emit_skip_warning(self, formula_count, formula):
+        """Emit a warning for formulas skipped due to conversion errors."""
+        snippet = ' '.join(formula.split())
+        if len(snippet) > 80:
+            snippet = snippet[:77] + '...'
+        sys.stderr.write(
+            f'Warning: failed to convert formula {formula_count}: {snippet}\n'
+        )
 
     def set_options(self, conv, options):
         """Apply options from command line parser to the converter."""
