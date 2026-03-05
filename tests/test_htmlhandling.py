@@ -223,7 +223,6 @@ class HtmlImageTest(unittest.TestCase):
         formula = '\\tau\\tau\gamma\delta' * 42
         img = htmlhandling.HtmlImageFormatter()
         formatted_img = img.format(self.pos, formula, 'foo.png')
-        expected_id = htmlhandling.generate_label(formula)
         sink.html_write_excluded_file(excl_filename, img.get_excluded())
         external_file = read(excl_filename, 'r', encoding='utf-8')
         # find linked formula path
@@ -233,11 +232,13 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue('#' in href.groups()[0])
         path, id = href.groups()[0].split('#')
         self.assertEqual(path, excl_filename)
-        self.assertEqual(id, expected_id)
+        self.assertEqual(id, htmlhandling.ImageFormatter.EXCLUDED_ID_PREFIX + '000001')
+        image_id = re.search('id="(.*?)"', formatted_img).groups()[0]
+        self.assertEqual(image_id, img.get_image_anchor_id(id))
 
         # check external file
         self.assertTrue('<p' in external_file and 'id="' in external_file)
-        self.assertTrue('="' + expected_id in external_file)
+        self.assertTrue(f'id="{id}"' in external_file)
 
     def test_that_link_to_external_image_points_to_file_basepath_and_formula(self):
         os.mkdir('basepath')
@@ -252,8 +253,28 @@ class HtmlImageTest(unittest.TestCase):
         self.assertTrue('#' in href.groups()[0])
         path, id = href.groups()[0].split('#')
         self.assertEqual(path, 'basepath/' + excl_filename)
-        expected_id = htmlhandling.generate_label(formula)
-        self.assertEqual(id, expected_id)
+        self.assertEqual(id, htmlhandling.ImageFormatter.EXCLUDED_ID_PREFIX + '000001')
+
+    def test_identical_long_formulas_get_unique_excluded_labels(self):
+        formula = '\\tau\\tau\gamma\delta' * 42
+        img = htmlhandling.HtmlImageFormatter()
+        formatted1 = img.format(self.pos, formula, 'foo.png')
+        formatted2 = img.format(self.pos, formula, 'bar.png')
+
+        href1 = re.search('href="(.*?)"', formatted1).groups()[0]
+        href2 = re.search('href="(.*?)"', formatted2).groups()[0]
+        label1 = href1.split('#')[1]
+        label2 = href2.split('#')[1]
+        self.assertNotEqual(label1, label2)
+        self.assertEqual(
+            list(img.get_excluded().keys()),
+            [label1, label2],
+        )
+
+        image_id1 = re.search('id="(.*?)"', formatted1).groups()[0]
+        image_id2 = re.search('id="(.*?)"', formatted2).groups()[0]
+        self.assertEqual(image_id1, img.get_image_anchor_id(label1))
+        self.assertEqual(image_id2, img.get_image_anchor_id(label2))
 
     def test_height_and_width_is_in_formatted_html_img_tag(self):
         data = None

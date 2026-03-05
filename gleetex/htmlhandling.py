@@ -305,11 +305,13 @@ class ImageFormatter:  # ToDo: localisation
     # used to uniquely identify the image in order to allow returning to
     # it by a backlink.
     IMG_ID_PREFIX = 'gladtex-img-'
+    EXCLUDED_ID_PREFIX = 'gladtex-excl-'
 
     def __init__(self, base_path=None, link_prefix='',
                  exclusion_file_path=sink.EXCLUSION_FILE_NAME, is_epub=False):
         self.__inline_maxlength = 100
         self._excluded_formulas = collections.OrderedDict()
+        self.__excluded_formula_count = 0
         self.__url = ''
         self._is_epub = is_epub
         self._css = {'inline': 'inlinemath', 'display': 'displaymath'}
@@ -353,7 +355,7 @@ class ImageFormatter:  # ToDo: localisation
         self._css['inline'] = css
 
     @abstractmethod
-    def _generate_link_label(self, formula):
+    def _generate_link_destination(self, excluded_label):
         """Generate the link to an excluded formula, consisting either of path
         and label or just a label.
 
@@ -380,6 +382,16 @@ class ImageFormatter:  # ToDo: localisation
         """Return a list of LaTeX formulas that did not fit the alt tag and
         were hence formatted separately, e.g. into a separate document."""
         return self._excluded_formulas
+
+    @staticmethod
+    def get_image_anchor_id(excluded_label):
+        """Return the image anchor ID associated to `excluded_label`."""
+        return f'{ImageFormatter.IMG_ID_PREFIX}{excluded_label}'
+
+    def _next_excluded_label(self):
+        """Return a deterministic unique label for an excluded formula."""
+        self.__excluded_formula_count += 1
+        return f'{ImageFormatter.EXCLUDED_ID_PREFIX}{self.__excluded_formula_count:06d}'
 
     def _process_image(self, pos, formula, img_path, displaymath=False):
         """Process positioning of the image and the various URI-related
@@ -419,11 +431,11 @@ class ImageFormatter:  # ToDo: localisation
         return image
 
     @abstractmethod
-    def add_excluded(self, image):
+    def add_excluded(self, label, image):
         """Add a formula to the list of excluded formulas."""
 
     @abstractmethod
-    def format_internal(self, image, full_formula, link_label=None):
+    def format_internal(self, image, full_formula, link_label=None, image_id=None):
         """Format an internal formula for the target output (defined by the
         class).
 
@@ -457,12 +469,17 @@ class ImageFormatter:  # ToDo: localisation
         shortened_data = processed_data.copy()
         shortened_data['formula'] = formula
         link_destination = None
+        image_anchor_id = None
         if len(formula) > self.__inline_maxlength:
+            excluded_label = self._next_excluded_label()
             shortened_data['formula'] = f"{formula[:self.__inline_maxlength]}..."
-            link_destination = self._generate_link_destination(processed_data)
+            link_destination = self._generate_link_destination(excluded_label)
+            image_anchor_id = ImageFormatter.get_image_anchor_id(excluded_label)
             # builds up internal list of formatted excluded formulas
-            self.add_excluded(processed_data)
-        return self.format_internal(shortened_data, formula, link_destination)
+            self.add_excluded(excluded_label, processed_data)
+        return self.format_internal(
+            shortened_data, formula, link_destination, image_anchor_id
+        )
 
 
 class HtmlImageFormatter(ImageFormatter):
@@ -474,20 +491,17 @@ class HtmlImageFormatter(ImageFormatter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _generate_link_destination(self, formula):
-        html_label = generate_label(formula['formula'])
+    def _generate_link_destination(self, excluded_label):
         exclusion_filelink = posixpath.join(
             self._link_prefix, self._exclusion_filepath
         ) if self._exclusion_filepath is not None else ''
-        return f'{exclusion_filelink}#{html_label}'
+        return f'{exclusion_filelink}#{excluded_label}'
 
-    def format_internal(self, image, full_formula, link_label=None):
+    def format_internal(self, image, full_formula, link_label=None, image_id=None):
         link_start, link_end = ('', '')
         if link_label:
             link_start = (
-                '<a id="'
-                f'{ImageFormatter.IMG_ID_PREFIX}{generate_label(full_formula)}'
-                f'" href="{link_label}">'
+                f'<a id="{image_id}" href="{link_label}">'
             )
             link_end = '</a>'
         escaped_formula = html.escape(image['formula'], quote=True)
@@ -506,9 +520,8 @@ class HtmlImageFormatter(ImageFormatter):
     # to a separate function; link prefix and such details should be part of
     # super class; ToDo, btw, link prefix also for image paths, probably not
     # used yet in format strings of format_internal
-    def add_excluded(self, image):
-        self._excluded_formulas[generate_label(
-            image['formula'])] = image['formula']
+    def add_excluded(self, label, image):
+        self._excluded_formulas[label] = image['formula']
 
 
 def _write_excluded_formula_section(file, formatter, excluded_formulas_heading):
@@ -517,7 +530,7 @@ def _write_excluded_formula_section(file, formatter, excluded_formulas_heading):
 
     for label, formula in formatter.get_excluded().items():
         file.write(
-            f'<p><a href="#{ImageFormatter.IMG_ID_PREFIX}{generate_label(formula)}"'
+            f'<p><a href="#{formatter.get_image_anchor_id(label)}"'
             f' id="{label}"><pre>{html.escape(formula)}</pre></a></p>\n',
         )
 
