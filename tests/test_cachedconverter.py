@@ -1,6 +1,7 @@
 # pylint: disable=too-many-public-methods,import-error,too-few-public-methods,missing-docstring,unused-variable
 import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -59,6 +60,14 @@ class Tex2imgMock:
 
     def parse_log(self, _logdata):
         return {}
+
+
+class FailingTex2imgMock(Tex2imgMock):
+
+    def convert(self, tx, basename):
+        if 'BAD_FORMULA' in str(tx):
+            raise subprocess.SubprocessError('Mocked conversion failure')
+        return super().convert(tx, basename)
 
 
 class TestCachedConverter(unittest.TestCase):
@@ -167,3 +176,22 @@ class TestCachedConverter(unittest.TestCase):
             len(formulas) + 1,
             'present files:\n%s' % ', '.join(os.listdir('.')),
         )
+
+    @patch('gleetex.image.Tex2img', FailingTex2imgMock)
+    def test_convert_all_skip_faulty_caches_successes_and_returns_failures(self):
+        formulas = [
+            ((0, 0), False, 'good-inline'),
+            ((4, 6), False, 'BAD_FORMULA'),
+            ((2, 0), True, 'good-display'),
+        ]
+        c = cachedconverter.CachedConverter('.')
+
+        failures = c.convert_all_skip_faulty(formulas)
+
+        self.assertEqual(len(failures), 1)
+        self.assertEqual(failures[0].formula, 'BAD_FORMULA')
+        self.assertEqual(failures[0].formula_count, 2)
+        self.assertEqual(failures[0].src_line_number, 5)
+        self.assertEqual(failures[0].src_pos_on_line, 7)
+        self.assertTrue(c.get_data_for('good-inline', False))
+        self.assertTrue(c.get_data_for('good-display', True))
