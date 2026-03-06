@@ -234,7 +234,7 @@ class HtmlImageTest(unittest.TestCase):
         self.assertEqual(path, excl_filename)
         self.assertEqual(id, htmlhandling.ImageFormatter.EXCLUDED_ID_PREFIX + '000001')
         image_id = re.search('id="(.*?)"', formatted_img).groups()[0]
-        self.assertEqual(image_id, img.get_image_anchor_id(id))
+        self.assertEqual(image_id, img.get_excluded_image_anchor_id(id))
 
         # check external file
         self.assertTrue('<p' in external_file and 'id="' in external_file)
@@ -273,8 +273,8 @@ class HtmlImageTest(unittest.TestCase):
 
         image_id1 = re.search('id="(.*?)"', formatted1).groups()[0]
         image_id2 = re.search('id="(.*?)"', formatted2).groups()[0]
-        self.assertEqual(image_id1, img.get_image_anchor_id(label1))
-        self.assertEqual(image_id2, img.get_image_anchor_id(label2))
+        self.assertEqual(image_id1, img.get_excluded_image_anchor_id(label1))
+        self.assertEqual(image_id2, img.get_excluded_image_anchor_id(label2))
 
     def test_height_and_width_is_in_formatted_html_img_tag(self):
         data = None

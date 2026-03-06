@@ -74,8 +74,14 @@ class PandocAstImageFormatterTest(TestCase):
         label2 = link_target2.split('#')[1]
 
         self.assertNotEqual(label1, label2)
-        self.assertEqual(image_anchor_id1, Formatter.get_image_anchor_id(label1))
-        self.assertEqual(image_anchor_id2, Formatter.get_image_anchor_id(label2))
+        self.assertEqual(
+            image_anchor_id1,
+            Formatter.get_excluded_image_anchor_id(label1),
+        )
+        self.assertEqual(
+            image_anchor_id2,
+            Formatter.get_excluded_image_anchor_id(label2),
+        )
         self.assertEqual(
             list(formatter.get_excluded().keys()),
             [label1, label2],

@@ -104,7 +104,7 @@ def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
         Paragraph([
             InlineLink(
                 [InlineCode(formula)],
-                url=f"#{formatter.get_image_anchor_id(label)}",
+                url=f"#{formatter.get_excluded_image_anchor_id(label)}",
                 id=label,
             ),
         ])
