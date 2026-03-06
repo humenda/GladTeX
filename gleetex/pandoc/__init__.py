@@ -22,6 +22,7 @@ import posixpath
 
 from ..htmlhandling import ImageFormatter, generate_label
 from .ast import (
+    Div,
     Heading,
     InlineCode,
     InlineImage,
@@ -32,17 +33,31 @@ from .ast import (
     Paragraph,
     RawBlock,
     RawFormat,
+    Span,
     ast_root_blocks,
     foreach_element,
 )
 
 
 __all__ = [
+    "create_error_placeholder",
     "extract_formulas",
     "replace_formulas_in_ast",
     "write_pandoc_ast",
     "PandocAstImageFormatter",
 ]
+
+ERROR_PLACEHOLDER_CLASS = "gladtex-error"
+ERROR_PLACEHOLDER_DISPLAY_CLASS = "gladtex-error-display"
+ERROR_PLACEHOLDER_TEXT = "[LaTeX error]"
+
+
+def create_error_placeholder(displaymath):
+    """Return a placeholder marker for a failed formula conversion."""
+    return {
+        "is_error_placeholder": True,
+        "displaymath": bool(displaymath),
+    }
 
 
 def extract_formulas(ast):
@@ -89,13 +104,73 @@ def replace_formulas_in_ast(formatter, ast, formulas):
     if not formulas:
         return
 
+    def error_placeholder_as_inline(displaymath):
+        classes = [ERROR_PLACEHOLDER_CLASS]
+        if displaymath:
+            classes.append(ERROR_PLACEHOLDER_DISPLAY_CLASS)
+        return Span(
+            [InlineText(ERROR_PLACEHOLDER_TEXT)],
+            classes=classes,
+        ).to_json()
+
     def replace_with_image(_math):
         eqn = formulas.pop(0)
+        if eqn.get("is_error_placeholder"):
+            return error_placeholder_as_inline(eqn["displaymath"])
         return formatter.format(
             eqn['pos'], eqn['formula'], eqn['path'], eqn['displaymath'],
         )
 
     foreach_element(Math, replace_with_image, ast)
+    _promote_display_error_placeholders(ast)
+
+
+def _promote_display_error_placeholders(ast):
+    """Promote standalone display placeholders from inline `Span` to `Div`."""
+
+    def build_display_placeholder_block():
+        return Div(
+            classes=[ERROR_PLACEHOLDER_CLASS],
+            blocks=[Paragraph([InlineText(ERROR_PLACEHOLDER_TEXT)])],
+        ).to_json()
+
+    def is_display_placeholder_span(node):
+        match node:
+            case {
+                "t": "Span",
+                "c": [
+                    [_id, classes, _attributes],
+                    [{"t": "Str", "c": text}],
+                ],
+            }:
+                return (
+                    ERROR_PLACEHOLDER_DISPLAY_CLASS in classes
+                    and text == ERROR_PLACEHOLDER_TEXT
+                )
+            case _:
+                return False
+
+    def traverse(ast_node):
+        match ast_node:
+            case [*_] as array:
+                for idx, node in enumerate(array):
+                    match node:
+                        case {
+                            "t": block_type,
+                            "c": [placeholder],
+                        } if (
+                            block_type in ("Para", "Plain")
+                            and is_display_placeholder_span(placeholder)
+                        ):
+                            array[idx] = build_display_placeholder_block()
+                            continue
+                    traverse(array[idx])
+            case {"c": content}:
+                traverse(content)
+            case _:
+                return
+
+    traverse(ast)
 
 
 def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):

@@ -1,9 +1,15 @@
+import contextlib
+import io
+import json
 import os
 import shutil
 import tempfile
 from unittest import TestCase
+from unittest.mock import patch
 
+from gleetex import cachedconverter
 from gleetex.__main__ import Main
+from gleetex.pandoc import ast as pandoc_ast
 
 
 HTML_SKELETON = r"""<!DOCTYPE html>
@@ -15,6 +21,56 @@ HTML_SKELETON = r"""<!DOCTYPE html>
 {}
 </body>
 </html>"""
+
+
+class MockCachedConverter:
+    """Mock converter used to test conversion behavior without LaTeX tooling."""
+
+    def __init__(self, *_args, **_kwargs):
+        self._cache = {}
+        self._path_count = 0
+
+    def set_option(self, *_args, **_kwargs):
+        return None
+
+    def set_replace_nonascii(self, *_args, **_kwargs):
+        return None
+
+    def convert_all(self, formulas):
+        for formula_count, (_pos, displaymath, formula) in enumerate(formulas, start=1):
+            if "BAD_FORMULA" in formula:
+                raise cachedconverter.ConversionException(
+                    "Mocked conversion failure", formula, formula_count
+                )
+            key = (formula, displaymath)
+            if key in self._cache:
+                continue
+            self._cache[key] = {
+                "pos": {"depth": 1, "height": 2, "width": 3},
+                "path": f"eqn{self._path_count:03d}.svg",
+                "displaymath": displaymath,
+            }
+            self._path_count += 1
+
+    def convert_all_skip_faulty(self, formulas):
+        failures = []
+        for formula_count, formula in enumerate(formulas, start=1):
+            try:
+                self.convert_all([formula])
+            except cachedconverter.ConversionException as err:
+                failures.append(
+                    cachedconverter.ConversionException(
+                        err.cause,
+                        err.formula,
+                        formula_count,
+                    )
+                )
+        return failures
+
+    def get_data_for(self, formula, display_math):
+        data = self._cache[(formula, display_math)].copy()
+        data.update({"formula": formula, "displaymath": display_math})
+        return data
 
 
 class MainTest(TestCase):
@@ -75,4 +131,97 @@ class MainTest(TestCase):
         self.assertIn(
             r'\frac{\sin(\frac{\pi}{2}) - 2}{\cos(\phi\frac{pi}{3})}',
             html,
+        )
+
+    def _write_pandoc_json(self, blocks, file_name='input.json'):
+        document = {
+            "pandoc-api-version": pandoc_ast.SUPPORTED_AST_VERSION,
+            "meta": {},
+            "blocks": blocks,
+        }
+        with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(document, f)
+        return file_name
+
+    @patch('gleetex.__main__.cachedconverter.CachedConverter', MockCachedConverter)
+    def test_skip_faulty_formulas_continues_conversion(self):
+        input_file = self._write_pandoc_json(
+            [
+                {
+                    "t": "Para",
+                    "c": [
+                        {"t": "Math", "c": [{"t": "InlineMath"}, r"BAD_FORMULA_{\frac{1}{"]},
+                        {"t": "Space"},
+                        {"t": "Math", "c": [{"t": "InlineMath"}, "x + 1"]},
+                    ],
+                },
+            ]
+        )
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            Main().run(
+                [
+                    'prog',
+                    '-P',
+                    '--skip-faulty-formulas',
+                    '-o',
+                    'out.json',
+                    input_file,
+                ]
+            )
+
+        with open('out.json', 'r', encoding='utf-8') as f:
+            ast = json.load(f)
+        inlines = ast["blocks"][0]["c"]
+
+        self.assertEqual(inlines[0]["t"], "Span")
+        self.assertEqual(inlines[0]["c"][0][1], ["gladtex-error"])
+        self.assertEqual(inlines[0]["c"][1], [{"t": "Str", "c": "[LaTeX error]"}])
+        self.assertEqual(inlines[2]["t"], "Image")
+
+        err = stderr.getvalue()
+        self.assertIn("Warning: failed to convert formula 1", err)
+        self.assertIn("1 formulas failed; placeholders inserted.", err)
+
+    @patch('gleetex.__main__.cachedconverter.CachedConverter', MockCachedConverter)
+    def test_default_mode_remains_fail_fast(self):
+        input_file = self._write_pandoc_json(
+            [{"t": "Para", "c": [{"t": "Math", "c": [{"t": "InlineMath"}, "BAD_FORMULA"]}]}]
+        )
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as cm:
+                Main().run(['prog', '-P', '-o', 'out.json', input_file])
+        self.assertEqual(cm.exception.code, 91)
+
+    @patch('gleetex.__main__.cachedconverter.CachedConverter', MockCachedConverter)
+    def test_display_math_errors_use_div_placeholder(self):
+        input_file = self._write_pandoc_json(
+            [
+                {
+                    "t": "Para",
+                    "c": [{"t": "Math", "c": [{"t": "DisplayMath"}, "BAD_FORMULA_DISPLAY"]}],
+                }
+            ]
+        )
+        with contextlib.redirect_stderr(io.StringIO()):
+            Main().run(
+                [
+                    'prog',
+                    '-P',
+                    '--skip-faulty-formulas',
+                    '-o',
+                    'out.json',
+                    input_file,
+                ]
+            )
+
+        with open('out.json', 'r', encoding='utf-8') as f:
+            ast = json.load(f)
+        placeholder = ast["blocks"][0]
+
+        self.assertEqual(placeholder["t"], "Div")
+        self.assertEqual(placeholder["c"][0][1], ["gladtex-error"])
+        self.assertEqual(
+            placeholder["c"][1][0]["c"],
+            [{"t": "Str", "c": "[LaTeX error]"}],
         )
