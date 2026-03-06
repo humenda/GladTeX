@@ -52,6 +52,21 @@ class MockCachedConverter:
             }
             self._path_count += 1
 
+    def convert_all_skip_faulty(self, formulas):
+        failures = []
+        for formula_count, formula in enumerate(formulas, start=1):
+            try:
+                self.convert_all([formula])
+            except cachedconverter.ConversionException as err:
+                failures.append(
+                    cachedconverter.ConversionException(
+                        err.cause,
+                        err.formula,
+                        formula_count,
+                    )
+                )
+        return failures
+
     def get_data_for(self, formula, display_math):
         data = self._cache[(formula, display_math)].copy()
         data.update({"formula": formula, "displaymath": display_math})

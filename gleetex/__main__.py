@@ -412,13 +412,13 @@ class Main:
             formulas = [
                 c for c in parsed_document if isinstance(c, (tuple, list))]
         if options.skip_faulty_formulas:
-            for formula_count, formula in enumerate(formulas, start=1):
-                try:
-                    conv.convert_all([formula])
-                except cachedconverter.ConversionException:
-                    _pos, displaymath, eqn = formula
-                    failed_formulas[formula_count] = (displaymath, eqn)
-                    self._emit_skip_warning(formula_count, eqn)
+            failures = conv.convert_all_skip_faulty(formulas)
+            for err in failures:
+                failed_formulas[err.formula_count] = (
+                    formulas[err.formula_count - 1][1],
+                    err.formula,
+                )
+                self._emit_skip_warning(err.formula_count, err.formula)
             if failed_formulas:
                 sys.stderr.write(
                     f'{len(failed_formulas)} formulas failed; placeholders inserted.\n'

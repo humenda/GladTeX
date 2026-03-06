@@ -143,6 +143,33 @@ class CachedConverter:
         displaymath, Formulas already contained in the cache are not
         converted.
         """
+        self._convert_formula_batch(formulas)
+
+    def convert_all_skip_faulty(self, formulas):
+        """Convert `formulas` while collecting per-formula conversion errors.
+
+        Successful conversions are cached as usual. Failed formulas are
+        reported back as `ConversionException`s with their original
+        document-wide index preserved.
+        """
+        failures = []
+        for formula_count, formula in enumerate(formulas, start=1):
+            try:
+                self._convert_formula_batch([formula])
+            except ConversionException as err:
+                pos = formula[0]
+                err = ConversionException(
+                    err.cause,
+                    err.formula,
+                    formula_count,
+                    pos[0] + 1 if pos else None,
+                    pos[1] + 1 if pos else None,
+                )
+                failures.append(err)
+        return failures
+
+    def _convert_formula_batch(self, formulas):
+        """Convert one batch of formulas through the cache-aware pipeline."""
         formulas_to_convert = self._get_formulas_to_convert(formulas)
         if formulas_to_convert:
             self.__converter = image.Tex2img(
