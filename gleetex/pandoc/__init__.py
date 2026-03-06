@@ -20,7 +20,7 @@ It works in these parsses:
 import json
 import posixpath
 
-from ..htmlhandling import ImageFormatter, generate_label
+from ..htmlhandling import ImageFormatter
 from .ast import (
     Heading,
     InlineCode,
@@ -104,7 +104,7 @@ def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
         Paragraph([
             InlineLink(
                 [InlineCode(formula)],
-                url=f"#{ImageFormatter.IMG_ID_PREFIX}{generate_label(formula)}",
+                url=f"#{formatter.get_excluded_image_anchor_id(label)}",
                 id=label,
             ),
         ])
@@ -154,14 +154,13 @@ class PandocAstImageFormatter(ImageFormatter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _generate_link_destination(self, formula):
-        id = generate_label(formula['formula'])
+    def _generate_link_destination(self, excluded_label):
         exclusion_filelink = posixpath.join(
             self._link_prefix, self._exclusion_filepath,
         ) if self._exclusion_filepath is not None else ''
-        return f'{exclusion_filelink}#{id}'
+        return f'{exclusion_filelink}#{excluded_label}'
 
-    def format_internal(self, image, full_formula, link_label=None):
+    def format_internal(self, image, full_formula, link_label=None, image_id=None):
         ast_node = InlineImage(
             [InlineText(image["formula"])],
             url=image["url"],
@@ -173,12 +172,10 @@ class PandocAstImageFormatter(ImageFormatter):
             ast_node = InlineLink(
                 [ast_node],
                 url=link_label,
-                id=ImageFormatter.IMG_ID_PREFIX + generate_label(full_formula),
+                id=image_id,
             )
 
         return ast_node.to_json()
 
-    def add_excluded(self, image):
-        self._excluded_formulas[generate_label(image['formula'])] = image[
-            'formula'
-        ]
+    def add_excluded(self, label, image):
+        self._excluded_formulas[label] = image['formula']
