@@ -384,8 +384,8 @@ class ImageFormatter:  # ToDo: localisation
         return self._excluded_formulas
 
     @staticmethod
-    def get_image_anchor_id(excluded_label):
-        """Return the image anchor ID associated to `excluded_label`."""
+    def get_excluded_image_anchor_id(excluded_label):
+        """Return the image anchor ID corresponding to `excluded_label`."""
         return f'{ImageFormatter.IMG_ID_PREFIX}{excluded_label}'
 
     def _next_excluded_label(self):
@@ -474,7 +474,9 @@ class ImageFormatter:  # ToDo: localisation
             excluded_label = self._next_excluded_label()
             shortened_data['formula'] = f"{formula[:self.__inline_maxlength]}..."
             link_destination = self._generate_link_destination(excluded_label)
-            image_anchor_id = ImageFormatter.get_image_anchor_id(excluded_label)
+            image_anchor_id = ImageFormatter.get_excluded_image_anchor_id(
+                excluded_label
+            )
             # builds up internal list of formatted excluded formulas
             self.add_excluded(excluded_label, processed_data)
         return self.format_internal(
@@ -530,7 +532,7 @@ def _write_excluded_formula_section(file, formatter, excluded_formulas_heading):
 
     for label, formula in formatter.get_excluded().items():
         file.write(
-            f'<p><a href="#{formatter.get_image_anchor_id(label)}"'
+            f'<p><a href="#{formatter.get_excluded_image_anchor_id(label)}"'
             f' id="{label}"><pre>{html.escape(formula)}</pre></a></p>\n',
         )
 
