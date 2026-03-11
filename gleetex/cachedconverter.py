@@ -113,6 +113,8 @@ class CachedConverter:
         }
         self.__encoding = encoding
         self.__replace_nonascii = False
+        self.__skip_faulty = False
+        self.__skipped_formulas = {}
 
     def set_option(self, option, value):
         """Set one of the options accepted for gleetex.image.Tex2img.
@@ -135,7 +137,7 @@ class CachedConverter:
         """
         self.__replace_nonascii = flag
 
-    def convert_all(self, formulas):
+    def convert_all(self, formulas, skip=False):
         """convert_all(formulas) Convert all formulas using self.convert
         concurrently.
 
@@ -143,29 +145,34 @@ class CachedConverter:
         displaymath, Formulas already contained in the cache are not
         converted.
         """
-        self._convert_formula_batch(formulas)
+        self.__skip_faulty = skip
+        self.__skipped_formulas = {}
+        try:
+            self._convert_formula_batch(formulas)
+        finally:
+            self.__skip_faulty = False
 
-    def convert_all_skip_faulty(self, formulas):
-        """Convert `formulas` while collecting per-formula conversion errors.
+    def get_skipped_formulas(self, formulas):
+        """Return per-occurrence conversion failures for `formulas`.
 
-        Successful conversions are cached as usual. Failed formulas are
-        reported back as `ConversionException`s with their original
-        document-wide index preserved.
+        The returned exceptions keep the original document-wide formula index
+        and, if available, the source position of each skipped occurrence.
         """
         failures = []
-        for formula_count, formula in enumerate(formulas, start=1):
-            try:
-                self._convert_formula_batch([formula])
-            except ConversionException as err:
-                pos = formula[0]
-                err = ConversionException(
+        for formula_count, (pos, displaymath, formula) in enumerate(formulas, start=1):
+            key = (normalize_formula(formula), displaymath)
+            if key not in self.__skipped_formulas:
+                continue
+            err = self.__skipped_formulas[key]
+            failures.append(
+                ConversionException(
                     err.cause,
-                    err.formula,
+                    formula,
                     formula_count,
                     pos[0] + 1 if pos else None,
                     pos[1] + 1 if pos else None,
                 )
-                failures.append(err)
+            )
         return failures
 
     def _convert_formula_batch(self, formulas):
@@ -237,22 +244,24 @@ class CachedConverter:
             # in the source file and formula_count (index into a global list of
             # formulas)
             jobs = {
-                executor.submit(self.__convert, eqn, path, dsp): (eqn, pos, count)
+                executor.submit(self.__convert, eqn, path, dsp): (eqn, pos, count, dsp)
                 for (eqn, pos, path, dsp, count) in formulas_to_convert
             }
             error_occurred = None
             for future in concurrent.futures.as_completed(jobs):
-                # cancel all pending requests
-                if error_occurred and not future.done():
-                    future.cancel()
-                    continue
-                formula, pos_in_src, formula_count = jobs[future]
-                error_occurred = self._handle_job_output(future, formula, pos_in_src, formula_count)
+                formula, pos_in_src, formula_count, displaymath = jobs[future]
+                err = self._handle_job_output(
+                    future, formula, pos_in_src, formula_count, displaymath
+                )
+                if err and error_occurred is None:
+                    error_occurred = err
         # pylint: disable=raising-bad-type
         if error_occurred:
             raise error_occurred
 
-    def _handle_job_output(self, future, formula, pos_in_src, formula_count):
+    def _handle_job_output(
+        self, future, formula, pos_in_src, formula_count, displaymath
+    ):
         """Process the output as produced by each conversion future.
         Handle the error case by signalling the error to end all other
         conversions."""
@@ -265,7 +274,7 @@ class CachedConverter:
                 pos_in_src = [p + 1 for p in pos_in_src] # line/pos count from 1
             self.__cache.write()  # write back cache with valid entries
             if pos_in_src:  # pandocfilter case:
-                return ConversionException(
+                err = ConversionException(
                     str(e.args[0]),
                     formula,
                     formula_count,
@@ -273,9 +282,14 @@ class CachedConverter:
                     pos_in_src[1],
                 )
             else:
-                return ConversionException(
+                err = ConversionException(
                     str(e.args[0]), formula, formula_count
                 )
+            if self.__skip_faulty:
+                key = (normalize_formula(formula), displaymath)
+                self.__skipped_formulas[key] = err
+                return None
+            return err
         else:
             self.__cache.add_formula(
                 formula, data['pos'], data['path'], data['displaymath']

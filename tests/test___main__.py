@@ -29,6 +29,7 @@ class MockCachedConverter:
     def __init__(self, *_args, **_kwargs):
         self._cache = {}
         self._path_count = 0
+        self._failed_keys = set()
 
     def set_option(self, *_args, **_kwargs):
         return None
@@ -36,12 +37,17 @@ class MockCachedConverter:
     def set_replace_nonascii(self, *_args, **_kwargs):
         return None
 
-    def convert_all(self, formulas):
+    def convert_all(self, formulas, skip=False):
+        self._failed_keys = set()
         for formula_count, (_pos, displaymath, formula) in enumerate(formulas, start=1):
             if "BAD_FORMULA" in formula:
-                raise cachedconverter.ConversionException(
+                err = cachedconverter.ConversionException(
                     "Mocked conversion failure", formula, formula_count
                 )
+                if skip:
+                    self._failed_keys.add((formula, displaymath))
+                    continue
+                raise err
             key = (formula, displaymath)
             if key in self._cache:
                 continue
@@ -52,19 +58,20 @@ class MockCachedConverter:
             }
             self._path_count += 1
 
-    def convert_all_skip_faulty(self, formulas):
+    def get_skipped_formulas(self, formulas):
         failures = []
-        for formula_count, formula in enumerate(formulas, start=1):
-            try:
-                self.convert_all([formula])
-            except cachedconverter.ConversionException as err:
-                failures.append(
-                    cachedconverter.ConversionException(
-                        err.cause,
-                        err.formula,
-                        formula_count,
-                    )
+        for formula_count, (pos, displaymath, formula) in enumerate(formulas, start=1):
+            if (formula, displaymath) not in self._failed_keys:
+                continue
+            failures.append(
+                cachedconverter.ConversionException(
+                    "Mocked conversion failure",
+                    formula,
+                    formula_count,
+                    pos[0] + 1 if pos else None,
+                    pos[1] + 1 if pos else None,
                 )
+            )
         return failures
 
     def get_data_for(self, formula, display_math):
