@@ -411,38 +411,23 @@ class Main:
         else:  # HTML chunks from EqnParser
             formulas = [
                 c for c in parsed_document if isinstance(c, (tuple, list))]
+        try:
+            conv.convert_all(formulas, skip=options.skip_faulty_formulas)
+        except cachedconverter.ConversionException as e:
+            self.emit_latex_error(
+                e, options.machinereadable, options.replace_nonascii)
+
         if options.skip_faulty_formulas:
-            failures = conv.convert_all_skip_faulty(formulas)
-            for err in failures:
-                failed_formulas[err.formula_count] = (
-                    formulas[err.formula_count - 1][1],
-                    err.formula,
-                )
-                self._emit_skip_warning(err.formula_count, err.formula)
-            if failed_formulas:
-                sys.stderr.write(
-                    f'{len(failed_formulas)} formulas failed; placeholders inserted.\n'
-                )
-        else:
-            try:
-                conv.convert_all(formulas)
-            except cachedconverter.ConversionException as e:
-                self.emit_latex_error(
-                    e, options.machinereadable, options.replace_nonascii)
+            failed_formulas = self._collect_skip_failures(
+                conv.get_skipped_formulas(formulas), formulas
+            )
 
         if options.pandocfilter:
             # return (ast, formulas), just with formulas being replaced with the
             # conversion data
             return (
                 parsed_document[0],
-                [
-                    (
-                        pandoc.create_error_placeholder(style)
-                        if idx in failed_formulas
-                        else conv.get_data_for(eqn, style)
-                    )
-                    for idx, (_p, style, eqn) in enumerate(formulas, start=1)
-                ],
+                self._build_pandoc_formula_results(conv, formulas, failed_formulas),
             )
         formula_count = 0
         for chunk in parsed_document:
@@ -473,6 +458,31 @@ class Main:
             else:
                 result.append(chunk)
         return result
+
+    def _collect_skip_failures(self, failures, formulas):
+        """Record failed formulas and emit warnings for skipped conversions."""
+        failed_formulas = {}
+        for err in failures:
+            failed_formulas[err.formula_count] = (
+                formulas[err.formula_count - 1][1],
+                err.formula,
+            )
+            self._emit_skip_warning(err.formula_count, err.formula)
+        if failed_formulas:
+            sys.stderr.write(
+                f'{len(failed_formulas)} formulas failed; placeholders inserted.\n'
+            )
+        return failed_formulas
+
+    def _build_pandoc_formula_results(self, conv, formulas, failed_formulas):
+        """Return Pandoc replacement nodes for formulas and error placeholders."""
+        results = []
+        for idx, (_p, style, eqn) in enumerate(formulas, start=1):
+            if idx in failed_formulas:
+                results.append(pandoc.create_error_placeholder(style))
+            else:
+                results.append(conv.get_data_for(eqn, style))
+        return results
 
     def _emit_skip_warning(self, formula_count, formula):
         """Emit a warning for formulas skipped due to conversion errors."""

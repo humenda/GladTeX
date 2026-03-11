@@ -178,7 +178,7 @@ class TestCachedConverter(unittest.TestCase):
         )
 
     @patch('gleetex.image.Tex2img', FailingTex2imgMock)
-    def test_convert_all_skip_faulty_caches_successes_and_returns_failures(self):
+    def test_convert_all_skip_caches_successes_and_returns_failures(self):
         formulas = [
             ((0, 0), False, 'good-inline'),
             ((4, 6), False, 'BAD_FORMULA'),
@@ -186,7 +186,8 @@ class TestCachedConverter(unittest.TestCase):
         ]
         c = cachedconverter.CachedConverter('.')
 
-        failures = c.convert_all_skip_faulty(formulas)
+        c.convert_all(formulas, skip=True)
+        failures = c.get_skipped_formulas(formulas)
 
         self.assertEqual(len(failures), 1)
         self.assertEqual(failures[0].formula, 'BAD_FORMULA')
@@ -195,3 +196,19 @@ class TestCachedConverter(unittest.TestCase):
         self.assertEqual(failures[0].src_pos_on_line, 7)
         self.assertTrue(c.get_data_for('good-inline', False))
         self.assertTrue(c.get_data_for('good-display', True))
+
+    @patch('gleetex.image.Tex2img', FailingTex2imgMock)
+    def test_get_skipped_formulas_returns_all_duplicate_occurrences(self):
+        formulas = [
+            ((0, 0), False, 'BAD_FORMULA'),
+            ((1, 0), False, 'good-inline'),
+            ((3, 4), False, 'BAD_FORMULA'),
+        ]
+        c = cachedconverter.CachedConverter('.')
+
+        c.convert_all(formulas, skip=True)
+        failures = c.get_skipped_formulas(formulas)
+
+        self.assertEqual([err.formula_count for err in failures], [1, 3])
+        self.assertEqual([err.src_line_number for err in failures], [1, 4])
+        self.assertEqual([err.src_pos_on_line for err in failures], [1, 5])
