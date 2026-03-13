@@ -1,4 +1,4 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2026 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 import argparse
@@ -412,7 +412,7 @@ class Main:
             formulas = [
                 c for c in parsed_document if isinstance(c, (tuple, list))]
         try:
-            conv.convert_all(formulas, skip=options.skip_faulty_formulas)
+            conv.convert_all(formulas, skip_faults=options.skip_faulty_formulas)
         except cachedconverter.ConversionException as e:
             self.emit_latex_error(
                 e, options.machinereadable, options.replace_nonascii)

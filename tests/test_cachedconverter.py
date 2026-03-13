@@ -186,7 +186,7 @@ class TestCachedConverter(unittest.TestCase):
         ]
         c = cachedconverter.CachedConverter('.')
 
-        c.convert_all(formulas, skip=True)
+        c.convert_all(formulas, skip_faults=True)
         failures = c.get_skipped_formulas(formulas)
 
         self.assertEqual(len(failures), 1)
@@ -206,7 +206,7 @@ class TestCachedConverter(unittest.TestCase):
         ]
         c = cachedconverter.CachedConverter('.')
 
-        c.convert_all(formulas, skip=True)
+        c.convert_all(formulas, skip_faults=True)
         failures = c.get_skipped_formulas(formulas)
 
         self.assertEqual([err.formula_count for err in failures], [1, 3])

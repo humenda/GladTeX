@@ -37,14 +37,14 @@ class MockCachedConverter:
     def set_replace_nonascii(self, *_args, **_kwargs):
         return None
 
-    def convert_all(self, formulas, skip=False):
+    def convert_all(self, formulas, skip_faults=False):
         self._failed_keys = set()
         for formula_count, (_pos, displaymath, formula) in enumerate(formulas, start=1):
             if "BAD_FORMULA" in formula:
                 err = cachedconverter.ConversionException(
                     "Mocked conversion failure", formula, formula_count
                 )
-                if skip:
+                if skip_faults:
                     self._failed_keys.add((formula, displaymath))
                     continue
                 raise err

@@ -1,4 +1,4 @@
-# (c) 2013-2022 Sebastian Humenda
+# (c) 2013-2026 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """
@@ -137,15 +137,18 @@ class CachedConverter:
         """
         self.__replace_nonascii = flag
 
-    def convert_all(self, formulas, skip=False):
+    def convert_all(self, formulas, skip_faults=False):
         """convert_all(formulas) Convert all formulas using self.convert
         concurrently.
 
         Each element of `formulas` must be a tuple containing (formula,
         displaymath, Formulas already contained in the cache are not
         converted.
+
+        If `skip_faults` is given, all valid formulas are converted, empty
+        formulas become a placeholder. See `get_skipped_formulas`.
         """
-        self.__skip_faulty = skip
+        self.__skip_faulty = skip_faults
         self.__skipped_formulas = {}
         try:
             self._convert_formula_batch(formulas)
