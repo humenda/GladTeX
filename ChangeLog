@@ -1,7 +1,9 @@
-4.0 (UNRELEASED)
+4.0
 
-    -   Enable standard UNIX quoting for `GLADTEX_ARGS` that allows passing
-        arguments with spaces when GladTeX is used as a Pandoc filter.
+    -   New GleeTeX API
+        -   Library users need to adjust the calls to the CachedConverter.
+        -   Enable standard UNIX quoting for `GLADTEX_ARGS` that allows passing
+            arguments with spaces when GladTeX is used as a Pandoc filter.
     -   Add --epub flag to produce HTML output more suitable for EPUBs.
     -   Avoid option clashes with the xcolor package if extending the xcolor
         options using `-p`. Recommend `\PassOptionsToPackage`.
@@ -14,6 +16,11 @@
             overwrite the generated file with an updated one, instead of parsing
             the old contents.
         -   Restructure library with a cleaner formatter hierarchy.
+    -   GLADTEX_ARGS can now be used to pass arguments with spaces in the
+        environment variable `GLADTEX_ARGS`. This eases the usage of GladTeX as
+        a pandoc filter.
+    -   More fixes.
+
 
 3.1
 

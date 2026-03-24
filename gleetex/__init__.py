@@ -1,4 +1,4 @@
-# (c) 2013-2021 Sebastian Humenda
+# (c) 2013-2026 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 from . import caching
@@ -10,7 +10,7 @@ from . import parser
 from . import sink
 from . import typesetting
 
-VERSION = '3.1.0'
+VERSION = '4.0.0'
 
 __all__ = [
     'caching',
