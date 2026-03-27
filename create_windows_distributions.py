@@ -67,7 +67,7 @@ def bundle_files(src, output_name):
             'This program has been compiled with python 3.4.4. If you want to embedd it in binary form with your binary python application, the version numbers HAVE TO match.\r\n'
         )
         f.write(
-            '\r\nFor more information, see the file README.md or http://humenda.github.io/GladTeX\r\n'
+            '\r\nFor more information, see the file README.md or https://humenda.github.io/GladTeX\r\n'
         )
 
     # copy README and other files

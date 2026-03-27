@@ -42,7 +42,7 @@ class Main:
 
     def _parse_args(self, args):
         """Parse command line arguments and return option instance."""
-        epilog = 'GladTeX %s, http://humenda.github.io/GladTeX' % VERSION
+        epilog = 'GladTeX %s, https://humenda.github.io/GladTeX' % VERSION
         description = (
             'GladTeX is a preprocessor that enables the use of LaTeX'
             ' maths within HTML files. The maths, embedded in <EQ>...</EQ> '
