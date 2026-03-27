@@ -1,5 +1,4 @@
-GladTeX
-=======
+# GladTeX
 
 GladTeX is a utility and library to display formulas on the Web and in
 HTML-based formats such as EPUB. Formulas are embedded within `<eq>…</eq>` tags
@@ -12,7 +11,7 @@ Features
 --------
 
 -   LaTeX-quality formulas with partial unicode maths support
--   [Pandoc](http://pandoc.org) support to convert from any format with
+-   [Pandoc](https://pandoc.org) support to convert from any format with
     LaTeX-formulas (MarkDown, …) to any HTML-based format, e.g. EPUB
 -   Cache formulas to speed up subsequent document conversion
 -   Python library GleeTeX to embed into other applications or to tailor to a
@@ -24,12 +23,12 @@ License
 
 - (C) 1999-2010 Martin G. Gulbrandsen (Perl version)
 - (C) 2011-2013 Jonathan Daugherty (especially release 1.3) (Perl version)
-- (C) 2013-2020 Sebastian Humenda (Python version)
+- (C) 2013-2026 Sebastian Humenda (Python version)
 
 This program is distributed under the LGPL-3, or at your option, any later
 version of the license; for details see the accompanying file COPYING.
 
-The official project homepage is at <http://humenda.github.io/GladTeX>
+The official project homepage is at <https://humenda.github.io/GladTeX>
 
 Installation
 ============
@@ -73,7 +72,7 @@ Note: If your system ships `python` as the command for Python3 you have to use
 #### OS X
 
 You need to install a LaTeX distribution on your Mac. GladTeX was successfully
-run with [MacTex](http://www.tug.org/mactex/).
+run with [MacTex](https://www.tug.org/mactex/).
 
 You can download a zip source archive from
 [GitHub](https://github.com/humenda/GladTeX) or use git:
