@@ -5,9 +5,7 @@ DO NOT ALTER THIS FILE IN ANY WAY, IT IS GENERATED AUTOMATICALLY. SEE THE SCRIPT
 This file contains a table of unicode code point to LaTeX command mapping. It
 has 2369 entries and was derived from
 <https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml>."""
-
 # pylint: disable=too-many-lines,missing-docstring
-
 
 import enum
 

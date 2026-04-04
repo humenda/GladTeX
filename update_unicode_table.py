@@ -1,4 +1,4 @@
-# (c) 2013-2025 Sebastian Humenda
+# (c) 2013-2026 Sebastian Humenda
 # This code is licenced under the terms of the LGPL-3+, see the file COPYING for
 # more details.
 """This script auto-generates gleetex/unicode_data.py.
@@ -13,8 +13,8 @@ readable.
 import collections
 import enum
 import os
-import shlex
 import shutil
+import subprocess
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -122,7 +122,8 @@ def serialize_table(table):
     for key in sorted(table.keys()):
         ordered_table[key] = table[key]
     python_string = ['unicode_table = {']
-    def reprmode(m, v): return 'LaTeXMode.%s: %s' % (m.name, repr(v[m]))
+    def reprmode(m, v):
+        return f"LaTeXMode.{m.name}: {repr(v[m])}"
     for code_point, replacements in ordered_table.items():
         # serialize by hand to have a fixed order of items; helpful for a
         # minimal git diff
@@ -167,8 +168,8 @@ def main():
     with open(path, 'w', encoding='utf-8') as f:
         f.write(generate_python_src_file(table, python_table))
     exit = 0
-    if shutil.which('black'):
-        exit = os.system(f'black {shlex.quote(path)}')
+    if shutil.which('ruff'):
+        exit = subprocess.run(["ruff", "format", path], check=True).returncode
     sys.exit(exit)
 
 
