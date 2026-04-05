@@ -232,3 +232,19 @@ class MainTest(TestCase):
             placeholder["c"][1][0]["c"],
             [{"t": "Str", "c": "[LaTeX error]"}],
         )
+    def test_excluded_formulas_embedded_when_requested(self):
+        with open('testfile.htex', 'w') as f:
+            f.write(HTML_SKELETON.format(r"""
+                <p>This is a unremarkable document for <eq>testing
+                loooooooooooooooooooooooooooooooooooooong fooooooooormuuuuulas
+                ooooooooooooooooooooooooooooonly E=mc^2 \cdot \gamma</eq>.</p>
+            """))
+
+        Main().run(['prog', '--embed-excluded-formulas', 'testfile.htex'])
+        self.assertFalse(os.path.exists('excluded-descriptions.html'))
+
+        with open('testfile.html', 'r') as f:
+            html = f.read()
+        self.assertIn('<aside><h1>Excluded Formulas</h1>', html)
+        self.assertIn('id="gladtex-excl-000001"', html)
+        self.assertIn('href="#gladtex-img-gladtex-excl-000001"', html)

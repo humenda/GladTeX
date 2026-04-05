@@ -321,9 +321,6 @@ class Main:
         # Convert `None` to `False`.
         options.embed_excluded_formulas = bool(options.embed_excluded_formulas)
 
-        if options.embed_excluded_formulas:
-            options.exclusionfile = None
-
         if not options.dpi and not options.fontsize:
             # Set default font size iff neither `-r` nor `-f` have been pased.
             options.fontsize = 12
@@ -341,19 +338,27 @@ class Main:
 
         processed = self.convert_images(
             doc, base_path, options.img_directory, options)
+        if options.embed_excluded_formulas:
+            excluded_formula_output = (
+                sink.PandocAppended()
+                if options.pandocfilter
+                else sink.HtmlAppended()
+            )
+        else:
+            excluded_formula_output = sink.HtmlExternalFile(options.exclusionfile)
         if options.pandocfilter:
             img_fmt = pandoc.PandocAstImageFormatter(
                 base_path=os.path.join(base_path, options.img_directory),
                 link_prefix=options.url,
-                exclusion_file_path=options.exclusionfile,
                 is_epub=options.is_epub,
+                excluded_formula_output=excluded_formula_output,
             )
         else:
             img_fmt = htmlhandling.HtmlImageFormatter(
                 base_path=os.path.join(base_path, options.img_directory),
                 link_prefix=options.url,
-                exclusion_file_path=options.exclusionfile,
                 is_epub=options.is_epub,
+                excluded_formula_output=excluded_formula_output,
             )
         if options.replace_nonascii:
             img_fmt.set_replace_nonascii(True)
@@ -379,14 +384,15 @@ class Main:
                     file, processed, img_fmt, options.excluded_formulas_heading,
                 )
 
-        if not options.embed_excluded_formulas and img_fmt.get_excluded():
-            # ToDo: make sink type an argument
-            sink_type = sink.SinkType.html_file
-            try:
-                sink.EXCLUSION_FORMULA_SINKS[sink_type](
-                    img_fmt.get_exclusion_file_path(), img_fmt.get_excluded())
-            except KeyError:
-                raise NotImplementedError() from None
+        if (
+            not excluded_formula_output.appends_to_document()
+            and img_fmt.get_excluded()
+        ):
+            sink.write_excluded_formulas(
+                excluded_formula_output,
+                img_fmt,
+                options.excluded_formulas_heading,
+            )
 
     def convert_images(self, parsed_document, base_path, img_dir, options):
         """Convert all formulas to images and store file path and equation in a

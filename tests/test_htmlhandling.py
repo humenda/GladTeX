@@ -223,7 +223,9 @@ class HtmlImageTest(unittest.TestCase):
         formula = '\\tau\\tau\gamma\delta' * 42
         img = htmlhandling.HtmlImageFormatter()
         formatted_img = img.format(self.pos, formula, 'foo.png')
-        sink.html_write_excluded_file(excl_filename, img.get_excluded())
+        sink.write_excluded_formulas(
+            img.get_excluded_formula_output(), img,
+        )
         external_file = read(excl_filename, 'r', encoding='utf-8')
         # find linked formula path
         href = re.search('href="(.*?)"', formatted_img)
@@ -254,6 +256,30 @@ class HtmlImageTest(unittest.TestCase):
         path, id = href.groups()[0].split('#')
         self.assertEqual(path, 'basepath/' + excl_filename)
         self.assertEqual(id, htmlhandling.ImageFormatter.EXCLUDED_ID_PREFIX + '000001')
+
+    def test_explicit_html_appended_output_uses_fragment_links(self):
+        formula = '\\tau\\tau\gamma\delta' * 42
+        img = htmlhandling.HtmlImageFormatter(
+            excluded_formula_output=sink.HtmlAppended(),
+        )
+        formatted_img = img.format(self.pos, formula, 'foo.png')
+        href = re.search('href="(.*?)"', formatted_img).groups()[0]
+        self.assertEqual(
+            href,
+            '#' + htmlhandling.ImageFormatter.EXCLUDED_ID_PREFIX + '000001',
+        )
+
+    def test_html_appended_can_be_initialised_with_target(self):
+        formula = '\\tau\\tau\gamma\delta' * 42
+        formatter = htmlhandling.HtmlImageFormatter(
+            excluded_formula_output=sink.HtmlAppended(),
+        )
+        formatter.format(self.pos, formula, 'foo.png')
+        out = io.StringIO()
+        sink.write_excluded_formulas(
+            sink.HtmlAppended(out), formatter, 'Excluded Formulas',
+        )
+        self.assertIn('<aside><h1>Excluded Formulas</h1>', out.getvalue())
 
     def test_identical_long_formulas_get_unique_excluded_labels(self):
         formula = '\\tau\\tau\gamma\delta' * 42
@@ -288,10 +314,37 @@ class HtmlImageTest(unittest.TestCase):
         img.format(self.pos, '\\tau' * 999, 'foo.png')
         img = htmlhandling.HtmlImageFormatter(exclusion_file_path=excl_filename)
         img.format(self.pos, '\\pi\\tau' * 666, 'foo_2.png')
-        sink.html_write_excluded_file(excl_filename, img.get_excluded())
+        sink.write_excluded_formulas(
+            img.get_excluded_formula_output(), img,
+        )
         data = read(excl_filename)
         self.assertTrue('\\tau' in data)
         self.assertTrue('\\pi' in data)
+
+    def test_write_html_embeds_excluded_formulas_for_explicit_output(self):
+        formatter = htmlhandling.HtmlImageFormatter(
+            excluded_formula_output=sink.HtmlAppended(),
+        )
+        out = io.StringIO()
+        htmlhandling.write_html(
+            out,
+            [
+                '<html><body><p>',
+                {
+                    'pos': self.pos,
+                    'formula': '\\tau' * 999,
+                    'path': 'foo.png',
+                    'displaymath': False,
+                },
+                '</p></body></html>',
+            ],
+            formatter,
+            'Excluded Formulas',
+        )
+        data = out.getvalue()
+        self.assertIn('<aside><h1>Excluded Formulas</h1>', data)
+        self.assertIn('id="gladtex-excl-000001"', data)
+        self.assertIn('href="#gladtex-img-gladtex-excl-000001"', data)
 
     def test_too_long_formulas_are_not_outsourced_if_not_configured(self):
         img = htmlhandling.HtmlImageFormatter('foo.html')

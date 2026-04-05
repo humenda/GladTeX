@@ -1,5 +1,8 @@
+import io
+import json
 from unittest import TestCase
 
+from gleetex import pandoc, sink
 from gleetex.pandoc import PandocAstImageFormatter as Formatter
 from gleetex.pandoc import ast
 
@@ -108,6 +111,60 @@ class PandocAstImageFormatterTest(TestCase):
         self.assertIn('39', ast)
         self.assertIn(formula[:20].replace('\\', '\\\\'), ast)
         self.assertIn(path, ast)
+
+    def test_explicit_pandoc_appended_output_uses_fragment_links(self):
+        ast_node = Formatter(
+            excluded_formula_output=sink.PandocAppended(),
+        ).format(
+            {'depth': 12, 'height': 1, 'width': 24},
+            r'\lambda x - q +' * 100,
+            'foo.png',
+        )
+        self.assertEqual(ast_node['c'][2][0], '#gladtex-excl-000001')
+
+    def test_pandoc_appended_can_be_initialised_with_target(self):
+        formula = r'\lambda x - q +' * 100
+        formatter = Formatter(excluded_formula_output=sink.PandocAppended())
+        formatter.format(
+            {'depth': 12, 'height': 1, 'width': 24}, formula, 'foo.png',
+        )
+        blocks = []
+        sink.write_excluded_formulas(
+            sink.PandocAppended(blocks), formatter, 'Excluded Formulas',
+        )
+        self.assertEqual(blocks[0]['c'][1], '<aside>')
+        self.assertEqual(blocks[-1]['c'][1], '</aside>')
+
+    def test_write_pandoc_ast_appends_excluded_formulas_for_explicit_output(self):
+        formula = r'\lambda x - q +' * 100
+        formatter = Formatter(excluded_formula_output=sink.PandocAppended())
+        ast_root = {
+            'pandoc-api-version': ast.SUPPORTED_AST_VERSION,
+            'meta': {},
+            'blocks': [
+                ast.Paragraph([ast.Math(formula)]).to_json(),
+            ],
+        }
+        formulas = [{
+            'pos': {'depth': 12, 'height': 1, 'width': 24},
+            'formula': formula,
+            'path': 'foo.png',
+            'displaymath': False,
+        }]
+        out = io.StringIO()
+        pandoc.write_pandoc_ast(
+            out, (ast_root, formulas), formatter, 'Excluded Formulas',
+        )
+        written_ast = json.loads(out.getvalue())
+        blocks = written_ast['blocks']
+        self.assertEqual(blocks[-4]['c'][1], '<aside>')
+        self.assertEqual(blocks[-3]['c'][2][0]['c'], 'Excluded Formulas')
+        self.assertEqual(blocks[-2]['c'][0]['c'][0][0], 'gladtex-excl-000001')
+        self.assertEqual(
+            blocks[-2]['c'][0]['c'][2][0],
+            '#gladtex-img-gladtex-excl-000001',
+        )
+        self.assertEqual(blocks[-1]['c'][1], '</aside>')
 
 
 class PandocAstTest(TestCase):
