@@ -1,3 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GladTeX"
+dynamic = ["version"]
+description = "Formula typesetting for the web using LaTeX"
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [
+  { name = "Sebastian Humenda", email = "shumenda@gmx.de" },
+]
+license = { text = "LGPL3.0" }
+urls = { Homepage = "https://humenda.github.io/GladTeX" }
+scripts = { gladtex = "gleetex.__main__:main" }
+
+[tool.setuptools.dynamic]
+version = { attr = "gleetex.VERSION" }
+
+[tool.setuptools.packages.find]
+include = ["gleetex*"]
+
 [tool.ruff]
 line-length = 88
 
