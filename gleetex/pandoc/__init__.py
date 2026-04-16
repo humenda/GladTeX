@@ -192,11 +192,11 @@ def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
 
     excluded_formula_output = formatter.get_excluded_formula_output()
     if excluded_formula_output.appends_to_document():
-        bound_excluded_formula_output = excluded_formula_output.bind_target(ast_blocks)
         sink.write_excluded_formulas(
-            bound_excluded_formula_output,
+            excluded_formula_output,
             formatter,
             excluded_formulas_heading,
+            target=ast_blocks,
         )
 
     file.write(json.dumps(ast))

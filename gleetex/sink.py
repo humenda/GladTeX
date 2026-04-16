@@ -62,24 +62,29 @@ class ExcludedFormulaOutput(ABC):
         return False
 
     def resolve_base_path(self, base_path):
-        """Return an output object resolved against `base_path`."""
+        """Return this output with relative file paths resolved to `base_path`."""
         return self
 
     def validate(self):
-        """Validate the configured output target."""
+        """Validate configuration that can be checked without document data."""
 
-    def bind_target(self, target):
-        """Return an output object bound to `target`."""
-        del target
-        return self
+    def get_exclusion_file_path(self):
+        """Return the external exclusion file path used by this output, if any."""
+        return None
 
     @abstractmethod
     def get_link_destination(self, excluded_label, link_prefix=''):
         """Return the link destination for `excluded_label`."""
 
     @abstractmethod
-    def write_excluded_formulas(self, formatter, excluded_formulas_heading=None):
-        """Write excluded formulas using this output configuration."""
+    def write_excluded_formulas(
+        self, formatter, excluded_formulas_heading=None, target=None
+    ):
+        """Write excluded formulas using this output configuration.
+
+        `target` is only used by outputs that append formulas to an existing
+        document or AST.
+        """
 
 
 class ExternalExcludedFormulaOutput(ExcludedFormulaOutput):
@@ -97,6 +102,7 @@ class HtmlOutput(ExcludedFormulaOutput):
     """Base class for excluded-formula outputs rendered as HTML."""
 
     def _render_html_entries(self, formatter, with_backlinks):
+        """Return rendered HTML snippets for the excluded formulas."""
         entries = []
         for label, formula in formatter.get_excluded().items():
             escaped_formula = html.escape(formula)
@@ -124,10 +130,15 @@ class HtmlExternalFile(HtmlOutput, ExternalExcludedFormulaOutput):
         return HtmlExternalFile(posixpath.join(base_path, self.exclusion_filename))
 
     def validate(self):
+        """Validate that an existing external exclusion file is writable."""
         if os.path.exists(self.exclusion_filename) and not os.access(
             self.exclusion_filename, os.W_OK,
         ):
             raise OSError(f'file {self.exclusion_filename} not writable')
+
+    def get_exclusion_file_path(self):
+        """Return the filename used for the external exclusion document."""
+        return self.exclusion_filename if self.exclusion_filename else None
 
     def get_link_destination(self, excluded_label, link_prefix=''):
         exclusion_filelink = posixpath.join(
@@ -135,8 +146,9 @@ class HtmlExternalFile(HtmlOutput, ExternalExcludedFormulaOutput):
         ) if link_prefix else self.exclusion_filename
         return f'{exclusion_filelink}#{excluded_label}'
 
-    def write_excluded_formulas(self, formatter, excluded_formulas_heading=None):
-        del excluded_formulas_heading
+    def write_excluded_formulas(
+        self, formatter, _excluded_formulas_heading=None, target=None
+    ):
         with open(self.exclusion_filename, 'w', encoding='UTF-8') as file:
             file.write(HTML_TEMPLATE_HEAD)
             file.write(self._render_html_entries(formatter, with_backlinks=False))
@@ -151,18 +163,17 @@ class HtmlAppended(HtmlOutput, AppendedExcludedFormulaOutput):
         super().__init__(SinkType.html_body)
         self.target = target
 
-    def bind_target(self, target):
-        return HtmlAppended(target)
-
-    def get_link_destination(self, excluded_label, link_prefix=''):
-        del link_prefix
+    def get_link_destination(self, excluded_label, _link_prefix=''):
         return f'#{excluded_label}'
 
-    def write_excluded_formulas(self, formatter, excluded_formulas_heading=None):
-        if self.target is None:
+    def write_excluded_formulas(
+        self, formatter, excluded_formulas_heading=None, target=None
+    ):
+        target = self.target if target is None else target
+        if target is None:
             raise ValueError('HtmlAppended requires a target before writing')
         heading = excluded_formulas_heading or 'Excluded Formulas'
-        self.target.write(
+        target.write(
             f'<aside><h1>{heading}</h1>\n'
             f'{self._render_html_entries(formatter, with_backlinks=True)}'
             '</aside>'
@@ -181,15 +192,14 @@ class PandocAppended(PandocOutput, AppendedExcludedFormulaOutput):
         super().__init__(SinkType.json_file)
         self.target = target
 
-    def bind_target(self, target):
-        return PandocAppended(target)
-
-    def get_link_destination(self, excluded_label, link_prefix=''):
-        del link_prefix
+    def get_link_destination(self, excluded_label, _link_prefix=''):
         return f'#{excluded_label}'
 
-    def write_excluded_formulas(self, formatter, excluded_formulas_heading=None):
-        if self.target is None:
+    def write_excluded_formulas(
+        self, formatter, excluded_formulas_heading=None, target=None
+    ):
+        target = self.target if target is None else target
+        if target is None:
             raise ValueError('PandocAppended requires a target before writing')
         from .pandoc.ast import (
             Heading,
@@ -213,7 +223,7 @@ class PandocAppended(PandocOutput, AppendedExcludedFormulaOutput):
             for label, formula in formatter.get_excluded().items()
         ]
 
-        self.target.extend([block.to_json() for block in (
+        target.extend([block.to_json() for block in (
             RawBlock(RawFormat.HTML, "<aside>"),
             Heading([InlineText(heading)], level=1),
             *formula_paragraphs,
@@ -276,14 +286,16 @@ def _write_excluded_formulas_legacy(
     return None
 
 
-def write_excluded_formulas(output, *args):
+def write_excluded_formulas(output, *args, target=None):
     """Write excluded formulas using either the legacy or the output-object API.
 
     Legacy signature:
         write_excluded_formulas(sink_type, exclusion_filename, formulas)
 
     Preferred signature:
-        write_excluded_formulas(output, formatter, excluded_formulas_heading=None)
+        write_excluded_formulas(
+            output, formatter, excluded_formulas_heading=None, target=None
+        )
     """
     if isinstance(output, SinkType):
         if len(args) != 2:
@@ -303,5 +315,7 @@ def write_excluded_formulas(output, *args):
     excluded_formulas_heading = args[1] if len(args) == 2 else None
     if not formatter.get_excluded():
         return None
-    output.write_excluded_formulas(formatter, excluded_formulas_heading)
+    output.write_excluded_formulas(
+        formatter, excluded_formulas_heading, target=target,
+    )
     return None

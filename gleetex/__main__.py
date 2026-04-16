@@ -384,10 +384,7 @@ class Main:
                     file, processed, img_fmt, options.excluded_formulas_heading,
                 )
 
-        if (
-            not excluded_formula_output.appends_to_document()
-            and img_fmt.get_excluded()
-        ):
+        if not excluded_formula_output.appends_to_document() and img_fmt.get_excluded():
             sink.write_excluded_formulas(
                 excluded_formula_output,
                 img_fmt,

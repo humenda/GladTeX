@@ -24,7 +24,6 @@ from . import typesetting
 # match HTML 4 and 5
 CHARSET_PATTERN = re.compile(
     rb'(?:content="text/html; charset=(.*?)"|charset="(.*?)")')
-_UNSET = object()
 
 
 class ParseException(Exception):
@@ -284,9 +283,9 @@ class ImageFormatter:  # ToDo: localisation
     *   `base_path=""`: base path where images are stored, e.g. "images"
     *   `link_prefix=""`: a prefix which should be added to generated links, e.g.
         `"https://example.com/img/"`
-    *   `exclusion_file_path=""`: backward-compatible shorthand for the output
-        used for excluded formulas; `None` indicates formulas should be
-        appended to the current document
+    *   `exclusion_file_path=""`: backward-compatible shorthand describing
+        where excluded formulas are written; `None` keeps the historic
+        "append to the current document" behaviour
     *   `excluded_formula_output`: explicit output abstraction used for
         excluded formulas
     *   `is_epub`: round height/width of the linked images to comply with the
@@ -309,7 +308,7 @@ class ImageFormatter:  # ToDo: localisation
     EXCLUDED_ID_PREFIX = 'gladtex-excl-'
 
     def __init__(self, base_path=None, link_prefix='',
-                 exclusion_file_path=_UNSET, is_epub=False,
+                 exclusion_file_path=sink.EXCLUSION_FILE_NAME, is_epub=False,
                  excluded_formula_output=None):
         self.__inline_maxlength = 100
         self._excluded_formulas = collections.OrderedDict()
@@ -321,39 +320,34 @@ class ImageFormatter:  # ToDo: localisation
         self._link_prefix = link_prefix if link_prefix else ''
         base_path = ("" if not base_path else base_path)
         self._excluded_formula_output = self._normalise_excluded_formula_output(
-            base_path, excluded_formula_output, exclusion_file_path,
+            base_path, exclusion_file_path, excluded_formula_output,
         )
         self._excluded_formula_output.validate()
 
     @abstractmethod
     def _default_appended_excluded_formula_output(self):
-        """Return the explicit output used for appended excluded formulas."""
+        """Return the appended output used for `exclusion_file_path=None`.
+
+        This keeps the legacy constructor argument working while allowing
+        callers to pass an explicit excluded-formula output object.
+        """
 
     def _normalise_excluded_formula_output(
-        self, base_path, excluded_formula_output, exclusion_file_path
+        self, base_path, exclusion_file_path, excluded_formula_output
     ):
-        if (
-            excluded_formula_output is not None
-            and exclusion_file_path is not _UNSET
-        ):
-            raise ValueError(
-                '`excluded_formula_output` and `exclusion_file_path` '
-                'cannot be used together',
-            )
-
         if excluded_formula_output is None:
-            if exclusion_file_path is _UNSET:
-                excluded_formula_output = sink.HtmlExternalFile(
-                    sink.EXCLUSION_FILE_NAME,
-                )
-            elif exclusion_file_path is None:
-                excluded_formula_output = (
+            if exclusion_file_path is None:
+                excluded_formula_output = \
                     self._default_appended_excluded_formula_output()
-                )
             else:
                 excluded_formula_output = sink.HtmlExternalFile(
                     exclusion_file_path,
                 )
+        elif exclusion_file_path != sink.EXCLUSION_FILE_NAME:
+            raise ValueError(
+                '`excluded_formula_output` and `exclusion_file_path` '
+                'cannot be combined with a non-default exclusion file path',
+            )
 
         return excluded_formula_output.resolve_base_path(base_path)
 
@@ -362,13 +356,7 @@ class ImageFormatter:  # ToDo: localisation
 
         May be None.
         """
-        output = self.get_excluded_formula_output()
-        if (
-            isinstance(output, sink.ExternalExcludedFormulaOutput)
-            and hasattr(output, 'exclusion_filename')
-        ):
-            return output.exclusion_filename if output.exclusion_filename else None
-        return None
+        return self.get_excluded_formula_output().get_exclusion_file_path()
 
     def get_excluded_formula_output(self):
         """Return the configured output abstraction for excluded formulas."""
@@ -584,9 +572,11 @@ def write_html(file, document, formatter, excluded_formulas_heading):
             # Write the rest of the body.
             file.write(chunk[: match.span()[0]])
 
-            bound_excluded_formula_output = excluded_formula_output.bind_target(file)
             sink.write_excluded_formulas(
-                bound_excluded_formula_output, formatter, excluded_formulas_heading,
+                excluded_formula_output,
+                formatter,
+                excluded_formulas_heading,
+                target=file,
             )
 
             # Write the rest of the document.
@@ -596,7 +586,9 @@ def write_html(file, document, formatter, excluded_formulas_heading):
 
     if match is None and embed_excluded_formulas:
         # Malformed document with no `</body>`, just append the excluded formulas.
-        bound_excluded_formula_output = excluded_formula_output.bind_target(file)
         sink.write_excluded_formulas(
-            bound_excluded_formula_output, formatter, excluded_formulas_heading,
+            excluded_formula_output,
+            formatter,
+            excluded_formulas_heading,
+            target=file,
         )
