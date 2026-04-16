@@ -18,21 +18,17 @@ It works in these parsses:
 """
 
 import json
-import posixpath
 
+from .. import sink
 from ..htmlhandling import ImageFormatter
 from .ast import (
     Div,
-    Heading,
-    InlineCode,
     InlineImage,
     InlineLink,
     InlineText,
     Math,
     MathType,
     Paragraph,
-    RawBlock,
-    RawFormat,
     Span,
     ast_root_blocks,
     foreach_element,
@@ -172,27 +168,6 @@ def _promote_display_error_placeholders(ast):
 
     traverse(ast)
 
-
-def _generate_excluded_formula_blocks(formatter, excluded_formulas_heading):
-    """Return the `<aside>` section Pandoc AST blocks with all excluded formulas."""
-    formula_paragraphs = [
-        Paragraph([
-            InlineLink(
-                [InlineCode(formula)],
-                url=f"#{formatter.get_excluded_image_anchor_id(label)}",
-                id=label,
-            ),
-        ])
-        for label, formula in formatter.get_excluded().items()
-    ]
-
-    return [block.to_json() for block in (
-        RawBlock(RawFormat.HTML, "<aside>"),
-        Heading([InlineText(excluded_formulas_heading)], level=1),
-        *formula_paragraphs,
-        RawBlock(RawFormat.HTML, "</aside>"),
-    )]
-
 def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
     """Replace `Math` elements from a Pandoc AST with the formatted elements.
 
@@ -206,8 +181,8 @@ def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
     `PandocJsonAstParseError` or a `UnsupportedPandocJsonAstVersionError` is
     raised, respectively.
 
-    If the value returned by `formatter.get_exclusion_file_path()` is
-    `None` and there are excluded formulas, the excluded formulas will
+    If the formatter uses an appended excluded-formula output and there
+    are excluded formulas, they will
     be embedded at the end of the document in an HTML `<aside>` element
     with the heading `excluded_formulas_heading`.
     """
@@ -215,9 +190,13 @@ def write_pandoc_ast(file, document, formatter, excluded_formulas_heading):
     ast_blocks = ast_root_blocks(ast)
     replace_formulas_in_ast(formatter, ast_blocks, formulas)
 
-    if formatter.get_exclusion_file_path() is None and formatter.get_excluded():
-        ast_blocks.extend(
-            _generate_excluded_formula_blocks(formatter, excluded_formulas_heading)
+    excluded_formula_output = formatter.get_excluded_formula_output()
+    if excluded_formula_output.appends_to_document():
+        sink.write_excluded_formulas(
+            excluded_formula_output,
+            formatter,
+            excluded_formulas_heading,
+            target=ast_blocks,
         )
 
     file.write(json.dumps(ast))
@@ -229,11 +208,8 @@ class PandocAstImageFormatter(ImageFormatter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _generate_link_destination(self, excluded_label):
-        exclusion_filelink = posixpath.join(
-            self._link_prefix, self._exclusion_filepath,
-        ) if self._exclusion_filepath is not None else ''
-        return f'{exclusion_filelink}#{excluded_label}'
+    def _default_appended_excluded_formula_output(self):
+        return sink.PandocAppended()
 
     def format_internal(self, image, full_formula, link_label=None, image_id=None):
         ast_node = InlineImage(
